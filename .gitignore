@@ -1,0 +1,20 @@
+# Repos de referencia (baixados pelo bootstrap)
+external/
+
+# Grafo de conhecimento
+graphify-out/
+
+# Mapa XML do RepoMix
+repomix-output.xml
+
+# Node
+node_modules/
+
+# Python
+.venv/
+venv/
+__pycache__/
+
+# SO
+.DS_Store
+Thumbs.db
