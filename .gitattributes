@@ -1,0 +1,19 @@
+# Preserve LF line endings for text files (prevents CRLF conversion on Windows)
+*.md          text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.json        text eol=lf
+*.jsonc       text eol=lf
+*.sh          text eol=lf
+*.ps1         text eol=crlf
+
+# Binary files
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.ico         binary
+*.pdf         binary
+
+# Environment
+.env.example  text eol=lf

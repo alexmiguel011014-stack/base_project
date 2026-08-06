@@ -15,6 +15,17 @@ node_modules/
 venv/
 __pycache__/
 
-# SO
+# Environment
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+*.log
+
+# OS
 .DS_Store
 Thumbs.db
