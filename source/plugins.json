@@ -1,0 +1,98 @@
+{
+  "_managed_by": "base_project",
+  "_note": "Optional catalog read by the /plugins command. Add entries here to extend the catalog — no code changes needed elsewhere. Re-run the installer after editing to sync.",
+  "catalog": [
+    {
+      "id": "playwright",
+      "name": "Playwright MCP",
+      "kind": "mcp",
+      "summary": "Drives a real browser via natural language, using the accessibility tree (no vision model, no screenshots). Good for validating UI changes end-to-end.",
+      "recommend_if": "package.json depends on react/vue/svelte/next/nuxt/angular, or the project has an index.html / vite.config / webpack.config — i.e. it has a frontend to click through.",
+      "source": "https://playwright.dev/mcp/introduction",
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@playwright/mcp@latest"] },
+      "opencode": { "command": "npx", "args": ["-y", "@playwright/mcp@latest"] }
+    },
+    {
+      "id": "supabase",
+      "name": "Supabase MCP",
+      "kind": "mcp",
+      "summary": "Lets the agent manage tables, run SQL, and read project config directly against a Supabase project.",
+      "recommend_if": "package.json/requirements has a supabase dependency, or a supabase/ folder with config.toml exists.",
+      "source": "https://supabase.com/docs/guides/ai-tools/mcp",
+      "requires_input": ["SUPABASE_ACCESS_TOKEN (personal access token, from the Supabase dashboard)", "project-ref (from the project URL)"],
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } },
+      "opencode": { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } }
+    },
+    {
+      "id": "postgres",
+      "name": "Postgres MCP",
+      "kind": "mcp",
+      "summary": "Query and inspect a local/remote Postgres database directly from the agent.",
+      "recommend_if": "package.json/requirements has pg/psycopg/prisma-with-postgres, or a DATABASE_URL pointing at postgres:// is set in .env.",
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres", "<connection-string>"] },
+      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres", "<connection-string>"] }
+    },
+    {
+      "id": "sqlite",
+      "name": "SQLite MCP",
+      "kind": "mcp",
+      "summary": "Query and inspect a local SQLite database file directly from the agent.",
+      "recommend_if": "A .sqlite/.db file exists in the project, or package.json depends on better-sqlite3/sqlite3.",
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] },
+      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] }
+    },
+    {
+      "id": "strix",
+      "name": "Strix",
+      "kind": "cli",
+      "summary": "Autonomous AI pentest agent — explores, exploits, and proves vulnerabilities with working PoCs instead of a static scan list. Runs sandboxed in Docker. Used by /audit when installed.",
+      "recommend_if": "The project handles auth, payments, or user data, or the user wants deeper coverage than npm audit / gitleaks for /audit.",
+      "source": "https://github.com/usestrix/strix",
+      "requires": ["Docker running locally"],
+      "install": { "command": "pip", "args": ["install", "strix-agent"] }
+    },
+    {
+      "id": "skill-ui",
+      "name": "Skill UI bundle (frontend-design + baseline-ui)",
+      "kind": "skill",
+      "summary": "Design-quality skills: /frontend-design generates a real design direction instead of a generic template, /baseline-ui strips 'agent UI slop' (spacing, typography, states), /fixing-accessibility covers keyboard/labels/focus.",
+      "recommend_if": "The project has a UI you're actively designing (frontend framework detected, or the user is asking for visual/design work).",
+      "source": "https://claudemarketplaces.com/skills/anthropics/skills/frontend-design",
+      "claude_only": true,
+      "manual": true,
+      "claude": { "instruction": "/plugin install frontend-design@claude-plugins-official" }
+    },
+    {
+      "id": "headroom",
+      "name": "Headroom",
+      "kind": "cli",
+      "summary": "Context-compression layer: shrinks tool outputs, logs, and JSON before they hit the model. Reports ~20% fewer tokens for coding agents, 60-95% for JSON responses — reinforces base_project's own token-economy rules.",
+      "recommend_if": "Universal — helps on any project, most on ones with noisy tool output (large JSON APIs, verbose logs, big files).",
+      "source": "https://github.com/headroomlabs-ai/headroom",
+      "install": { "command": "pip", "args": ["install", "headroom-ai[all]"] }
+    },
+    {
+      "id": "codeburn",
+      "name": "CodeBurn",
+      "kind": "cli",
+      "summary": "Local dashboard for AI coding token/cost usage across Claude Code, Codex, Cursor, and opencode. No API key, reads local session data. Run on demand, no persistent install needed.",
+      "recommend_if": "Universal — anyone who wants visibility into what their AI coding sessions actually cost.",
+      "source": "https://github.com/getagentseal/codeburn",
+      "install": { "command": "npx", "args": ["codeburn"], "note": "runs on demand, nothing to install persistently" }
+    },
+    {
+      "id": "ponytail",
+      "name": "Ponytail",
+      "kind": "skill",
+      "summary": "Injects a 'laziest senior dev' discipline: prefers the zero-code / standard-library solution over writing new code. Independently reported to cut ~54% of code volume in tests. Overlaps in spirit with base_project's own coder agent — treat as reinforcement, not replacement.",
+      "recommend_if": "Universal, opt-in for anyone who wants a stronger anti-overengineering bias than the default coder agent already provides.",
+      "source": "https://github.com/DietrichGebert/ponytail",
+      "claude": { "command": "npx", "args": ["-y", "skills", "add", "DietrichGebert/ponytail", "-g", "-a", "claude-code", "-y"] },
+      "opencode": {
+        "command": "npx",
+        "args": ["-y", "skills", "add", "DietrichGebert/ponytail", "-g", "-a", "opencode", "-y"],
+        "note": "lands in ~/.agents/skills/ — also copy the ponytail* folders into ~/.config/opencode/skills/ afterward so opencode (which reads skills from its own confirmed skills/ dir) definitely picks them up. The 'opencode-ponytail' npm package is deprecated, do not use it."
+      }
+    }
+  ]
+}
