@@ -286,6 +286,14 @@ for f in "$DASHBOARD_SRC_DIR"/*.js; do
 done
 sync_managed "$DASHBOARD_SRC_DIR/opencode-usage-logger.js" "$OPENCODE_PLUGINS_DIR/opencode-usage-logger.js"
 
+# ---------------------------------------------------------------------
+# 9. Record the repo path so the dashboard can check for updates later
+# ---------------------------------------------------------------------
+STATE_DIR="$HOME/.base_project"
+mkdir -p "$STATE_DIR"
+printf '%s' "$REPO_ROOT" > "$STATE_DIR/repo-path.txt"
+ok "recorded repo path for update checks: $REPO_ROOT"
+
 echo ""
 echo -e "\033[32mbase_project installed. Open any project - Claude Code and opencode now load these rules automatically.\033[0m"
 echo -e "\033[32mNothing was written inside any project repository.\033[0m"

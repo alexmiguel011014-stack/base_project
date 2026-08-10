@@ -13,3 +13,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# graphify output (generated locally by `graphify update .`, not part of the repo)
+graphify-out/

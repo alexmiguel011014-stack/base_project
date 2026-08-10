@@ -63,6 +63,28 @@
       "claude": { "instruction": "/plugin install frontend-design@claude-plugins-official" }
     },
     {
+      "id": "mcp-builder",
+      "name": "MCP Builder (Anthropic official)",
+      "kind": "skill",
+      "summary": "Structured 4-phase guide (research, implementation, review, evaluation) for building high-quality MCP servers, with language-specific guidance for TypeScript and Python.",
+      "recommend_if": "You need to build a custom MCP server (no ready-made one covers the API/service you need) instead of just consuming one of the servers base_project already registers.",
+      "source": "https://github.com/anthropics/skills/blob/main/skills/mcp-builder/SKILL.md",
+      "claude_only": true,
+      "manual": true,
+      "claude": { "instruction": "/plugin marketplace add anthropics/skills" }
+    },
+    {
+      "id": "webapp-testing",
+      "name": "Webapp Testing (Anthropic official)",
+      "kind": "skill",
+      "summary": "Playwright-based toolkit for testing local web apps: UI functionality checks, screenshots, console log capture, and a decision tree for static vs dynamic testing. Complements the Playwright MCP already in this catalog.",
+      "recommend_if": "The project has a frontend you want automated end-to-end checks on, beyond what the Playwright MCP alone gives you.",
+      "source": "https://github.com/anthropics/skills/blob/main/skills/webapp-testing/SKILL.md",
+      "claude_only": true,
+      "manual": true,
+      "claude": { "instruction": "/plugin marketplace add anthropics/skills" }
+    },
+    {
       "id": "headroom",
       "name": "Headroom",
       "kind": "cli",
@@ -79,6 +101,17 @@
       "recommend_if": "Universal — anyone who wants visibility into what their AI coding sessions actually cost.",
       "source": "https://github.com/getagentseal/codeburn",
       "install": { "command": "npx", "args": ["codeburn"], "note": "runs on demand, nothing to install persistently" }
+    },
+    {
+      "id": "ruflo",
+      "name": "Ruflo",
+      "kind": "mcp",
+      "summary": "Multi-agent orchestration meta-harness: ~98 specialized agents, swarm topologies (mesh/hierarchical/adaptive), and persistent HNSW vector memory that learns from past coordination. Heavier than everything else in this catalog — it's infrastructure, not a single skill.",
+      "recommend_if": "You regularly parallelize real dev work across many agents (multi-service refactors, large migrations) and want persistent cross-session memory, not just base_project's built-in architect/coder/reviewer trio.",
+      "source": "https://github.com/ruvnet/ruflo",
+      "requires_input": ["Review resource/cost implications before installing — it registers its own MCP server and maintains its own vector DB."],
+      "claude": { "scope": "user", "instruction": "claude mcp add ruflo -- npx ruflo@latest mcp start" },
+      "opencode": { "instruction": "npx ruflo@latest init wizard", "note": "Ruflo's opencode support is less mature than its Claude Code integration — verify before relying on it." }
     },
     {
       "id": "ponytail",

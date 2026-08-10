@@ -353,6 +353,14 @@ Get-ChildItem $dashboardSrcDir -Filter *.js | Where-Object { $_.Name -ne 'openco
 }
 Sync-Managed -SrcFile (Join-Path $dashboardSrcDir "opencode-usage-logger.js") -DestFile (Join-Path $opencodePluginsDir "opencode-usage-logger.js")
 
+# ---------------------------------------------------------------------
+# 9. Record the repo path so the dashboard can check for updates later
+# ---------------------------------------------------------------------
+$stateDir = Join-Path $HOME ".base_project"
+New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
+Write-Utf8NoBom -Path (Join-Path $stateDir "repo-path.txt") -Content $repoRoot
+Write-Ok "recorded repo path for update checks: $repoRoot"
+
 Write-Host ""
 Write-Host "base_project installed. Open any project - Claude Code and opencode now load these rules automatically." -ForegroundColor Green
 Write-Host "Nothing was written inside any project repository." -ForegroundColor Green
