@@ -1,13 +1,4 @@
-# Repos de referencia (baixados pelo bootstrap)
-external/
-
-# Grafo de conhecimento
-graphify-out/
-
-# Mapa XML do RepoMix
-repomix-output.xml
-
-# Node
+# Node (only relevant if you run npm scripts while developing base_project itself)
 node_modules/
 
 # Python
@@ -15,16 +6,9 @@ node_modules/
 venv/
 __pycache__/
 
-# Environment
+# Local secrets used only for testing the installer — never committed
 .env
 .env.local
-
-# Build artifacts
-dist/
-build/
-
-# Logs
-*.log
 
 # OS
 .DS_Store
