@@ -11,10 +11,10 @@ git clone https://github.com/alexmiguel011014-stack/base_project.git
 cd base_project
 
 # Windows
-powershell -File install.ps1
+powershell -File scripts/install.ps1
 
 # Mac / Linux
-bash install.sh
+bash scripts/install.sh
 ```
 
 That's it. Open any project — nothing else to configure per-project.
@@ -28,6 +28,7 @@ It's safe to run repeatedly — it only touches the file blocks it manages.
 flowchart LR
     subgraph BP["base_project (this repo)"]
         S["source/"]
+        I["scripts/install.ps1 / install.sh"]
     end
     subgraph GLOBAL["Your machine"]
         C["~/.claude<br/>agents, commands, CLAUDE.md block"]
@@ -37,8 +38,9 @@ flowchart LR
         P["No extra files.<br/>Nothing to commit."]
     end
 
-    S -->|install.ps1 / install.sh| C
-    S -->|install.ps1 / install.sh| O
+    S --> I
+    I --> C
+    I --> O
     C -. read automatically by Claude Code .-> PROJ
     O -. read automatically by opencode .-> PROJ
 ```
@@ -61,7 +63,7 @@ the project itself, generated on demand by the `/bootstrap` command.
 | `source/claude/commands/*.md` | `~/.claude/commands/` | `/bootstrap`, `/audit`, `/plugins`, `/council`, `/dashboard` |
 | `source/opencode/agent/*.md` | `~/.config/opencode/agent/` | Same trio, opencode format |
 | `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format |
-| `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered with `claude mcp add` | Context7, GitHub, filesystem, git, Brave Search (always on) |
+| `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered with `claude mcp add` | Context7, GitHub, filesystem, git (always on) |
 | `source/plugins.json` | `~/.claude/base_project/plugins.json` and `~/.config/opencode/base_project/plugins.json` | Optional plugin catalog, read by `/plugins` |
 | `source/dashboard/*.js` | `~/.claude/base_project/dashboard/`, `~/.config/opencode/base_project/dashboard/`, `~/.config/opencode/plugins/` | Usage-tracking hook/plugin, local live server, launcher |
 
@@ -110,13 +112,13 @@ recommends and why, and asks before installing anything.
 you> /plugins
 ai > This looks like a Next.js + Supabase project.
      Recommended: Supabase MCP, Playwright MCP.
-     Also in the catalog: Strix, Headroom, CodeBurn, Ponytail, Skill UI bundle, Postgres MCP, SQLite MCP.
+     Also in the catalog: Strix, Headroom, Ponytail, Skill UI bundle, Postgres MCP, SQLite MCP.
      Install the recommended two, more, or none?
 ```
 
 Currently cataloged: **Playwright MCP**, **Supabase MCP**, **Postgres MCP**, **SQLite MCP**, **Strix**
 (AI pentest agent), **Skill UI bundle** (frontend-design + baseline-ui), **Headroom** (context
-compression), **CodeBurn** (token/cost dashboard), **Ponytail** (anti-overengineering discipline).
+compression), **Ponytail** (anti-overengineering discipline).
 
 **Claude Code vs. opencode:** Claude Code supports `claude mcp add --scope local`, which enables an MCP
 server for one project only — nothing is written into that project's repo. opencode has no equivalent
@@ -147,8 +149,8 @@ Both scripts accept overrides so you can dry-run into a scratch directory:
 
 ```sh
 # PowerShell
-powershell -File install.ps1 -ClaudeHome C:\temp\fake-claude -OpencodeHome C:\temp\fake-opencode
+powershell -File scripts/install.ps1 -ClaudeHome C:\temp\fake-claude -OpencodeHome C:\temp\fake-opencode
 
 # bash
-CLAUDE_HOME=/tmp/fake-claude OPENCODE_HOME=/tmp/fake-opencode bash install.sh
+CLAUDE_HOME=/tmp/fake-claude OPENCODE_HOME=/tmp/fake-opencode bash scripts/install.sh
 ```

@@ -22,11 +22,10 @@ const CATALOG_PATHS = [
   path.join(HOME, ".config", "opencode", "base_project", "plugins.json"),
 ];
 const PORT = process.env.BASE_PROJECT_DASHBOARD_PORT || 4317;
-const CODEBURN_TTL_MS = 60 * 1000;
 const UPDATE_CHECK_TTL_MS = 5 * 60 * 1000;
 
 // Built-in tools that are always considered "installed" (not part of the optional catalog).
-const CORE_PLUGIN_IDS = ["context7", "filesystem", "git", "github", "brave-search", "graphify", "codeburn"];
+const CORE_PLUGIN_IDS = ["context7", "filesystem", "git", "github", "graphify"];
 
 // Commands base_project ships out of the box (source/claude/commands, source/opencode/command).
 // Not part of plugins.json since they're not opt-in — always present after install, so they're
@@ -93,6 +92,28 @@ function commandExistsSync(cmd) {
   }
 }
 
+// `claude plugin list --json` gives real installed-plugin state — cheap enough
+// (local read of ~/.claude/plugins cache, no network) to call on every setup
+// check rather than caching it.
+function installedClaudePlugins() {
+  const { execFileSync } = require("child_process");
+  try {
+    // shell:true is required on Windows — `claude` resolves to a .cmd shim that
+    // execFileSync can't spawn directly without it (confirmed: fails with ENOENT
+    // otherwise, even with claude on PATH). Args are fixed literals, not user
+    // input, so there's nothing here for shell interpolation to expose.
+    const raw = execFileSync("claude", ["plugin", "list", "--json"], {
+      timeout: 5000,
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    });
+    const list = JSON.parse(raw);
+    return new Set(list.map((p) => String(p.id || "").split("@")[0]));
+  } catch {
+    return null; // claude CLI missing, or plugin subsystem unavailable — fall back to "unknown"
+  }
+}
+
 function runSetupCheck() {
   const items = [];
 
@@ -118,20 +139,6 @@ function runSetupCheck() {
     // not installed yet — nothing to check
   }
   if (mcpConfig && mcpConfig.mcpServers) {
-    const brave = mcpConfig.mcpServers["brave-search"];
-    const braveOk = !brave || !JSON.stringify(brave).includes("YOUR_BRAVE_API_KEY");
-    items.push({
-      id: "brave-search-key",
-      ok: braveOk,
-      title: "Chave da Brave Search API",
-      reason: "O MCP brave-search está registrado mas com um placeholder no lugar da chave real.",
-      steps: braveOk ? [] : [
-        "Crie uma chave gratuita em https://brave.com/search/api/",
-        "Edite " + MCP_JSON_PATH + " e troque YOUR_BRAVE_API_KEY pela chave.",
-        "Registre no Claude Code: claude mcp add --scope user brave-search -e BRAVE_API_KEY=<sua-chave> -- npx -y @modelcontextprotocol/server-brave-search",
-      ],
-    });
-
     const github = mcpConfig.mcpServers["github"];
     const githubOk = !github || !JSON.stringify(github).includes("YOUR_GITHUB_TOKEN");
     items.push({
@@ -147,21 +154,47 @@ function runSetupCheck() {
     });
   }
 
-  // 3. Skills that only install via a chat-typed /plugin command — Claude Code
-  // blocks any CLI/API bypass of this by design (installs execute third-party
-  // code), and there's no reliable way to read back "already installed" state,
-  // so these are always listed as a standing reminder rather than detected.
+  // 3. Skills installed as Claude Code plugins. Installing itself still requires
+  // the user to run the command directly (third-party code, human confirmation
+  // by design — no CLI/API bypass), but whether it's ALREADY installed can be
+  // read back via `claude plugin list --json`, so these are only shown when
+  // genuinely missing rather than as a standing reminder.
+  const installedPlugins = installedClaudePlugins(); // null if undetectable
+  // `id` = plugins.json catalog id (what the rest of the dashboard/detection uses);
+  // `pluginName` = the actual installed Claude Code plugin name from `claude plugin
+  // list --json` (can differ from the catalog id — e.g. catalog's "skill-ui" bundle
+  // installs as the plugin literally named "frontend-design").
   const manualPlugins = [
-    { id: "skill-ui", title: "Skill UI bundle (frontend-design)", command: "/plugin install frontend-design@claude-plugins-official" },
-    { id: "mcp-builder", title: "MCP Builder + Webapp Testing (Anthropic oficial)", command: "/plugin marketplace add anthropics/skills" },
+    {
+      id: "skill-ui",
+      pluginName: "frontend-design",
+      title: "Skill UI — frontend-design",
+      steps: [
+        "No terminal (não funciona como /plugin dentro do chat nesta instalação): claude plugin marketplace add anthropics/claude-code",
+        "claude plugin install frontend-design@claude-code-plugins",
+      ],
+    },
+    {
+      id: "example-skills",
+      pluginName: "example-skills",
+      title: "Anthropic Example Skills (mcp-builder + webapp-testing)",
+      steps: [
+        "No terminal: claude plugin marketplace add anthropics/skills",
+        "claude plugin install example-skills@anthropic-agent-skills",
+      ],
+    },
   ];
   for (const p of manualPlugins) {
+    const ok = installedPlugins ? installedPlugins.has(p.pluginName) : null;
+    if (ok) continue; // already installed — don't clutter the pending list
     items.push({
       id: p.id,
-      ok: null, // unknown — can't be verified, always shown as a reminder
+      ok,
       title: p.title,
-      reason: "Esses comandos só podem ser digitados por você no chat do Claude Code — instalam código de terceiros, então a confirmação humana é obrigatória por design. Não há como automatizar isso.",
-      steps: ["Digite exatamente isto numa mensagem no chat: " + p.command],
+      reason: installedPlugins === null
+        ? "Não foi possível checar plugins instalados (CLI claude indisponível) — status desconhecido."
+        : "Instala código de terceiros, então a confirmação humana é obrigatória por design. Rode os comandos abaixo num terminal (não como /plugin dentro do chat).",
+      steps: p.steps,
     });
   }
 
@@ -301,67 +334,6 @@ function watchLog() {
   });
 }
 
-// --- CodeBurn (token/cost usage) ------------------------------------------
-// codeburn export can take a few seconds and shouldn't run on every page load,
-// so results are cached briefly and refreshed in the background.
-let codeburnCache = { data: null, fetchedAt: 0, fetching: false };
-
-function fetchCodeburn() {
-  if (codeburnCache.fetching) return;
-  codeburnCache.fetching = true;
-  const tmpFile = path.join(os.tmpdir(), `base_project-codeburn-${process.pid}.json`);
-  try {
-    execFile(
-      "npx",
-      ["-y", "codeburn", "export", "-f", "json", "--output", tmpFile],
-      { timeout: 30000, shell: process.platform === "win32" },
-      (err) => {
-        codeburnCache.fetching = false;
-        if (err) return; // codeburn not installed / no data yet — leave cache as-is
-        try {
-          const raw = JSON.parse(fs.readFileSync(tmpFile, "utf8"));
-          codeburnCache = { data: raw, fetchedAt: Date.now(), fetching: false };
-        } catch {
-          // ignore malformed/missing export
-        } finally {
-          fs.unlink(tmpFile, () => {});
-        }
-      },
-    );
-  } catch {
-    // spawn itself can throw synchronously (e.g. EINVAL) rather than call back —
-    // never let a codeburn hiccup take the whole dashboard server down.
-    codeburnCache.fetching = false;
-  }
-}
-
-function codeburnForProject(projectPath) {
-  if (!codeburnCache.data) return null;
-  const target = normalizeProjectPath(projectPath);
-  const row = (codeburnCache.data.projects || []).find(
-    (p) => normalizeProjectPath(p.Project) === target,
-  );
-  return row || null;
-}
-
-// Per-day cost/calls for one project, built from the raw per-record export
-// (the top-level `daily` block in codeburn's export is global, not per-project).
-function codeburnDailySeriesForProject(projectPath) {
-  if (!codeburnCache.data || !Array.isArray(codeburnCache.data.records)) return [];
-  const target = normalizeProjectPath(projectPath);
-  const byDay = new Map();
-  for (const r of codeburnCache.data.records) {
-    if (normalizeProjectPath(r.project) !== target) continue;
-    const day = (r.timestamp || "").slice(0, 10);
-    if (!day) continue;
-    const entry = byDay.get(day) || { date: day, cost: 0, calls: 0 };
-    entry.cost += r.cost || 0;
-    entry.calls += 1;
-    byDay.set(day, entry);
-  }
-  return [...byDay.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
-}
-
 // --- Graphify (code graph viz) ---------------------------------------------
 function graphifyStatusForProject(projectPath) {
   if (!projectPath) return { available: false };
@@ -400,6 +372,9 @@ const PAGE = `<!doctype html>
     --good: #0ca30c; --warn: #c98500; --bad: #d34040;
     --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
     --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --duration-fast: 0.12s;
+    --duration-base: 0.2s;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -448,15 +423,16 @@ const PAGE = `<!doctype html>
 
   /* Sidebar: a drawer anchored to the top-left, sliding in left-to-right. */
   .sidebar-backdrop {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 60;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 60;
+    opacity: 0; pointer-events: none; transition: opacity var(--duration-base) var(--ease-standard);
   }
-  .sidebar-backdrop.open { display: block; }
+  .sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
   .sidebar {
     position: fixed; top: 0; left: 0; height: 100vh; width: 300px; max-width: 85vw;
     background: var(--surface-1); border-right: 1px solid var(--border);
     box-shadow: 12px 0 32px rgba(0,0,0,0.18); z-index: 61;
     display: flex; flex-direction: column;
-    transform: translateX(-100%); transition: transform 0.22s ease;
+    transform: translateX(-100%); transition: transform var(--duration-base) var(--ease-standard);
   }
   .sidebar.open { transform: translateX(0); }
   .sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--grid); flex: none; }
@@ -471,14 +447,16 @@ const PAGE = `<!doctype html>
   }
   .sidebar-plugin:hover { background: var(--page); }
   .sidebar-check { width: 15px; height: 15px; flex: none; accent-color: var(--good); pointer-events: none; }
+  .sidebar-check-unused { accent-color: var(--series-4); }
   .sidebar-kind { font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 1px 6px; flex: none; margin-left: auto; }
   .sidebar-empty { padding: 16px; color: var(--muted); font-size: 13px; }
 
   .modal-backdrop {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
     align-items: center; justify-content: center; z-index: 70; padding: 24px;
+    opacity: 0; visibility: hidden; transition: opacity var(--duration-base) var(--ease-standard), visibility var(--duration-base);
   }
-  .modal-backdrop.open { display: flex; }
+  .modal-backdrop.open { opacity: 1; visibility: visible; }
   .modal-card {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
     max-width: 440px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 20px 22px;
@@ -491,14 +469,14 @@ const PAGE = `<!doctype html>
   .modal-close:hover { color: var(--text-primary); }
   .tile.clickable { cursor: pointer; }
 
-  .collapsible h2 { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; transition: color 0.15s; }
+  .collapsible h2 { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; transition: color var(--duration-fast) var(--ease-standard); }
   .collapsible h2:hover { color: var(--text-primary); }
-  .collapsible h2::before { content: '▾'; font-size: 9px; color: var(--muted); transition: transform 0.15s; }
+  .collapsible h2::before { content: '▾'; font-size: 9px; color: var(--muted); transition: transform var(--duration-fast) var(--ease-standard); }
   .collapsible.collapsed h2::before { transform: rotate(-90deg); }
   .collapsible.collapsed > div { display: none; }
   .sec-icon { font-size: 13px; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; transition: border-color 0.15s; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; transition: border-color var(--duration-fast) var(--ease-standard); }
   .tile:hover { border-color: var(--series-1); }
   .tile .val { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   .tile .lbl { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
@@ -509,12 +487,18 @@ const PAGE = `<!doctype html>
   th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 16px; border-bottom: 1px solid var(--grid); }
   td { padding: 9px 16px; border-bottom: 1px solid var(--grid); vertical-align: top; }
   tr:last-child td { border-bottom: none; }
-  tbody tr { transition: background 0.1s; }
+  tbody tr { transition: background var(--duration-fast) var(--ease-standard); }
   tbody tr:hover { background: var(--page); }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; margin: 2px 4px 2px 0; border: 1px solid var(--border); cursor: default; }
   .feed { max-height: 420px; overflow-y: auto; }
-  .feed-item { padding: 9px 16px; border-bottom: 1px solid var(--grid); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-  .feed-item .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .prompt-block { padding: 9px 16px; border-bottom: 1px solid var(--grid); font-size: 12px; }
+  .prompt-block:last-child { border-bottom: none; }
+  .prompt-block.running { background: color-mix(in srgb, var(--good) 6%, transparent); }
+  .prompt-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .prompt-meta { margin-top: 3px; }
+  .prompt-meta .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .badge.prompt-running { border-color: var(--good); color: var(--good); font-weight: 600; }
+  .badge.prompt-done { border-color: var(--border); color: var(--muted); }
   .empty { padding: 28px 16px; color: var(--muted); font-size: 13px; text-align: center; }
   a.graph-link { color: var(--series-1); text-decoration: none; font-weight: 500; }
   a.graph-link:hover { text-decoration: underline; }
@@ -534,6 +518,15 @@ const PAGE = `<!doctype html>
   .setup-toggle { display: none; }
   .setup-toggle:checked ~ .setup-steps { display: block; }
   .setup-steps { display: none; }
+  .tile, section { opacity: 0; animation: fade-in var(--duration-base) var(--ease-standard) forwards; }
+  @keyframes fade-in { to { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot { animation: none; }
+    .sidebar, .sidebar-backdrop, .modal-backdrop, .collapsible h2, .collapsible h2::before,
+    .tile, tbody tr { transition: none; }
+    .tile, section { animation: none; opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -623,22 +616,26 @@ function renderSidebar() {
     list.innerHTML = '<div class="sidebar-empty">Catálogo não encontrado — rode o instalador do base_project.</div>';
     return;
   }
-  list.innerHTML = catalog.map((p, i) =>
-    '<li><button class="sidebar-plugin" data-cat-idx="' + i + '">' +
-      '<input type="checkbox" class="sidebar-check" disabled' + (p.installed ? ' checked' : '') + '>' +
+  list.innerHTML = catalog.map((p, i) => {
+    const installedNotUsed = p.installed && !p.used;
+    const checkClass = 'sidebar-check' + (installedNotUsed ? ' sidebar-check-unused' : '');
+    return '<li><button class="sidebar-plugin" data-cat-idx="' + i + '">' +
+      '<input type="checkbox" class="' + checkClass + '" disabled' + (p.installed ? ' checked' : '') + '>' +
       '<span>' + p.name + '</span>' +
       '<span class="sidebar-kind">' + (KIND_LABELS[p.kind] || p.kind || '') + '</span>' +
-    '</button></li>'
-  ).join('');
+    '</button></li>';
+  }).join('');
   list.querySelectorAll('.sidebar-plugin').forEach(btn => {
     btn.addEventListener('click', () => {
       const p = catalog[Number(btn.dataset.catIdx)];
+      let statusLine;
+      if (p.used) statusLine = '✓ instalado e usado neste projeto';
+      else if (p.installedViaPlugin) statusLine = '✓ instalado, ainda não usado neste projeto';
+      else statusLine = 'não instalado';
       openModal(
         '<h3>' + p.name + ' <span class="modal-kind">' + (KIND_LABELS[p.kind] || p.kind || '') + '</span></h3>' +
         '<div class="modal-body">' + (p.summary || 'Sem descrição disponível.') + '</div>' +
-        '<div class="modal-body" style="margin-top:12px; color:var(--muted)">' +
-          (p.installed ? '✓ instalado' : 'não instalado') +
-        '</div>'
+        '<div class="modal-body" style="margin-top:12px; color:var(--muted)">' + statusLine + '</div>'
       );
     });
   });
@@ -740,15 +737,60 @@ function render() {
     });
   });
 
-  const recent = events.slice(-50).reverse();
-  document.getElementById('feed').innerHTML = recent.length ? recent.map(e =>
-    '<div class="feed-item"><span>' +
-    (e.plugin ? '<span class="badge" style="border-color:'+colorOf(e.plugin)+'55;color:'+colorOf(e.plugin)+'">'+e.plugin+'</span> ' : '') +
-    (e.tool||'?') + ' <span style="color:var(--muted)">('+e.engine+')</span></span>' +
-    '<span class="t">'+fmtTime(e.ts)+'</span></div>'
-  ).join('') : '<div class="empty">Aguardando atividade…</div>';
-
+  renderFeed();
   renderSidebar();
+}
+
+// Groups raw tool-call events into per-prompt blocks. A block stays "running"
+// until a matching Stop-hook event (type: 'prompt_end') arrives for its
+// prompt_id. Events without a prompt_id (older log lines, before this feature)
+// fall into their own single-event blocks, always shown as finished — there's
+// no way to know their end time.
+function groupByPrompt(evts) {
+  const blocks = new Map(); // prompt_id -> block
+  const order = [];
+  let legacyCounter = 0;
+  for (const e of evts) {
+    if (e.type === 'prompt_end') {
+      const b = e.prompt_id && blocks.get(e.prompt_id);
+      if (b) b.running = false;
+      continue;
+    }
+    const key = e.prompt_id || ('legacy-' + (legacyCounter++));
+    let b = blocks.get(key);
+    if (!b) {
+      b = { promptId: key, running: !!e.prompt_id, startTs: e.ts, endTs: e.ts, tools: [] };
+      blocks.set(key, b);
+      order.push(key);
+    }
+    b.endTs = e.ts;
+    b.tools.push(e);
+  }
+  return order.map(k => blocks.get(k));
+}
+
+function renderFeed() {
+  const blocks = groupByPrompt(events).slice(-30).reverse();
+  const el = document.getElementById('feed');
+  if (!blocks.length) { el.innerHTML = '<div class="empty">Aguardando atividade…</div>'; return; }
+  el.innerHTML = blocks.map(b => {
+    const pluginBadges = {};
+    for (const e of b.tools) if (e.plugin) pluginBadges[e.plugin] = true;
+    const badges = Object.keys(pluginBadges).map(id =>
+      '<span class="badge" style="border-color:'+colorOf(id)+'55;color:'+colorOf(id)+'">'+id+'</span>'
+    ).join('');
+    const statusBadge = b.running
+      ? '<span class="badge prompt-running">● rodando</span>'
+      : '<span class="badge prompt-done">✓ concluído</span>';
+    return (
+      '<div class="prompt-block' + (b.running ? ' running' : '') + '">' +
+        '<div class="prompt-head">' + statusBadge + badges +
+          '<span style="color:var(--muted); font-size:11px; margin-left:auto">' + b.tools.length + ' chamada' + (b.tools.length === 1 ? '' : 's') + '</span>' +
+        '</div>' +
+        '<div class="prompt-meta"><span class="t">' + fmtTime(b.startTs) + (b.tools.length > 1 ? ' – ' + fmtTime(b.endTs) : '') + '</span></div>' +
+      '</div>'
+    );
+  }).join('');
 }
 
 let setupIdCounter = 0;
@@ -845,9 +887,19 @@ const server = http.createServer((req, res) => {
     const projectParam = url.searchParams.get("project");
     const events = readEventsForProject(projectParam);
     const usedIds = new Set(events.map((e) => e.plugin).filter(Boolean));
+    // "installed" combines two independent signals: the plugin was actually used
+    // (usedIds, from real hook events) OR — for plugins.json entries with a
+    // pluginName — `claude plugin list` confirms it's installed even if never
+    // used yet. Skills installed via `npx skills add` (no central registry, e.g.
+    // emil-design-eng/taste-skill) only ever get the "used" signal.
+    const claudePlugins = installedClaudePlugins(); // null if undetectable
     const catalog = [
-      ...BUILTIN_COMMANDS.map((c) => ({ ...c, installed: true })),
-      ...readCatalog().map((p) => ({ ...p, installed: usedIds.has(p.id) })),
+      ...BUILTIN_COMMANDS.map((c) => ({ ...c, installed: true, used: true })),
+      ...readCatalog().map((p) => {
+        const used = usedIds.has(p.id);
+        const installedViaPlugin = !!(p.pluginName && claudePlugins && claudePlugins.has(p.pluginName));
+        return { ...p, installed: used || installedViaPlugin, used, installedViaPlugin };
+      }),
     ];
     let projectState = null;
     if (projectParam) {
@@ -881,20 +933,6 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
     res.end(JSON.stringify(updateCache.data || { available: false, reason: "checking..." }));
-    return;
-  }
-  if (url.pathname === "/api/codeburn") {
-    if (!codeburnCache.data || Date.now() - codeburnCache.fetchedAt > CODEBURN_TTL_MS) {
-      fetchCodeburn();
-    }
-    const projectParam = url.searchParams.get("project");
-    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-    res.end(
-      JSON.stringify({
-        project: projectParam ? codeburnForProject(projectParam) : null,
-        daily: projectParam ? codeburnDailySeriesForProject(projectParam) : [],
-      }),
-    );
     return;
   }
   if (url.pathname === "/api/setup-check") {
@@ -938,7 +976,6 @@ const server = http.createServer((req, res) => {
 });
 
 watchLog();
-fetchCodeburn();
 checkForUpdates();
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`base_project dashboard: http://127.0.0.1:${PORT}`);

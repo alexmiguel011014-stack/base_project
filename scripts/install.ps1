@@ -22,7 +22,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot  = $PSScriptRoot
+$repoRoot  = Split-Path -Parent $PSScriptRoot
 $sourceDir = Join-Path $repoRoot "source"
 
 $MARK_START = "<!-- base_project:start -->"
@@ -159,6 +159,8 @@ $settingsPath = Join-Path $ClaudeHome "settings.json"
 $hookLoggerPath = (Join-Path $claudeDashboardDir "log-usage.js") -replace '\\', '/'
 $hookMarker = "base_project/dashboard/log-usage.js"
 $hookCommand = "node `"$hookLoggerPath`""
+$stopHookCommand = "node `"$hookLoggerPath`" --stop"
+$promptExpansionHookCommand = "node `"$hookLoggerPath`" --prompt-expansion"
 
 $settingsObj = $null
 if (Test-Path $settingsPath) {
@@ -178,6 +180,12 @@ if (-not $settingsObj.PSObject.Properties['hooks']) {
 if (-not $settingsObj.hooks.PSObject.Properties['PostToolUse']) {
     $settingsObj.hooks | Add-Member -NotePropertyName PostToolUse -NotePropertyValue @() -Force
 }
+if (-not $settingsObj.hooks.PSObject.Properties['Stop']) {
+    $settingsObj.hooks | Add-Member -NotePropertyName Stop -NotePropertyValue @() -Force
+}
+if (-not $settingsObj.hooks.PSObject.Properties['UserPromptExpansion']) {
+    $settingsObj.hooks | Add-Member -NotePropertyName UserPromptExpansion -NotePropertyValue @() -Force
+}
 
 $ourEntry = [PSCustomObject]@{
     hooks = @(
@@ -189,8 +197,28 @@ $existingGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
 })
 $settingsObj.hooks.PostToolUse = @($existingGroups) + @($ourEntry)
 
+$ourStopEntry = [PSCustomObject]@{
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $stopHookCommand; async = $true }
+    )
+}
+$existingStopGroups = @($settingsObj.hooks.Stop | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$hookMarker*" })
+})
+$settingsObj.hooks.Stop = @($existingStopGroups) + @($ourStopEntry)
+
+$ourPromptExpansionEntry = [PSCustomObject]@{
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $promptExpansionHookCommand; async = $true }
+    )
+}
+$existingPromptExpansionGroups = @($settingsObj.hooks.UserPromptExpansion | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$hookMarker*" })
+})
+$settingsObj.hooks.UserPromptExpansion = @($existingPromptExpansionGroups) + @($ourPromptExpansionEntry)
+
 Write-Utf8NoBom -Path $settingsPath -Content ($settingsObj | ConvertTo-Json -Depth 10)
-Write-Ok "settings.json (usage-dashboard hook merged, your other hooks/settings untouched)"
+Write-Ok "settings.json (usage-dashboard hooks merged, your other hooks/settings untouched)"
 
 # ---------------------------------------------------------------------
 # 4. opencode.jsonc — link instructions + mcp file, preserve the rest
@@ -301,7 +329,10 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
         }
         # Remove any existing registration first so re-running the installer always applies the
         # latest catalog values instead of erroring on "already exists" for unrelated servers.
-        & claude mcp remove $name --scope user *> $null
+        # Wrapped in try/catch: PowerShell 5.1 treats a native command's stderr as a terminating
+        # error under $ErrorActionPreference = "Stop", even when redirected with *> $null — this
+        # is expected to "fail" (nothing to remove) on a first install, so it must never abort.
+        try { & claude mcp remove $name --scope user *> $null } catch {}
         try {
             & claude @callArgs *> $null
             if ($LASTEXITCODE -eq 0) {
@@ -360,6 +391,29 @@ $stateDir = Join-Path $HOME ".base_project"
 New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
 Write-Utf8NoBom -Path (Join-Path $stateDir "repo-path.txt") -Content $repoRoot
 Write-Ok "recorded repo path for update checks: $repoRoot"
+
+# ---------------------------------------------------------------------
+# 10. Custom folder icon for this repo's own folders (Windows Explorer only —
+#     desktop.ini has no equivalent on macOS/Linux, so this step is skipped
+#     there; the .sh installer doesn't attempt it).
+# ---------------------------------------------------------------------
+$iconPath = Join-Path $repoRoot "assets\icone.ico"
+if (Test-Path $iconPath) {
+    Write-Step "Applying folder icon to source/, scripts/, assets/..."
+    foreach ($folder in @("source", "scripts", "assets")) {
+        $folderPath = Join-Path $repoRoot $folder
+        if (-not (Test-Path $folderPath)) { continue }
+        $iniPath = Join-Path $folderPath "desktop.ini"
+        # Clear hidden/system attrs first so re-running the installer (e.g. after
+        # git pull) can overwrite a desktop.ini left marked hidden by a prior run.
+        if (Test-Path $iniPath) { attrib -h -s $iniPath 2>$null }
+        $iniContent = "[.ShellClassInfo]`r`nIconResource=..\assets\icone.ico,0`r`n"
+        Write-Utf8NoBom -Path $iniPath -Content $iniContent
+        attrib +h $iniPath 2>$null
+        attrib +s $folderPath 2>$null
+    }
+    Write-Ok "folder icons applied (Explorer may need a refresh/relaunch to show them)"
+}
 
 Write-Host ""
 Write-Host "base_project installed. Open any project - Claude Code and opencode now load these rules automatically." -ForegroundColor Green

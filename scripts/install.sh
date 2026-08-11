@@ -9,7 +9,8 @@
 #   CLAUDE_HOME, OPENCODE_HOME
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 SOURCE_DIR="$REPO_ROOT/source"
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
@@ -126,10 +127,14 @@ if command -v jq &>/dev/null; then
     fi
     echo "$BASE_SETTINGS" | jq \
         --arg cmd "node \"$HOOK_LOGGER_PATH\"" \
+        --arg stopCmd "node \"$HOOK_LOGGER_PATH\" --stop" \
+        --arg promptExpansionCmd "node \"$HOOK_LOGGER_PATH\" --prompt-expansion" \
         --arg marker "$HOOK_MARKER" \
-        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $cmd, "async": true}]}]' \
+        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $cmd, "async": true}]}]
+         | .hooks.Stop = ((.hooks.Stop // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $stopCmd, "async": true}]}]
+         | .hooks.UserPromptExpansion = ((.hooks.UserPromptExpansion // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $promptExpansionCmd, "async": true}]}]' \
         > "$SETTINGS_PATH"
-    ok "settings.json (usage-dashboard hook merged, your other hooks/settings untouched)"
+    ok "settings.json (usage-dashboard hooks merged, your other hooks/settings untouched)"
 else
     warn "'jq' not found - skipping settings.json hook merge. Install jq, then re-run this script."
 fi

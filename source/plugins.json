@@ -53,36 +53,55 @@
     },
     {
       "id": "skill-ui",
+      "pluginName": "frontend-design",
       "name": "Skill UI bundle (frontend-design + baseline-ui)",
       "kind": "skill",
       "summary": "Design-quality skills: /frontend-design generates a real design direction instead of a generic template, /baseline-ui strips 'agent UI slop' (spacing, typography, states), /fixing-accessibility covers keyboard/labels/focus.",
       "recommend_if": "The project has a UI you're actively designing (frontend framework detected, or the user is asking for visual/design work).",
-      "source": "https://claudemarketplaces.com/skills/anthropics/skills/frontend-design",
+      "source": "https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design",
       "claude_only": true,
       "manual": true,
-      "claude": { "instruction": "/plugin install frontend-design@claude-plugins-official" }
+      "claude": { "instruction": "claude plugin marketplace add anthropics/claude-code (marketplace name registers as claude-code-plugins) then claude plugin install frontend-design@claude-code-plugins" }
     },
     {
-      "id": "mcp-builder",
-      "name": "MCP Builder (Anthropic official)",
+      "id": "emil-design-eng",
+      "name": "Emil Kowalski — Design Engineering",
       "kind": "skill",
-      "summary": "Structured 4-phase guide (research, implementation, review, evaluation) for building high-quality MCP servers, with language-specific guidance for TypeScript and Python.",
-      "recommend_if": "You need to build a custom MCP server (no ready-made one covers the API/service you need) instead of just consuming one of the servers base_project already registers.",
-      "source": "https://github.com/anthropics/skills/blob/main/skills/mcp-builder/SKILL.md",
-      "claude_only": true,
-      "manual": true,
-      "claude": { "instruction": "/plugin marketplace add anthropics/skills" }
+      "summary": "Bundle of 10 skills (animate, review-animations, improve-animations, apple-design, ask-sonner, and others) from the creator of Sonner and Vaul: keeps animations under 300ms, uses custom easing instead of CSS defaults, and applies senior design-engineer review criteria to component polish and perceived performance.",
+      "recommend_if": "The project has UI you're actively animating or polishing (transitions, toasts, dialogs, micro-interactions) and want them to feel intentional instead of default/jank.",
+      "source": "https://github.com/emilkowalski/skill",
+      "claude": { "command": "npx", "args": ["-y", "skills", "add", "emilkowalski/skill", "--agent", "claude-code"] }
     },
     {
-      "id": "webapp-testing",
-      "name": "Webapp Testing (Anthropic official)",
+      "id": "impeccable",
+      "pluginName": "impeccable",
+      "name": "Impeccable",
       "kind": "skill",
-      "summary": "Playwright-based toolkit for testing local web apps: UI functionality checks, screenshots, console log capture, and a decision tree for static vs dynamic testing. Complements the Playwright MCP already in this catalog.",
-      "recommend_if": "The project has a frontend you want automated end-to-end checks on, beyond what the Playwright MCP alone gives you.",
-      "source": "https://github.com/anthropics/skills/blob/main/skills/webapp-testing/SKILL.md",
+      "summary": "Design language/anti-slop system: 23 commands and dozens of deterministic rules against common AI-generated UI patterns (purple gradients, flat hierarchy, nested cards, generic Inter-on-dark). Runs in brand or product mode, with an init flow that captures product context first.",
+      "recommend_if": "The project has a UI and you want a structured design pass (typography, color, spacing) beyond ad-hoc styling, especially to avoid the 'obviously AI-generated' look.",
+      "source": "https://github.com/pbakaus/impeccable",
+      "claude": { "instruction": "claude plugin marketplace add pbakaus/impeccable (registers as impeccable), then claude plugin install impeccable@impeccable" }
+    },
+    {
+      "id": "taste-skill",
+      "name": "Taste Skill",
+      "kind": "skill",
+      "summary": "Bundle of several design-direction skills (design-taste-frontend, minimalist-ui, industrial-brutalist-ui, high-end-visual-design, redesign-existing-projects, brandkit, and others). Reads the design brief, infers direction from vibe words/audience signals, and sets variance/motion/density dials before touching code — overrides common LLM design biases (centered heroes, purple gradients, emoji spam).",
+      "recommend_if": "The project has a UI and you want the agent to commit to a specific design direction up front instead of defaulting to generic template output.",
+      "source": "https://github.com/leonxlnx/taste-skill",
+      "claude": { "command": "npx", "args": ["skills", "add", "https://github.com/Leonxlnx/taste-skill", "--skill", "design-taste-frontend"] }
+    },
+    {
+      "id": "example-skills",
+      "pluginName": "example-skills",
+      "name": "Anthropic Example Skills (mcp-builder + webapp-testing + more)",
+      "kind": "skill",
+      "summary": "Single plugin bundling several official Anthropic skills, notably mcp-builder (4-phase guide for building MCP servers) and webapp-testing (Playwright-based local web app testing toolkit). Also includes skill-creator, frontend-design, theme-factory, and others — installed as one unit, not separately.",
+      "recommend_if": "You need to build a custom MCP server, or want automated end-to-end checks on a local frontend beyond what the Playwright MCP alone gives you.",
+      "source": "https://github.com/anthropics/skills",
       "claude_only": true,
       "manual": true,
-      "claude": { "instruction": "/plugin marketplace add anthropics/skills" }
+      "claude": { "instruction": "claude plugin marketplace add anthropics/skills (registers as anthropic-agent-skills), then claude plugin install example-skills@anthropic-agent-skills" }
     },
     {
       "id": "headroom",
@@ -92,15 +111,6 @@
       "recommend_if": "Universal — helps on any project, most on ones with noisy tool output (large JSON APIs, verbose logs, big files).",
       "source": "https://github.com/headroomlabs-ai/headroom",
       "install": { "command": "pip", "args": ["install", "headroom-ai[all]"] }
-    },
-    {
-      "id": "codeburn",
-      "name": "CodeBurn",
-      "kind": "cli",
-      "summary": "Local dashboard for AI coding token/cost usage across Claude Code, Codex, Cursor, and opencode. No API key, reads local session data. Run on demand, no persistent install needed.",
-      "recommend_if": "Universal — anyone who wants visibility into what their AI coding sessions actually cost.",
-      "source": "https://github.com/getagentseal/codeburn",
-      "install": { "command": "npx", "args": ["codeburn"], "note": "runs on demand, nothing to install persistently" }
     },
     {
       "id": "ruflo",

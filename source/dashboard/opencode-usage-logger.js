@@ -13,7 +13,6 @@ const PLUGIN_MAP = {
   playwright: "playwright",
   git: "git",
   github: "github",
-  "brave-search": "brave-search",
   filesystem: "filesystem",
   supabase: "supabase",
   postgres: "postgres",
