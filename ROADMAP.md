@@ -473,6 +473,23 @@ testável sem tocar git de verdade). Sincronizado e registrado no `settings.json
 via `install.ps1`.
 **Status**: `feito`.
 
+### 13. Remover o dashboard
+
+**O que é**: o dashboard local (`/dashboard`, `source/dashboard/*.js`, servidor em
+`http://127.0.0.1:4317`) foi útil enquanto validávamos manualmente a lógica de detecção
+de plugin instalado/usado, mas você avaliou que ele não é mais necessário no uso real do
+projeto hoje.
+**Decisão**: `decidido: fazer` — remover, ainda não executado (só registrado aqui pra
+não esquecer). Quando formos executar, isso inclui: `source/dashboard/` inteiro (server,
+lib/snapshot.js, launch.js, opencode-usage-logger.js), o hook `log-usage.js` e seu
+registro em `PostToolUse`/`Stop`/`UserPromptExpansion` no installer, o comando
+`/dashboard` (`source/claude/commands/dashboard.md` + equivalente opencode), as entradas
+correspondentes em `~/.base_project/` (log e SQLite), e os testes que cobrem essas
+peças (`snapshot.test.js`, parte de `log-usage.test.js`). Precisa decidir também se o
+`log-usage.js` como *coletor* de eventos morre junto ou se algum outro uso quer manter
+(hoje o único consumidor do log é o próprio dashboard).
+**Status**: `decidido: fazer`, aguardando execução.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)

@@ -122,7 +122,83 @@ técnica real entre si (são MCPs/CLIs/skills independentes), popular seria dado
 
 ---
 
-## 6. O dashboard
+## 5.2 Tudo que o projeto tem, organizado por área de atuação
+
+Visão de referência rápida — cada peça com seu nome, tipo, e o que faz. Complementa o
+mapa técnico das seções 3/4/5 acima (que explica *como* cada categoria funciona por
+dentro); aqui é só *o que existe*, agrupado por pra que serve.
+
+### 🎨 Design / UI / animação
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **Skill UI bundle** (`skill-ui`) | plugin (skill) | Gera direção de design real, remove "cara de IA" (espaçamento, tipografia, estados), cobre acessibilidade. |
+| **Emil Kowalski — Design Engineering** (`emil-design-eng`) | plugin (skill, 10 sub-skills) | Animação/polish de componente: easing customizado, transições <300ms, critério de revisão de design engineer sênior. |
+| **Impeccable** (`impeccable`) | plugin (skill) | Sistema anti-"design genérico de IA" — 23 comandos, dezenas de regras determinísticas (gradiente roxo, cartão aninhado, etc.). |
+| **Taste Skill** (`taste-skill`) | plugin (skill) | Define direção de design a partir do briefing antes de tocar em código — evita hero centralizado, gradiente roxo, emoji em excesso. |
+
+### 🗄️ Banco de dados / infraestrutura
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **Supabase MCP** (`supabase`) | plugin (MCP) | Gerencia tabelas, roda SQL, lê config direto de um projeto Supabase. |
+| **Postgres MCP** (`postgres`) | plugin (MCP) | Consulta/inspeciona um Postgres local ou remoto. |
+| **SQLite MCP** (`sqlite`) | plugin (MCP) | Consulta/inspeciona um arquivo SQLite local. |
+
+### 🔒 Segurança
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **Strix** (`strix`) | plugin (CLI) | Pentest autônomo com prova de exploração real (não só lista estática), roda isolado em Docker. Usado por `/audit` quando instalado. |
+| **`/audit`** | comando | Scan de vulnerabilidade de dependência + segredo exposto no projeto atual. |
+| **`scan-skill.js`** | script interno | Varre uma skill de terceiro baixada em busca de padrão suspeito (comando remoto, Unicode escondido) antes de confiar nela. Roda sozinho dentro do `/plugins`. |
+
+### 🧭 Navegador / teste de UI
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **Playwright MCP** (`playwright`) | plugin (MCP) | Controla um navegador de verdade via linguagem natural, pra validar mudança de UI ponta a ponta. |
+| **Anthropic Example Skills** (`example-skills`) | plugin (skill) | Inclui `webapp-testing` (checagem automatizada de frontend local) e `mcp-builder` (guia pra construir servidor MCP próprio). |
+
+### 🧠 Orquestração / disciplina de código
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **architect** | subagente | Planeja mudança não-trivial. Só lê, nunca edita. |
+| **coder** | subagente | Aplica o plano com edição cirúrgica e escopada. |
+| **reviewer** | subagente | Roda lint/typecheck/teste do projeto, monta mensagem de commit, confere se a entrega bate com o pedido (régua de 4 níveis). Nunca commita sem pedido. |
+| **`/council`** | comando | Pressão-testa uma decisão difícil com 5 perspectivas de conselheiro independentes + veredito. |
+| **Ruflo** (`ruflo`) | plugin (MCP) | Meta-orquestrador multi-agente pesado (~98 agentes especializados, memória vetorial persistente) — infraestrutura, não uma skill única. |
+| **Ponytail** (`ponytail`) | plugin (skill) | Disciplina "sempre a solução mais simples que funciona" — reforça o próprio `coder`. |
+| **Headroom** (`headroom`) | plugin (CLI) | Comprime output de tool/log/JSON antes de chegar no modelo — economia de token. |
+
+### 🗂️ Contexto do projeto / mapeamento
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **`/bootstrap`** | comando | Mapeia o projeto atual em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
+| **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
+| **context7** | MCP (sempre ativo) | Busca documentação atualizada de biblioteca/framework. |
+| **filesystem** | MCP (sempre ativo) | Acesso a arquivo fora do diretório de trabalho padrão. |
+| **git** | MCP (sempre ativo) | Operações git estruturadas. |
+| **github** | MCP (sempre ativo) | Lê/escreve issues, PRs, código de repositório no GitHub. |
+
+### 🛡️ Qualidade / comportamento automático
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **`loop-detect`** | hook (`PostToolUse`) | Avisa se o mesmo comando repetir 5x seguidas — sinal de que travou. |
+| **`post-edit-format`** | hook (`PostToolUse`) | Formata automaticamente só o arquivo que acabou de ser editado. |
+
+### 📦 Instalação / catálogo
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **`/plugins`** | comando | Recomenda e instala plugins do catálogo pro projeto atual, ou instala um perfil pronto. |
+| **`install.ps1` / `install.sh`** | script | O instalador de verdade — copia tudo isso pra `~/.claude/`/`~/.config/opencode/`. |
+| **`validate-plugins.js`** | script | Valida `plugins.json` contra o schema antes de aceitar. |
+
+### 📊 Painel de uso (candidato a remoção — ver ROADMAP item 13)
+| Nome | Tipo | O que faz |
+|---|---|---|
+| **`/dashboard`** | comando | Abre painel local mostrando uso de plugin/MCP por projeto. |
+| **`log-usage.js`** | hook | Registra cada tool usada no log compartilhado, pro dashboard consumir. |
+
+---
+
+## 6. O dashboard *(marcado para remoção — ROADMAP item 13, ainda não executado)*
 
 ### 6.1 Peças e por que existem separadas
 
