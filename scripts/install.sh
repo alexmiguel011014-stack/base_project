@@ -156,6 +156,20 @@ if command -v jq &>/dev/null; then
          | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]' \
         > "$SETTINGS_PATH"
     ok "settings.json (loop-detect + post-edit-format hooks merged)"
+
+    # SessionStart hook — injects compact git context (branch, uncommitted
+    # changes, recent commits) at the start of a session, so Claude doesn't
+    # spend tool calls rediscovering state on every fresh start/resume/clear.
+    # Matcher deliberately excludes "compact"/"fork".
+    SESSION_START_GIT_PATH="$CLAUDE_HOOKS_DIR/session-start-git-context.js"
+    SESSION_START_GIT_MARKER="base_project/hooks/session-start-git-context.js"
+    BASE_SETTINGS="$(cat "$SETTINGS_PATH")"
+    echo "$BASE_SETTINGS" | jq \
+        --arg cmd "node \"$SESSION_START_GIT_PATH\"" \
+        --arg marker "$SESSION_START_GIT_MARKER" \
+        '.hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"matcher": "startup|resume|clear", "hooks": [{"type": "command", "command": $cmd, "timeout": 10}]}]' \
+        > "$SETTINGS_PATH"
+    ok "settings.json (session-start git-context hook merged)"
 else
     warn "'jq' not found - skipping settings.json hook merge. Install jq, then re-run this script."
 fi

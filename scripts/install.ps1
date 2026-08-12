@@ -188,6 +188,9 @@ if (-not $settingsObj.hooks.PSObject.Properties['Stop']) {
 if (-not $settingsObj.hooks.PSObject.Properties['UserPromptExpansion']) {
     $settingsObj.hooks | Add-Member -NotePropertyName UserPromptExpansion -NotePropertyValue @() -Force
 }
+if (-not $settingsObj.hooks.PSObject.Properties['SessionStart']) {
+    $settingsObj.hooks | Add-Member -NotePropertyName SessionStart -NotePropertyValue @() -Force
+}
 
 $ourEntry = [PSCustomObject]@{
     hooks = @(
@@ -228,6 +231,24 @@ $existingFormatGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
     -not ($_.hooks | Where-Object { $_.command -like "*$postEditFormatMarker*" })
 })
 $settingsObj.hooks.PostToolUse = @($existingFormatGroups) + @($ourFormatEntry)
+
+# SessionStart hook — injects compact git context (branch, uncommitted changes,
+# recent commits) at the start of a session, so Claude doesn't spend tool calls
+# rediscovering state on every fresh start/resume/clear. Matcher deliberately
+# excludes "compact"/"fork" (see ROADMAP item: SessionStart git-context hook).
+$sessionStartGitPath   = (Join-Path $claudeHooksDir "session-start-git-context.js") -replace '\\', '/'
+$sessionStartGitMarker = "base_project/hooks/session-start-git-context.js"
+$sessionStartGitCommand = "node `"$sessionStartGitPath`""
+$ourSessionStartEntry = [PSCustomObject]@{
+    matcher = "startup|resume|clear"
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $sessionStartGitCommand; timeout = 10 }
+    )
+}
+$existingSessionStartGroups = @($settingsObj.hooks.SessionStart | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$sessionStartGitMarker*" })
+})
+$settingsObj.hooks.SessionStart = @($existingSessionStartGroups) + @($ourSessionStartEntry)
 
 $ourStopEntry = [PSCustomObject]@{
     hooks = @(

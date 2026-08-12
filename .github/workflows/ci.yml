@@ -63,6 +63,7 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/dashboard/server.js"
           test -f "$CLAUDE_HOME/base_project/dashboard/lib/snapshot.js"
           test -f "$CLAUDE_HOME/base_project/hooks/loop-detect.js"
+          test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
           test -f "$CLAUDE_HOME/agents/reviewer.md"
           test -f "$OPENCODE_HOME/opencode.jsonc"
@@ -84,6 +85,7 @@ jobs:
             (Join-Path $claudeHome "base_project\dashboard\server.js"),
             (Join-Path $claudeHome "base_project\dashboard\lib\snapshot.js"),
             (Join-Path $claudeHome "base_project\hooks\loop-detect.js"),
+            (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
             (Join-Path $claudeHome "agents\reviewer.md"),
             (Join-Path $opencodeHome "opencode.jsonc"),

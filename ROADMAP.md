@@ -442,6 +442,37 @@ muito menos custo de manutenção.
 em aberto, mas minha inclinação é que não vale, dado o tamanho do projeto ·
 **escopo: fora** (está na tabela "Pós-conclusão").
 
+### 12. Hook `SessionStart` injetando contexto git (evitar cold start)
+
+**O que é**: você trouxe uma lista de 10 ferramentas de memória/contexto pra avaliar
+(claude-mem, mcp-memory-keeper, mcp-memory-service, memory-bank-mcp, Neo4j Claude
+Memory, Mem0, Letta/MemGPT, Greptile MCP, "Context Mode", hook `SessionStart` DIY).
+Pesquisa dedicada (1 agente, GitHub real + docs oficiais) achou: nenhuma estava
+instalada nesta máquina; a maioria é redundante com o que o projeto já tem
+(`memory-bank-mcp` ≈ `CLAUDE.md`/`ROADMAP.md` como doc viva, `Mem0`/`Letta`/`Neo4j`
+exigem serviço pago ou servidor externo pesado, `Greptile` é API paga, `Context Mode`
+não mapeia pra um repositório único confiável) ou têm nome ambíguo (múltiplos
+repositórios não relacionados disputando o mesmo nome).
+**Decisão**: implementar só o hook `SessionStart` DIY (opção #10 da lista) — zero
+dependência nova, usa só `git` (já é requisito do projeto), documentado oficialmente
+pelo próprio Claude Code.
+**Implementação real**: `source/hooks/session-start-git-context.js`. Contrato do hook
+verificado contra a documentação oficial antes de implementar (não assumido): stdout
+puro em exit 0 é adicionado direto ao contexto da sessão, sem precisar de wrapper JSON;
+dispara em `startup`/`resume`/`clear`/`compact`/`fork` via `matcher`; nunca bloqueia o
+início da sessão. Registrado com `matcher: "startup|resume|clear"` — deliberadamente
+exclui `compact`/`fork` (não são "cold start" de verdade, reinjetar o mesmo resumo no
+meio da sessão seria ruído). Roda `git status`/`diff --stat`/`log -3`/`rev-list
+--left-right --count` contra o `cwd` da sessão; se a árvore estiver limpa e sem
+divergência do upstream, **não produz nenhuma saída** (economiza token no caso comum,
+que é a maioria das aberturas de sessão). Testado de verdade: contra este próprio repo
+com mudanças não commitadas (produziu o resumo certo: branch, commits à frente,
+arquivos alterados, log recente) e contra um repo limpo recém-criado (saída vazia,
+confirmando o caso silencioso). 6 testes cobrindo `formatGitContext` (a parte pura,
+testável sem tocar git de verdade). Sincronizado e registrado no `settings.json` real
+via `install.ps1`.
+**Status**: `feito`.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
