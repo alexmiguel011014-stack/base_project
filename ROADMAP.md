@@ -170,35 +170,38 @@ loop-verifier discutido na seção de arquitetura acima):
 
 ---
 
-## Pós-conclusão: revisar depois de fechar o escopo acima
+## Descartado: `decidido: não fazer` (áreas do ECC investigadas e rejeitadas)
 
-Estas 11 áreas do ECC são reais e foram investigadas a fundo, mas **não entram no
-escopo ativo agora** — ficam registradas aqui explicitamente para revisão *depois* que
-o escopo acima estiver implementado e validado, não para reabrir sem motivo antes disso.
+Estas áreas do ECC foram investigadas a fundo e **decididas contra** — motivo real
+listado, não "sem tempo". Não reabrir sem fato novo (ex: base_project ganhar
+contribuidores externos, ou passar a orientar múltiplas linguagens).
 
-| Área do ECC                                                              | Escala real                                                                                                                                                                                                                           | Por que não cabe aqui agora                                                                                                                                                                     |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 287 skills de conteúdo                                                   | Organizadas em ~28 módulos por linguagem/domínio                                                                                                                                                                                    | Redundante com o que o modelo já sabe bem; a parte que teria valor são as*meta-skills* (ex: `skill-scout`, que procura antes de criar uma nova skill do zero), não o volume de conteúdo. |
-| 94 comandos (`commands/`)                                               | Maioria é build/test/review por linguagem, ou workflow de PR/epic pensado pra equipe                                                                                                                                                 | Não se aplica ao escopo de instalador de propósito único do base_project.                                                                                                                     |
-| 30 MCP servers catalogados                                                | A maioria comercial/de equipe (Jira, Confluence, Railway, fal.ai)                                                                                                                                                                     | O próprio ECC recomenda "manter menos de 10 ativos" — nosso catálogo mais enxuto (4 sempre ativos) já segue esse conselho.                                                                   |
-| `integrations/` (protocolo AURA)                                        | Adaptador de confiança pra pagamento agente-a-agente, um projeto de terceiro nicho                                                                                                                                                   | Sem relação com o escopo do base_project.                                                                                                                                                      |
-| 11 workflows de CI, matriz completa de teste, scan de supply-chain, SLSA3 | Proporcional à exposição de um projeto de 239k estrelas                                                                                                                                                                            | Nosso CI de 1 job (lint+typecheck) é do tamanho certo pra um instalador pessoal sem contribuidores externos.                                                                                    |
-| `orch-review.workflow.js` (revisão multi-agente adversarial)           | Lido por completo: revisor de código + revisor de linguagem específica + revisor de segurança rodando em paralelo, e um agente "cético" que precisa refutar cada achado crítico com 80%+ de confiança antes dele ser descartado | Sofisticado, mas desenhado pra pipeline de múltiplos contribuidores; revisão manual resolve pra um mantenedor só.                                                                             |
-| ~55 scripts de manutenção (`scripts/`)                                | Dashboards de operador, geração de vídeo de release, integração com Discord, coordenação via GitHub Issues                                                                                                                     | Ferramentas de escala de comunidade, sem equivalente de uso pessoal.                                                                                                                             |
-| `rules/` por linguagem/framework                                        | 10 arquivos sempre-instalados + 21 pastas de linguagem                                                                                                                                                                                | Vai contra a premissa central do base_project (zero arquivo escrito no repositório do usuário), a menos que o escopo do projeto mude.                                                          |
-| `docs/` (~40 arquivos + 12 idiomas)                                     | Guias de arquitetura, migração, i18n                                                                                                                                                                                                | Só se justifica com contribuidores e tradutores externos.                                                                                                                                       |
-| `continuous-learning-v2`                                                | Hooks observam every tool call → um modelo Haiku em background (a cada 5min, só depois de 20+ observações) extrai "instintos" com pontuação de confiança, agrupados por hash de projeto                                        | Engenharia real e substancial, mas é prioridade de time/power-user, não de mantenedor único.                                                                                                  |
-| Adaptadores multi-harness (`.cursor/`, `.codex/`, `.gemini/`)       | Confirmado, lendo os 3:**nenhum é cópia mecânica** — cada um exige código de adaptação escrito à mão (o do Gemini é só um shim de 1.8KB, os outros têm subconjuntos parciais e formatos de evento diferentes)       | Informativo (mostra que dá pra ser barato*se* algum dia quisermos um 3º harness), mas não vale fazer preventivamente — hoje só Claude Code + opencode.                                    |
-
-### Achado que não é lacuna — valida uma escolha nossa
-
-`plugins/` no ECC: tudo (287 skills, 94 comandos, 68 agentes) é empacotado como **um
-único plugin monolítico** — instala tudo ou nada, e um sistema de perfis (item C acima)
-decide o que fica ativo depois. O `plugins.json` do base_project é o oposto: um
-catálogo à la carte de 13 plugins independentes, cada um instalável sozinho. Isso não é
-uma lacuna a fechar — é uma decisão de arquitetura diferente e deliberada, e
-provavelmente mais alinhada com o "instale só o que você realmente quer" que já é a
-identidade do base_project. Não recomendo copiar o modelo monolítico do ECC aqui.
+- **287 skills de conteúdo** — redundante com o que o modelo já sabe; só a parte
+  *meta* (ex: skill-scout) teria valor, não o volume.
+- **94 comandos por linguagem/workflow de equipe** — fora do escopo de instalador de
+  propósito único.
+- **30 MCP servers catalogados** — maioria comercial/de equipe; nosso catálogo enxuto
+  (4 sempre ativos) já segue o próprio conselho do ECC de "menos de 10 ativos".
+- **`integrations/` (protocolo AURA)** — nicho de terceiro, sem relação com o escopo.
+- **CI de 11 workflows, matriz completa, SLSA3** — proporcional a 239k estrelas, não a
+  um instalador pessoal sem contribuidores externos.
+- **`orch-review.workflow.js`** (revisor multi-agente + cético adversarial) — bom
+  padrão, mas pensado pra múltiplos contribuidores; revisão manual resolve pra um
+  mantenedor só (era também o item 11 de "Ideias levantadas" — mesma decisão).
+- **~55 scripts de manutenção** (dashboards de operador, vídeo de release, Discord) —
+  ferramentas de escala de comunidade.
+- **`rules/` por linguagem/framework** (10 sempre-instalados + 21 pastas) — vai contra
+  a premissa de zero arquivo escrito no repositório do usuário.
+- **`docs/` multi-idioma (~40 arquivos, 12 idiomas)** — só se justifica com
+  contribuidores/tradutores externos.
+- **`continuous-learning-v2`** (modelo Haiku em background extraindo "instintos") —
+  engenharia real, mas prioridade de time/power-user, não de mantenedor único.
+- **Adaptadores multi-harness** (`.cursor/`, `.codex/`, `.gemini/`) — nenhum é cópia
+  mecânica (confirmado lendo os 3), mas não vale construir preventivamente — hoje só
+  Claude Code + opencode existem de verdade aqui.
+- **Modelo de plugin monolítico do ECC** (tudo em 1 plugin só) — não é uma lacuna, é
+  uma diferença de arquitetura deliberada: o `plugins.json` à la carte do base_project
+  já é mais alinhado com "instale só o que você quer". Não copiar.
 
 ---
 
@@ -265,9 +268,11 @@ dashboard não aprende nada sobre como você usa o base_project ao longo do temp
 contabiliza eventos.
 **Por que pode importar**: pode ser redundante com a memória geral do Claude — vale
 decidir se faz sentido algo project-specific ou se a memória geral já resolve.
-**Status**: `ideia`, precisa de mais conversa antes de virar `decidido` · **escopo: fora
-por enquanto** (não fazia parte das 5 lacunas priorizadas na pesquisa ECC — decidir
-separadamente se entra no escopo ativo).
+**Decisão**: não construir. O Memory nativo do Claude já cobre esse caso (memórias tipo
+`project` sobre o próprio base_project) — uma 2ª camada de aprendizado dentro do
+dashboard duplicaria isso, mesma lógica que já rejeitou o `continuous-learning-v2` do
+ECC (ver "Descartado" acima).
+**Status**: `decidido: não fazer`.
 
 ### 4. Skills auto-ativadas em vez de comandos digitados
 
@@ -277,32 +282,30 @@ precisar digitar `/nome`. O base_project hoje é 100% opt-in via comando explíc
 **Por que pode importar**: mais fricção pra você lembrar de invocar manualmente vs.
 mais "mágica"/imprevisibilidade se ativar sozinho. Trade-off real, não óbvio qual lado
 é melhor pra um projeto pessoal pequeno.
-**Status**: `ideia` · **escopo: fora por enquanto**.
+**Decisão**: adicionar auto-ativação, mas com escopo restrito a **sugestão, nunca
+instalação**. Implementado em `source/CLAUDE.md` e `source/opencode-instructions.md`
+("Plugin auto-suggestion"): ao começar trabalho substancial num projeto (mesmo gatilho
+do check de `graphify-out/` já existente), eu confiro o catálogo de plugins uma vez
+contra o projeto e, se um `recommend_if` bater claramente e não estiver instalado,
+menciono uma vez, sem interromper a tarefa principal — nunca rodo `/plugins` ou instalo
+nada por conta própria. Generaliza um padrão que já existia parcialmente (o check de
+`/bootstrap` e a menção a `/plugins` em `audit.md`), sem violar a regra de zero efeito
+colateral surpresa.
+**Status**: `feito`.
 
 ### 5. Dashboard web (atual) vs. app Electron
 
 **O que é**: hoje o dashboard é um servidor Node local + página no navegador
 (`http://127.0.0.1:4317`). Uma alternativa seria empacotar como app desktop via
 Electron (ícone na bandeja, notificações nativas, não depende de abrir navegador).
-**Prós do dashboard web atual**:
-
-- Zero dependência nova (`http` do Node já é suficiente — nenhum pacote pesado)
-- Já funciona em qualquer SO sem build separado
-- Mais fácil de auditar/editar (é um arquivo `.js`, não um bundle)
-  **Prós do Electron**:
-- Sensação de "app de verdade", ícone na bandeja do sistema
-- Notificações nativas do SO (ex: avisar quando um plugin novo é detectado)
-- Não depende de lembrar a URL/porta
-  **Contras do Electron**:
-- Runtime pesado (~100-200MB só de Chromium embutido) para o que hoje é um dashboard
-  simples de leitura
-- Mais superfície pra manter (build multiplataforma, updates do próprio Electron)
-- Vai contra a filosofia atual de "instalador leve, zero dependência pesada"
-  **Status**: `ideia`, sem decisão — listada aqui explicitamente porque foi uma pergunta
-  sua ("será que é melhor ter um dashboard ou instalar um app pelo electron?"). Minha
-  inclinação inicial é que o ganho do Electron não paga o custo de peso pra este projeto
-  específico, mas isso merece conversa própria antes de fechar.
-  **Status**: `ideia` · **escopo: fora por enquanto**.
+**Prós do dashboard web atual**: zero dependência nova, já funciona em qualquer SO sem
+build separado, mais fácil de auditar (é um `.js`, não um bundle).
+**Contras do Electron**: runtime pesado (~100-200MB de Chromium) pra um dashboard
+simples de leitura, mais superfície pra manter (build multiplataforma, updates
+próprios), vai contra a filosofia de "instalador leve, zero dependência pesada".
+**Decisão**: manter o dashboard web atual. Fechado, não reabrir sem motivo novo (ex:
+uma necessidade real de notificação nativa de SO que o navegador não resolve).
+**Status**: `decidido: não fazer` (a migração pra Electron).
 
 ### 6. CI mais completo
 
@@ -312,8 +315,17 @@ CI, não só localmente.
 **Por que pode importar**: os bugs do instalador nesta sessão (remoção de MCP quebrando
 com stderr, `desktop.ini` bloqueando reinstalação) só foram achados testando à mão —
 um CI que roda o instalador numa VM limpa pegaria isso antes de virar problema real.
-**Status**: `ideia` · **escopo: fora por enquanto** (relacionado ao item A/1, mas não é
-um dos 5 priorizados — revisar junto quando o item 1 for implementado).
+**Implementação real**: novo job `install-test` em `.github/workflows/ci.yml`, matriz
+`ubuntu-latest`/`windows-latest`, rodando `install.sh`/`install.ps1` de verdade contra
+um `$HOME` descartável (via os overrides `CLAUDE_HOME`/`OPENCODE_HOME` que os scripts já
+suportavam desde antes, feitos originalmente pra teste). Confere que os artefatos-chave
+existem (`CLAUDE.md`, `settings.json` válido como JSON, `plugins.json`, `dashboard/`,
+`dashboard/lib/snapshot.js`, `hooks/`, `scripts/scan-skill.js`, `agents/reviewer.md`,
+`opencode.jsonc`), e roda o instalador uma 2ª vez pra confirmar idempotência (não
+falhar/duplicar ao re-rodar). Validado localmente rodando `install.sh` contra um HOME de
+teste antes de confiar no job de CI.
+**Status**: `feito` · escopo: ativo (item A/1 já estava pronto, isso era a extensão
+natural pendente).
 
 ### 7. Perfis de instalação com dependência entre plugins
 

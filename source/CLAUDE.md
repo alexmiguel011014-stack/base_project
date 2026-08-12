@@ -18,6 +18,18 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
 3. **Review** — use the `reviewer` subagent to run lint/typecheck/tests and prepare commits. It does not commit
    unless explicitly asked to.
 
+### Plugin auto-suggestion (suggest only, never auto-install)
+- When starting substantial work in a project (the same moment the `graphify-out/` bootstrap
+  check above applies — not on every trivial turn), check the base_project plugin catalog
+  (`~/.claude/base_project/plugins.json`) once against what's actually in the project. If a
+  catalog entry's `recommend_if` condition clearly matches and it isn't installed yet, mention
+  it once, briefly, without interrupting the main task — e.g. "this project has a `supabase/`
+  folder; the Supabase MCP is available via `/plugins` if you want it."
+- Never run `/plugins`, install, or register anything on your own initiative — the mention is
+  the entire auto-activation; the user still explicitly triggers the install. This keeps the
+  suggestion low-friction while preserving the project's zero-surprise-side-effect rule.
+- Don't repeat the same suggestion again within one session once it's been mentioned or declined.
+
 ### Self-Correction
 - After any code change, detect and run the project's own test/typecheck/lint commands from its manifest
   (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) — do not assume a specific stack or toolchain.
