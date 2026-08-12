@@ -28,14 +28,14 @@ colaboração, não do código.
 
 ## Referências externas (o que estamos usando como inspiração)
 
-| Projeto | O que é, em uma frase | Por que olhamos ele |
-|---|---|---|
-| [ECC](https://github.com/affaan-m/ECC) | Suíte completa de disciplina de engenharia (68 agentes, 287 skills, hooks, aprendizado entre sessões, segurança dedicada). 239k estrelas, comunidade ativa. | Mesma "família" conceitual do base_project (harness de automação pra Claude Code), mas em escala de plataforma madura — bom espelho para ver o que falta aqui. |
-| [Superpowers](https://github.com/obra/superpowers) | Framework de skills que se auto-ativa: brainstorming → plano → implementação com TDD → revisão por agente "fresco" → fechamento. ~124k estrelas. | É o "passa o comando e ele te guia" que você lembrava de ter visto — mais focado em *disciplina de processo* que em cobertura de integrações. Vale estudar o padrão de skills auto-ativadas (sem precisar digitar `/nome-do-comando`). |
-| [caveman](https://github.com/JuliusBrussee/caveman) | Skill que comprime prompt/resposta mantendo fatos técnicos intactos: ~65% menos token na resposta, ~46% menos no contexto. 6 níveis de intensidade (lite → ultra). 97k+ estrelas. | Confirma o mecanismo que você lembrava — existe de verdade, não foi imaginação. |
-| [skill-router](https://github.com/hussi9/skill-router) | Skill que roda sozinha no início de toda sessão, decide (triagem de 3 perguntas) se a tarefa é trivial ou não, e se não for, escaneia as pastas de skills instaladas e casa nome/descrição delas com o prompt — sem precisar você chamar nada manualmente. | É o "roteador" que você estava desenhando de cabeça. Responde a pergunta técnica de como ele acharia as skills certas: **não é via graphify** (isso mapeia código, não catálogo de skills) — é escaneando `~/.claude/skills/` e comparando texto. |
-| [loop-verifier](https://github.com/tech1ee/claude-loop-plan) | Agente separado, roda depois da implementação, sem ver a narrativa de quem implementou — só confere se o que foi entregue bate com o que foi pedido originalmente (existe, é substancial, está conectado, e de fato funciona quando executado). Retorna só `passed` / `gaps_found` / `human_needed`. | É a "auditoria de fechamento" que você perguntou: "o prompt que te mandei confere com o que foi feito?". Nome técnico: verificação adversarial/independente. |
-| _(espaço para o próximo que você trouxer)_ | | |
+| Projeto                                                     | O que é, em uma frase                                                                                                                                                                                                                                                                                           | Por que olhamos ele                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ECC](https://github.com/affaan-m/ECC)                       | Suíte completa de disciplina de engenharia (68 agentes, 287 skills, hooks, aprendizado entre sessões, segurança dedicada). 239k estrelas, comunidade ativa.                                                                                                                                                   | Mesma "família" conceitual do base_project (harness de automação pra Claude Code), mas em escala de plataforma madura — bom espelho para ver o que falta aqui.                                                                                                  |
+| [Superpowers](https://github.com/obra/superpowers)           | Framework de skills que se auto-ativa: brainstorming → plano → implementação com TDD → revisão por agente "fresco" → fechamento. ~124k estrelas.                                                                                                                                                          | É o "passa o comando e ele te guia" que você lembrava de ter visto — mais focado em*disciplina de processo* que em cobertura de integrações. Vale estudar o padrão de skills auto-ativadas (sem precisar digitar `/nome-do-comando`).                     |
+| [caveman](https://github.com/JuliusBrussee/caveman)          | Skill que comprime prompt/resposta mantendo fatos técnicos intactos: ~65% menos token na resposta, ~46% menos no contexto. 6 níveis de intensidade (lite → ultra). 97k+ estrelas.                                                                                                                             | Confirma o mecanismo que você lembrava — existe de verdade, não foi imaginação.                                                                                                                                                                                |
+| [skill-router](https://github.com/hussi9/skill-router)       | Skill que roda sozinha no início de toda sessão, decide (triagem de 3 perguntas) se a tarefa é trivial ou não, e se não for, escaneia as pastas de skills instaladas e casa nome/descrição delas com o prompt — sem precisar você chamar nada manualmente.                                              | É o "roteador" que você estava desenhando de cabeça. Responde a pergunta técnica de como ele acharia as skills certas:**não é via graphify** (isso mapeia código, não catálogo de skills) — é escaneando `~/.claude/skills/` e comparando texto. |
+| [loop-verifier](https://github.com/tech1ee/claude-loop-plan) | Agente separado, roda depois da implementação, sem ver a narrativa de quem implementou — só confere se o que foi entregue bate com o que foi pedido originalmente (existe, é substancial, está conectado, e de fato funciona quando executado). Retorna só`passed` / `gaps_found` / `human_needed`. | É a "auditoria de fechamento" que você perguntou: "o prompt que te mandei confere com o que foi feito?". Nome técnico: verificação adversarial/independente.                                                                                                   |
+| _(espaço para o próximo que você trouxer)_             |                                                                                                                                                                                                                                                                                                                  |                                                                                                                                                                                                                                                                     |
 
 ---
 
@@ -85,11 +85,44 @@ rápida: se o prompt for trivial ("como se fala laranja em inglês"), a resposta
 direto, sem passar pelos estágios 1/3/4. Só tarefas que justificam o custo do aparato
 completo (tipo "construa um projeto do zero") passam por tudo.
 
-**Status geral**: `ideia`, arquitetura em discussão — nada implementado. Antes de
-programar qualquer parte disso, vale decidir junto: isso vira 4 mecanismos separados
-instalados (as skills reais acima), ou a lógica é reimplementada dentro do próprio
-base_project de forma mais simples e sob medida? São caminhos bem diferentes de esforço
-e manutenção.
+### Decisão: reimplementar como instrução, não instalar nenhuma das 4 skills
+
+Pesquisa dedicada (4 agentes em paralelo, cada um lendo os repositórios reais via GitHub
+MCP — código-fonte, contagem de estrelas/forks real, histórico de commit, licença — não
+estimativa) avaliou cada mecanismo dos 4 estágios contra o critério "vale instalar como
+dependência, ou o efeito cabe num parágrafo de instrução dentro do próprio
+base_project?". Veredito unânime nos 4 casos: **reimplementar, não instalar.**
+
+| Estágio | Mecanismo pesquisado | O que a pesquisa achou | Veredito |
+|---|---|---|---|
+| 1. Comprimir prompt | caveman | Todo o efeito está num arquivo `.md` de ~5KB (é engenharia de prompt pura, sem algoritmo de compressão real). O repositório de verdade é um monorepo de 8MB+ (Go, proxy que chama APIs externas, extensão de navegador, servidor MCP, banco de stats) — instalar isso traria muito mais superfície que o efeito buscado. A v2 (o "rewriter" que faz a compressão de fato) é licenciada sob Business Source License (não é open-source completo) e quebra uso offline. 97.546★ em ~4 meses é uma curva de crescimento anômala para um projeto essencialmente mantido por uma pessoa só — tratar com ceticismo, não como sinal de qualidade validada. | Não instalar. Copiar só o texto da regra (evitar palavras de preenchimento, preservar negações/números/código ao pé da letra, níveis de intensidade). |
+| 2. Classificar tamanho da tarefa | (nenhum projeto específico encontrado) | Não existe um padrão real e maduro pra isso no mundo de agent harness. Os dois maiores frameworks do nicho — Superpowers (270.801★) e ECC (239.504★) — **não têm** essa etapa como componente separado: deixam implícito no julgamento do próprio modelo. O Claude Code também não tem isso nativo (há uma issue aberta e sem resposta pedindo exatamente isso). | Não construir nada. Isso já é uma capacidade implícita do raciocínio do modelo — no máximo, vale uma frase de instrução pedindo pra eu mesmo avaliar o tamanho antes de acionar aparato pesado. |
+| 3. Rotear pra skill certa | skill-router | A parte "IA decide" do skill-router é redundante com o que o Claude Code já faz nativamente (contexto + matching semântico via o próprio modelo, não regex). A parte que faz algo tecnicamente novo é um hook em regex puro (`router.py`) — com exatamente o mesmo risco de má-classificação que você apontou como preocupação, não resolvido, só maquiado de determinístico. Adoção real muito baixa (17★, 0 forks, histórico de commit reescrito — sinal de um crash/recuperação). | Não instalar — é estritamente pior que o roteamento semântico nativo do Claude Code (que já é como o `/plugins` e as outras skills do base_project funcionam hoje). |
+| 4. Auditar entrega vs. pedido | loop-verifier | Não é software distinto — é um template de prompt (~150 linhas) dentro de um framework bem maior (`loop-skills`, ex-`claude-loop-plan`). O isolamento "sem ver a narrativa do implementador" vem inteiramente do mecanismo nativo de subagente do Claude Code (contexto novo, sem memória da conversa de implementação) — o mesmo mecanismo que o `Agent`/`reviewer` do base_project já usa. Projeto solo, 0★, ~2 meses de idade. | Não instalar, mas a régua de 4 níveis (existe / é substancial / está conectado / tem prova comportamental) é um padrão bom o bastante pra copiar como texto — candidato natural a entrar no prompt do subagente `reviewer` (`source/claude/agents/reviewer.md`). |
+
+**Por que isso bate com a identidade do base_project**: os 4 vereditos convergem pro
+mesmo padrão (valor real cabe em um parágrafo, o resto é peso morto ou redundante com o
+que o Claude Code já faz sozinho) — exatamente a mesma lógica que já guiou remover
+CodeBurn/Brave Search e preferir catálogo à la carte sobre bundle monolítico. Nenhuma
+dependência nova, nenhuma superfície de instalação nova.
+
+**Status geral**: `feito`. Implementação real, nos 4 arquivos distribuídos (par Claude
+Code/opencode, como todo o resto do projeto):
+- **Estágio 4** (auditar entrega vs. pedido) → seção "Verifying the delivery matches the
+  original ask" em `source/claude/agents/reviewer.md` e `source/opencode/agent/reviewer.md`:
+  os 4 gates do loop-verifier (exists/substantive/wired/behavioral-proof) portados como
+  checklist, com a regra de "evidência coletada agora > resumo da conversa" explícita.
+- **Estágios 1 e 2** (compressão + julgamento de tamanho) → seção "Task Sizing & Response
+  Discipline" em `source/CLAUDE.md` e `source/opencode-instructions.md`: uma regra de
+  degrau de saída rápida pra tarefa trivial (sem invocar subagentes/planos), e a regra de
+  terseness por padrão preservando código/números/negações ao pé da letra — mesmo
+  conteúdo do texto do caveman, sem o repositório.
+- **Estágio 3** (rotear pra skill certa) → nada a implementar. A pesquisa confirmou que o
+  matching semântico nativo do Claude Code (contexto + descrições de skill) já faz isso
+  melhor que o skill-router pesquisado — reimplementar aqui seria regressão, não ganho.
+
+Sincronizado via `install.ps1` real e confirmado nos arquivos instalados
+(`~/.claude/CLAUDE.md`, `~/.claude/agents/reviewer.md`).
 
 ---
 
@@ -103,13 +136,13 @@ fechar e terem retorno real mesmo num projeto pessoal — **são elas que compõ
 ativo do projeto agora**. Os detalhes completos de cada uma (com implementação sugerida)
 estão nos itens 1, 2, 7, 8 e 10 da seção "Ideias levantadas" abaixo.
 
-| # | Lacuna | O que o ECC faz, concretamente | Item detalhado |
-|---|---|---|---|
-| A | Testes automatizados mínimos | ~130 arquivos de teste, mas **só 2 testam conteúdo de skill** — o resto é tudo plumbing de instalador/hook/script. Nem o ECC testa a "qualidade" das 287 skills. | [Item 1](#1-testes-automatizados-para-o-dashboard) |
-| B | Hooks com bloqueio de verdade, não só observação | `cost-tracker.js` (Stop: soma tokens→USD por sessão), `ecc-context-monitor.js` (PostToolUse: avisa sobre contexto/custo/**loop de repetição** — mesmo tool+params 5x seguidas), `post-edit-format.js` (PostToolUse: roda Biome/Prettier `--write` automaticamente), `pre-compact.js` (resume a sessão antes de compactar o contexto). Todos leves, sem pressupor equipe/empresa. | [Item 2](#2-hooks-com-bloqueio-de-verdade-não-só-observação) |
-| C | Perfis de instalação com dependência entre plugins | `install-profiles.json`: 7 presets nomeados (`minimal`, `core`, `developer`, `security`, `full`...). `install-components.json`: apelidos amigáveis. `install-modules.json`: grafo de dependência + metadados de custo/estabilidade. | [Item 7](#7-perfis-de-instalação-com-dependência-entre-plugins) |
-| D | Schema validando o formato do catálogo | 10 arquivos de JSON Schema (`provenance`, `install-modules`, etc.) validam a forma de cada manifest antes de aceitar. | [Item 8](#8-schema-validando-o-formato-do-pluginsjson) |
-| E | Scanner de segurança leve (não o AgentShield completo) | Importante: o "AgentShield" com 1282 testes/102 regras **não mora no repo do ECC** — é outro repositório (`agentshield`), citado uma vez, não verificado por nós. O que o ECC *de fato* documenta em `the-security-guide.md` são receitas simples: lista de permissão negada, e um `rg` (ripgrep) procurando por Unicode de largura zero / padrões `curl\|bash` em skills antes de confiar nelas. | [Item 10](#10-scan-leve-de-segurança-antes-de-instalar-skill-de-terceiro) |
+| # | Lacuna                                                   | O que o ECC faz, concretamente                                                                                                                                                                                                                                                                                                                                                                                           | Item detalhado                                                            |
+| - | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| A | Testes automatizados mínimos                            | ~130 arquivos de teste, mas**só 2 testam conteúdo de skill** — o resto é tudo plumbing de instalador/hook/script. Nem o ECC testa a "qualidade" das 287 skills.                                                                                                                                                                                                                                                | [Item 1](#1-testes-automatizados-para-o-dashboard)                         |
+| B | Hooks com bloqueio de verdade, não só observação     | `cost-tracker.js` (Stop: soma tokens→USD por sessão), `ecc-context-monitor.js` (PostToolUse: avisa sobre contexto/custo/**loop de repetição** — mesmo tool+params 5x seguidas), `post-edit-format.js` (PostToolUse: roda Biome/Prettier `--write` automaticamente), `pre-compact.js` (resume a sessão antes de compactar o contexto). Todos leves, sem pressupor equipe/empresa.                   | [Item 2](#2-hooks-com-bloqueio-de-verdade-não-só-observação)           |
+| C | Perfis de instalação com dependência entre plugins    | `install-profiles.json`: 7 presets nomeados (`minimal`, `core`, `developer`, `security`, `full`...). `install-components.json`: apelidos amigáveis. `install-modules.json`: grafo de dependência + metadados de custo/estabilidade.                                                                                                                                                                    | [Item 7](#7-perfis-de-instalação-com-dependência-entre-plugins)         |
+| D | Schema validando o formato do catálogo                  | 10 arquivos de JSON Schema (`provenance`, `install-modules`, etc.) validam a forma de cada manifest antes de aceitar.                                                                                                                                                                                                                                                                                                | [Item 8](#8-schema-validando-o-formato-do-pluginsjson)                     |
+| E | Scanner de segurança leve (não o AgentShield completo) | Importante: o "AgentShield" com 1282 testes/102 regras**não mora no repo do ECC** — é outro repositório (`agentshield`), citado uma vez, não verificado por nós. O que o ECC *de fato* documenta em `the-security-guide.md` são receitas simples: lista de permissão negada, e um `rg` (ripgrep) procurando por Unicode de largura zero / padrões `curl\|bash` em skills antes de confiar nelas. | [Item 10](#10-scan-leve-de-segurança-antes-de-instalar-skill-de-terceiro) |
 
 **Ordem de implementação decidida**: 8 → 7 → 1 → 2 → 10. Schema (8) e perfis/dependência
 (7) mexem no mesmo `plugins.json`, então vêm juntos primeiro; testes (1) vêm em seguida
@@ -122,6 +155,7 @@ concluído. Ver "Pós-conclusão" abaixo para a lista de revisão futura, e a no
 
 **Critério de "pronto" por item** (execução real, não sensação — mesmo princípio do
 loop-verifier discutido na seção de arquitetura acima):
+
 - **Item 8**: existe um schema e um `plugins.json` malformado de propósito, ao validar
   contra o schema, é rejeitado com erro claro.
 - **Item 7**: `plugins.json` tem `dependsOn` funcional e pelo menos 2 presets nomeados
@@ -142,19 +176,19 @@ Estas 11 áreas do ECC são reais e foram investigadas a fundo, mas **não entra
 escopo ativo agora** — ficam registradas aqui explicitamente para revisão *depois* que
 o escopo acima estiver implementado e validado, não para reabrir sem motivo antes disso.
 
-| Área do ECC | Escala real | Por que não cabe aqui agora |
-|---|---|---|
-| 287 skills de conteúdo | Organizadas em ~28 módulos por linguagem/domínio | Redundante com o que o modelo já sabe bem; a parte que teria valor são as *meta-skills* (ex: `skill-scout`, que procura antes de criar uma nova skill do zero), não o volume de conteúdo. |
-| 94 comandos (`commands/`) | Maioria é build/test/review por linguagem, ou workflow de PR/epic pensado pra equipe | Não se aplica ao escopo de instalador de propósito único do base_project. |
-| 30 MCP servers catalogados | A maioria comercial/de equipe (Jira, Confluence, Railway, fal.ai) | O próprio ECC recomenda "manter menos de 10 ativos" — nosso catálogo mais enxuto (4 sempre ativos) já segue esse conselho. |
-| `integrations/` (protocolo AURA) | Adaptador de confiança pra pagamento agente-a-agente, um projeto de terceiro nicho | Sem relação com o escopo do base_project. |
-| 11 workflows de CI, matriz completa de teste, scan de supply-chain, SLSA3 | Proporcional à exposição de um projeto de 239k estrelas | Nosso CI de 1 job (lint+typecheck) é do tamanho certo pra um instalador pessoal sem contribuidores externos. |
-| `orch-review.workflow.js` (revisão multi-agente adversarial) | Lido por completo: revisor de código + revisor de linguagem específica + revisor de segurança rodando em paralelo, e um agente "cético" que precisa refutar cada achado crítico com 80%+ de confiança antes dele ser descartado | Sofisticado, mas desenhado pra pipeline de múltiplos contribuidores; revisão manual resolve pra um mantenedor só. |
-| ~55 scripts de manutenção (`scripts/`) | Dashboards de operador, geração de vídeo de release, integração com Discord, coordenação via GitHub Issues | Ferramentas de escala de comunidade, sem equivalente de uso pessoal. |
-| `rules/` por linguagem/framework | 10 arquivos sempre-instalados + 21 pastas de linguagem | Vai contra a premissa central do base_project (zero arquivo escrito no repositório do usuário), a menos que o escopo do projeto mude. |
-| `docs/` (~40 arquivos + 12 idiomas) | Guias de arquitetura, migração, i18n | Só se justifica com contribuidores e tradutores externos. |
-| `continuous-learning-v2` | Hooks observam every tool call → um modelo Haiku em background (a cada 5min, só depois de 20+ observações) extrai "instintos" com pontuação de confiança, agrupados por hash de projeto | Engenharia real e substancial, mas é prioridade de time/power-user, não de mantenedor único. |
-| Adaptadores multi-harness (`.cursor/`, `.codex/`, `.gemini/`) | Confirmado, lendo os 3: **nenhum é cópia mecânica** — cada um exige código de adaptação escrito à mão (o do Gemini é só um shim de 1.8KB, os outros têm subconjuntos parciais e formatos de evento diferentes) | Informativo (mostra que dá pra ser barato *se* algum dia quisermos um 3º harness), mas não vale fazer preventivamente — hoje só Claude Code + opencode. |
+| Área do ECC                                                              | Escala real                                                                                                                                                                                                                           | Por que não cabe aqui agora                                                                                                                                                                     |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 287 skills de conteúdo                                                   | Organizadas em ~28 módulos por linguagem/domínio                                                                                                                                                                                    | Redundante com o que o modelo já sabe bem; a parte que teria valor são as*meta-skills* (ex: `skill-scout`, que procura antes de criar uma nova skill do zero), não o volume de conteúdo. |
+| 94 comandos (`commands/`)                                               | Maioria é build/test/review por linguagem, ou workflow de PR/epic pensado pra equipe                                                                                                                                                 | Não se aplica ao escopo de instalador de propósito único do base_project.                                                                                                                     |
+| 30 MCP servers catalogados                                                | A maioria comercial/de equipe (Jira, Confluence, Railway, fal.ai)                                                                                                                                                                     | O próprio ECC recomenda "manter menos de 10 ativos" — nosso catálogo mais enxuto (4 sempre ativos) já segue esse conselho.                                                                   |
+| `integrations/` (protocolo AURA)                                        | Adaptador de confiança pra pagamento agente-a-agente, um projeto de terceiro nicho                                                                                                                                                   | Sem relação com o escopo do base_project.                                                                                                                                                      |
+| 11 workflows de CI, matriz completa de teste, scan de supply-chain, SLSA3 | Proporcional à exposição de um projeto de 239k estrelas                                                                                                                                                                            | Nosso CI de 1 job (lint+typecheck) é do tamanho certo pra um instalador pessoal sem contribuidores externos.                                                                                    |
+| `orch-review.workflow.js` (revisão multi-agente adversarial)           | Lido por completo: revisor de código + revisor de linguagem específica + revisor de segurança rodando em paralelo, e um agente "cético" que precisa refutar cada achado crítico com 80%+ de confiança antes dele ser descartado | Sofisticado, mas desenhado pra pipeline de múltiplos contribuidores; revisão manual resolve pra um mantenedor só.                                                                             |
+| ~55 scripts de manutenção (`scripts/`)                                | Dashboards de operador, geração de vídeo de release, integração com Discord, coordenação via GitHub Issues                                                                                                                     | Ferramentas de escala de comunidade, sem equivalente de uso pessoal.                                                                                                                             |
+| `rules/` por linguagem/framework                                        | 10 arquivos sempre-instalados + 21 pastas de linguagem                                                                                                                                                                                | Vai contra a premissa central do base_project (zero arquivo escrito no repositório do usuário), a menos que o escopo do projeto mude.                                                          |
+| `docs/` (~40 arquivos + 12 idiomas)                                     | Guias de arquitetura, migração, i18n                                                                                                                                                                                                | Só se justifica com contribuidores e tradutores externos.                                                                                                                                       |
+| `continuous-learning-v2`                                                | Hooks observam every tool call → um modelo Haiku em background (a cada 5min, só depois de 20+ observações) extrai "instintos" com pontuação de confiança, agrupados por hash de projeto                                        | Engenharia real e substancial, mas é prioridade de time/power-user, não de mantenedor único.                                                                                                  |
+| Adaptadores multi-harness (`.cursor/`, `.codex/`, `.gemini/`)       | Confirmado, lendo os 3:**nenhum é cópia mecânica** — cada um exige código de adaptação escrito à mão (o do Gemini é só um shim de 1.8KB, os outros têm subconjuntos parciais e formatos de evento diferentes)       | Informativo (mostra que dá pra ser barato*se* algum dia quisermos um 3º harness), mas não vale fazer preventivamente — hoje só Claude Code + opencode.                                    |
 
 ### Achado que não é lacuna — valida uma escolha nossa
 
@@ -171,57 +205,60 @@ identidade do base_project. Não recomendo copiar o modelo monolítico do ECC aq
 ## Ideias levantadas
 
 ### 1. Testes automatizados para o dashboard
+
 **O que é**: hoje toda validação é manual (`node --check`, chamadas reais à API testadas
 à mão). Confirmado por pesquisa (ver Gap analysis, item A): mesmo o ECC, com ~130
 arquivos de teste, só testa 2 coisas de conteúdo de skill — o resto é tudo plumbing de
 instalador/hook/script, não "qualidade" do que a skill faz. Isso importa porque define
 o escopo certo aqui: testar a lógica do dashboard/`log-usage.js`, não tentar testar
 "qualidade" de plugin — nem o ECC faz isso.
-**Por que pode importar**: nesta sessão, um bug real (`installed` não refletindo `claude
-plugin list`) só foi achado porque testei manualmente — um teste automatizado teria
+**Por que pode importar**: nesta sessão, um bug real (`installed` não refletindo `claude plugin list`) só foi achado porque testei manualmente — um teste automatizado teria
 pego isso muito antes, e teria evitado o acidente do `git checkout --` que apagou
 trabalho não commitado (um teste rodando localmente teria dado segurança pra reverter
 com mais confiança).
 **Status**: `ideia` · **escopo: ativo** (item A do escopo do projeto).
 
 ### 2. Hooks com bloqueio de verdade, não só observação
+
 **O que é**: hoje o base_project só tem hooks observacionais (`PostToolUse`/`Stop`/
 `UserPromptExpansion`, todos só logam pro dashboard, nenhum bloqueia nada). Confirmado
 por pesquisa (Gap analysis, item B) que o ECC tem hooks pequenos e concretos com
 comportamento real:
-  - `cost-tracker.js` (Stop): soma tokens→USD por sessão.
-  - `ecc-context-monitor.js` (PostToolUse): avisa sobre contexto/custo alto, **e detecta
-    loop de repetição** (mesma ferramenta+parâmetros 5x seguidas).
-  - `post-edit-format.js` (PostToolUse): roda Biome/Prettier `--write` automaticamente
-    depois de editar.
-  - `pre-compact.js`: resume a sessão antes dela ser compactada, pra não perder contexto.
+
+- `cost-tracker.js` (Stop): soma tokens→USD por sessão.
+- `ecc-context-monitor.js` (PostToolUse): avisa sobre contexto/custo alto, **e detecta
+  loop de repetição** (mesma ferramenta+parâmetros 5x seguidas).
+- `post-edit-format.js` (PostToolUse): roda Biome/Prettier `--write` automaticamente
+  depois de editar.
+- `pre-compact.js`: resume a sessão antes dela ser compactada, pra não perder contexto.
   Nenhum desses pressupõe equipe/empresa — são leves e generalizáveis.
-**Por que pode importar**: um hook de detecção de loop, por exemplo, teria sinalizado o
-padrão repetitivo que levou ao acidente do `git checkout --` nesta sessão. Auto-format
-ao editar também é ganho direto e barato.
-**Implementação real**: escopo reduzido a 2 dos 4 hooks do ECC (decisão explícita —
-`cost-tracker` exigiria uma tabela de preços por modelo/token de manutenção instável;
-`pre-compact` precisaria confirmar se esse hook event existe de verdade no Claude Code
-atual, não confirmado nesta rodada). `source/hooks/loop-detect.js` (PostToolUse,
-síncrono): mesma tool+input 5x seguidas emite aviso em stderr, sem nunca bloquear —
-estado por `session_id` em `os.tmpdir()`, não em `~/.base_project/`.
-`source/hooks/post-edit-format.js` (PostToolUse, síncrono): após `Edit`/`Write`/
-`MultiEdit` num arquivo `.js`/`.jsx`/`.ts`/`.tsx`/`.json`/`.css`, roda
-`biome format --write` **só nesse arquivo** (nunca o projeto inteiro — a decisão de
-escopo restrito foi deliberada, pra não repetir o incidente de reformatação ampla desta
-mesma sessão). Testado de verdade: o detector avisa exatamente na 5ª chamada idêntica e
-fica em silêncio antes disso; o auto-format formata de verdade um arquivo desformatado
-quando rodado dentro do escopo do `biome.json` do projeto (e corretamente não faz nada
-fora dele, por não haver config de Biome pra seguir). `install.ps1`/`install.sh`
-atualizados para sincronizar `source/hooks/*.js` para `~/.claude/base_project/hooks/` e
-registrar os dois no `PostToolUse` do `settings.json` (idempotente, mesmo padrão de
-merge do `log-usage.js`) — **isso só entra em vigor rodando o instalador de novo**, não
-foi aplicado automaticamente no `settings.json` real desta máquina durante a
-implementação (mudar hooks ativos é uma ação que afeta como toda sessão futura se
-comporta, não algo pra fazer silenciosamente).
-**Status**: `feito` · escopo: ativo (item B do escopo do projeto).
+  **Por que pode importar**: um hook de detecção de loop, por exemplo, teria sinalizado o
+  padrão repetitivo que levou ao acidente do `git checkout --` nesta sessão. Auto-format
+  ao editar também é ganho direto e barato.
+  **Implementação real**: escopo reduzido a 2 dos 4 hooks do ECC (decisão explícita —
+  `cost-tracker` exigiria uma tabela de preços por modelo/token de manutenção instável;
+  `pre-compact` precisaria confirmar se esse hook event existe de verdade no Claude Code
+  atual, não confirmado nesta rodada). `source/hooks/loop-detect.js` (PostToolUse,
+  síncrono): mesma tool+input 5x seguidas emite aviso em stderr, sem nunca bloquear —
+  estado por `session_id` em `os.tmpdir()`, não em `~/.base_project/`.
+  `source/hooks/post-edit-format.js` (PostToolUse, síncrono): após `Edit`/`Write`/
+  `MultiEdit` num arquivo `.js`/`.jsx`/`.ts`/`.tsx`/`.json`/`.css`, roda
+  `biome format --write` **só nesse arquivo** (nunca o projeto inteiro — a decisão de
+  escopo restrito foi deliberada, pra não repetir o incidente de reformatação ampla desta
+  mesma sessão). Testado de verdade: o detector avisa exatamente na 5ª chamada idêntica e
+  fica em silêncio antes disso; o auto-format formata de verdade um arquivo desformatado
+  quando rodado dentro do escopo do `biome.json` do projeto (e corretamente não faz nada
+  fora dele, por não haver config de Biome pra seguir). `install.ps1`/`install.sh`
+  atualizados para sincronizar `source/hooks/*.js` para `~/.claude/base_project/hooks/` e
+  registrar os dois no `PostToolUse` do `settings.json` (idempotente, mesmo padrão de
+  merge do `log-usage.js`) — **isso só entra em vigor rodando o instalador de novo**, não
+  foi aplicado automaticamente no `settings.json` real desta máquina durante a
+  implementação (mudar hooks ativos é uma ação que afeta como toda sessão futura se
+  comporta, não algo pra fazer silenciosamente).
+  **Status**: `feito` · escopo: ativo (item B do escopo do projeto).
 
 ### 3. Memória entre sessões
+
 **O que é**: ECC extrai padrões de sessões passadas em "instincts" reutilizáveis. Temos
 Memory (o sistema de memória do Claude, já ativo) mas nada *específico do projeto* — o
 dashboard não aprende nada sobre como você usa o base_project ao longo do tempo, só
@@ -233,6 +270,7 @@ por enquanto** (não fazia parte das 5 lacunas priorizadas na pesquisa ECC — d
 separadamente se entra no escopo ativo).
 
 ### 4. Skills auto-ativadas em vez de comandos digitados
+
 **O que é**: no Superpowers, skills disparam sozinhas quando o contexto bate, sem
 precisar digitar `/nome`. O base_project hoje é 100% opt-in via comando explícito
 (`/plugins`, `/dashboard`, etc.) ou skill chamada por nome.
@@ -242,29 +280,32 @@ mais "mágica"/imprevisibilidade se ativar sozinho. Trade-off real, não óbvio 
 **Status**: `ideia` · **escopo: fora por enquanto**.
 
 ### 5. Dashboard web (atual) vs. app Electron
+
 **O que é**: hoje o dashboard é um servidor Node local + página no navegador
 (`http://127.0.0.1:4317`). Uma alternativa seria empacotar como app desktop via
 Electron (ícone na bandeja, notificações nativas, não depende de abrir navegador).
 **Prós do dashboard web atual**:
-  - Zero dependência nova (`http` do Node já é suficiente — nenhum pacote pesado)
-  - Já funciona em qualquer SO sem build separado
-  - Mais fácil de auditar/editar (é um arquivo `.js`, não um bundle)
-**Prós do Electron**:
-  - Sensação de "app de verdade", ícone na bandeja do sistema
-  - Notificações nativas do SO (ex: avisar quando um plugin novo é detectado)
-  - Não depende de lembrar a URL/porta
-**Contras do Electron**:
-  - Runtime pesado (~100-200MB só de Chromium embutido) para o que hoje é um dashboard
-    simples de leitura
-  - Mais superfície pra manter (build multiplataforma, updates do próprio Electron)
-  - Vai contra a filosofia atual de "instalador leve, zero dependência pesada"
-**Status**: `ideia`, sem decisão — listada aqui explicitamente porque foi uma pergunta
-sua ("será que é melhor ter um dashboard ou instalar um app pelo electron?"). Minha
-inclinação inicial é que o ganho do Electron não paga o custo de peso pra este projeto
-específico, mas isso merece conversa própria antes de fechar.
-**Status**: `ideia` · **escopo: fora por enquanto**.
+
+- Zero dependência nova (`http` do Node já é suficiente — nenhum pacote pesado)
+- Já funciona em qualquer SO sem build separado
+- Mais fácil de auditar/editar (é um arquivo `.js`, não um bundle)
+  **Prós do Electron**:
+- Sensação de "app de verdade", ícone na bandeja do sistema
+- Notificações nativas do SO (ex: avisar quando um plugin novo é detectado)
+- Não depende de lembrar a URL/porta
+  **Contras do Electron**:
+- Runtime pesado (~100-200MB só de Chromium embutido) para o que hoje é um dashboard
+  simples de leitura
+- Mais superfície pra manter (build multiplataforma, updates do próprio Electron)
+- Vai contra a filosofia atual de "instalador leve, zero dependência pesada"
+  **Status**: `ideia`, sem decisão — listada aqui explicitamente porque foi uma pergunta
+  sua ("será que é melhor ter um dashboard ou instalar um app pelo electron?"). Minha
+  inclinação inicial é que o ganho do Electron não paga o custo de peso pra este projeto
+  específico, mas isso merece conversa própria antes de fechar.
+  **Status**: `ideia` · **escopo: fora por enquanto**.
 
 ### 6. CI mais completo
+
 **O que é**: agora que o CI finalmente roda (`biome check`, `tsc`), falta rodar testes
 de verdade (item 1) e talvez validar os instaladores (`install.ps1`/`install.sh`) em
 CI, não só localmente.
@@ -275,6 +316,7 @@ um CI que roda o instalador numa VM limpa pegaria isso antes de virar problema r
 um dos 5 priorizados — revisar junto quando o item 1 for implementado).
 
 ### 7. Perfis de instalação com dependência entre plugins
+
 **O que é**: confirmado por pesquisa (Gap analysis, item C) — o ECC tem
 `install-profiles.json` (7 presets nomeados: minimal, core, developer, security, full,
 opencode, research), `install-components.json` (apelidos amigáveis pra cada módulo), e
@@ -297,6 +339,7 @@ sem passar pelo fluxo de recomendação interativo.
 **Status**: `feito` · escopo: ativo (item C do escopo do projeto).
 
 ### 8. Schema validando o formato do `plugins.json`
+
 **O que é**: confirmado por pesquisa (Gap analysis, item D) — o ECC tem 10 arquivos de
 JSON Schema validando a forma de cada manifest antes de aceitar. Nosso `plugins.json`
 não tem nenhuma validação de formato — só descobrimos erros de estrutura testando na
@@ -322,6 +365,7 @@ lógica). Detalhes desse achado em `CLAUDE.md`.
 **Status**: `feito` · escopo: ativo (item D do escopo do projeto).
 
 ### 9. Roteamento por linguagem/stack, não só por domínio
+
 **O que é**: os `agents/` do ECC são, na maioria, específicos de linguagem —
 `java-reviewer`, `go-reviewer`, `rust-reviewer`, `swift-reviewer`,
 `kotlin-build-resolver`, `django-reviewer`, `react-reviewer`, e por aí vai (contei mais
@@ -338,6 +382,7 @@ base_project algum dia orientar trabalho em múltiplas linguagens, é o padrão 
 linguagens).
 
 ### 10. Scan leve de segurança antes de instalar skill de terceiro
+
 **O que é**: já investigado a fundo (Gap analysis, item E) — o "AgentShield" do ECC
 (1282 testes, 102 regras, citado no README) **não mora no repositório do ECC**, é outro
 projeto separado (`agentshield`), e não foi verificado por nós. O que o ECC de fato
@@ -369,6 +414,7 @@ detecta padrão suspeito propositalmente embutido).
 **Status**: `feito` · escopo: ativo (item E do escopo do projeto).
 
 ### 11. Workflow de revisão orquestrada (`orch-review`)
+
 **O que é**: já lido por completo (Gap analysis, tabela "não vale fechar agora"). O
 `workflows/orch-review.workflow.js` do ECC (15KB) orquestra: um revisor de código
 sempre roda, mais um revisor específico da linguagem detectada, mais um revisor de
