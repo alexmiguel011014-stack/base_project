@@ -7,8 +7,10 @@ arquivo quando a mudança for sobre como *desenvolver* o base_project.
 
 ## O que este projeto é
 
-Um instalador de configuração global (Node.js + PowerShell/Bash), não uma aplicação. Não tem
-`package.json` de app real — só `.opencode/package.json` (config interna, não confundir).
+Um instalador de configuração global (Node.js + PowerShell/Bash), não uma aplicação publicada.
+Tem um `package.json` na raiz (desde o item 8 do ROADMAP — validação de `plugins.json` via
+`ajv`), mas é só tooling de dev/CI (lint, typecheck, validação de schema) — não é pensado para
+`npm publish`. Não confundir com `.opencode/package.json` (config interna do opencode).
 
 ## Sincronização fonte → instalado
 
@@ -49,10 +51,31 @@ partes indesejadas, ou `git stash` antes de rodar formatters amplos.
 
 ## CI (`.github/workflows/ci.yml`)
 
-- Sem `package.json`/lockfile na raiz de propósito — `npm ci`/`cache: "npm"` quebram sem eles.
-  O CI instala `biome`/`typescript` via `npm install --no-save`.
+- `package.json`/`package-lock.json` existem na raiz desde o item 8 do ROADMAP (dependência
+  real: `ajv`+`ajv-formats` para `scripts/validate-plugins.js`). O CI usa `npm ci` +
+  `cache: "npm"` normalmente — voltou a isso depois de uma fase intermediária sem lockfile.
 - `biome.json` escopa o lint só a `source/dashboard/**/*.js` — sem isso, o Biome varre
   `.opencode/`, `graphify-out/`, e qualquer coisa gerada/de terceiros.
 - `tsconfig.json` existe só para permitir `npx tsc` rodar sem erro de "no inputs" — `checkJs`
   fica `false` de propósito (o dashboard é JS puro sem anotações de tipo; `checkJs: true`
   geraria centenas de erros de `any` implícito que não refletem bugs reais).
+- `npm run validate:plugins` (= `node scripts/validate-plugins.js`) roda no CI e valida
+  `source/plugins.json` contra `schemas/plugins.schema.json` antes de qualquer merge.
+
+### Bug histórico: CI rodava um Biome fantasma (`biome@0.3.3`)
+
+Antes do `package.json`/lockfile existir, o CI instalava a dependência certa
+(`npm install --no-save @biomejs/biome`) mas depois chamava `npx biome check .` — **sem** o
+escopo `@biomejs/`. O `npx` não achou um binário `biome` correspondente ao pacote instalado
+e silenciosamente baixou/rodou um pacote *diferente* do registro chamado só `biome`
+(`biome@0.3.3`, um stub que não faz nada de útil). Resultado: o CI reportava sucesso, mas o
+lint/format real do dashboard nunca rodou — havia 3 erros de formatação genuínos em
+`server.js` que ficaram invisíveis por commits inteiros. Só foi descoberto ao comparar
+`npx biome format .` local (achou os erros) com o log real do último CI verde (mostrava
+`npm warn exec ... biome@0.3.3` sendo instalado). Com `npm ci` + `@biomejs/biome` como
+devDependency real, `node_modules/.bin/biome` existe localmente e `npx biome` resolve para
+ele corretamente — o bug se resolveu como efeito colateral de sair do modelo
+`npm install --no-save`. Lição: `npx <nome-curto>` não é garantia de rodar o pacote com
+escopo (`@scope/nome-curto`) que você acabou de instalar — sempre conferir o log de
+instalação do `npx` (`npm warn exec The following package was not found...`) quando o
+comportamento parecer suspeito demais de "ok".

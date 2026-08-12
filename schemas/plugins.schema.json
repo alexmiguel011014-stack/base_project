@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/alexmiguel011014-stack/base_project/schemas/plugins.schema.json",
+  "title": "base_project plugin catalog",
+  "description": "Validates source/plugins.json — the optional plugin catalog read by /plugins.",
+  "type": "object",
+  "required": ["_managed_by", "catalog"],
+  "additionalProperties": false,
+  "properties": {
+    "_managed_by": { "const": "base_project" },
+    "_note": { "type": "string" },
+    "profiles": {
+      "type": "object",
+      "description": "Named presets resolving to a subset of catalog ids (e.g. minimal, full).",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" },
+        "uniqueItems": true
+      }
+    },
+    "catalog": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/catalogEntry" },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "engineInstall": {
+      "type": "object",
+      "description": "Either a runnable command (command/args/env) or a manual instruction string — not both.",
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "type": "string", "enum": ["local", "user"] },
+        "command": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "instruction": { "type": "string" },
+        "note": { "type": "string" }
+      },
+      "oneOf": [
+        { "required": ["command"] },
+        { "required": ["instruction"] }
+      ]
+    },
+    "catalogEntry": {
+      "type": "object",
+      "required": ["id", "name", "kind", "summary", "recommend_if"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Stable identifier — lowercase, hyphen-separated. Never rename once published (breaks existing logged events)."
+        },
+        "pluginName": {
+          "type": "string",
+          "description": "Real installed plugin name from `claude plugin list --json`, when it differs from id."
+        },
+        "name": { "type": "string" },
+        "kind": { "type": "string", "enum": ["mcp", "cli", "skill"] },
+        "summary": { "type": "string" },
+        "recommend_if": { "type": "string" },
+        "source": { "type": "string", "format": "uri" },
+        "requires": { "type": "array", "items": { "type": "string" } },
+        "requires_input": { "type": "array", "items": { "type": "string" } },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Catalog ids that must be installed/considered before this one."
+        },
+        "claude_only": { "type": "boolean" },
+        "manual": { "type": "boolean" },
+        "claude": { "$ref": "#/definitions/engineInstall" },
+        "opencode": { "$ref": "#/definitions/engineInstall" },
+        "install": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "command": { "type": "string" },
+            "args": { "type": "array", "items": { "type": "string" } },
+            "note": { "type": "string" }
+          },
+          "required": ["command"]
+        }
+      }
+    }
+  }
+}

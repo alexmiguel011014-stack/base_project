@@ -112,8 +112,10 @@ $opencodeCommandDir   = Join-Path $OpencodeHome "command"
 $claudeDashboardDir   = Join-Path $ClaudeHome "base_project\dashboard"
 $opencodeDashboardDir = Join-Path $OpencodeHome "base_project\dashboard"
 $opencodePluginsDir   = Join-Path $OpencodeHome "plugins"
+$claudeHooksDir       = Join-Path $ClaudeHome "base_project\hooks"
+$claudeScriptsDir     = Join-Path $ClaudeHome "base_project\scripts"
 
-foreach ($dir in @($ClaudeHome, $claudeAgentsDir, $claudeCommandsDir, $OpencodeHome, $opencodeAgentDir, $opencodeCommandDir, $claudeDashboardDir, $opencodeDashboardDir, $opencodePluginsDir)) {
+foreach ($dir in @($ClaudeHome, $claudeAgentsDir, $claudeCommandsDir, $OpencodeHome, $opencodeAgentDir, $opencodeCommandDir, $claudeDashboardDir, $opencodeDashboardDir, $opencodePluginsDir, $claudeHooksDir, $claudeScriptsDir)) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 
@@ -196,6 +198,36 @@ $existingGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
     -not ($_.hooks | Where-Object { $_.command -like "*$hookMarker*" })
 })
 $settingsObj.hooks.PostToolUse = @($existingGroups) + @($ourEntry)
+
+# Loop-detection and auto-format hooks — real behavior, not just logging (see
+# ROADMAP.md item 2). Both are synchronous (not async) so their stderr output/
+# side effect lands before the next tool call, but neither ever throws or
+# blocks — see the scripts themselves for the swallow-all-errors guarantee.
+$loopDetectPath   = (Join-Path $claudeHooksDir "loop-detect.js") -replace '\\', '/'
+$loopDetectMarker = "base_project/hooks/loop-detect.js"
+$loopDetectCommand = "node `"$loopDetectPath`""
+$ourLoopEntry = [PSCustomObject]@{
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $loopDetectCommand; async = $false }
+    )
+}
+$existingLoopGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$loopDetectMarker*" })
+})
+$settingsObj.hooks.PostToolUse = @($existingLoopGroups) + @($ourLoopEntry)
+
+$postEditFormatPath   = (Join-Path $claudeHooksDir "post-edit-format.js") -replace '\\', '/'
+$postEditFormatMarker = "base_project/hooks/post-edit-format.js"
+$postEditFormatCommand = "node `"$postEditFormatPath`""
+$ourFormatEntry = [PSCustomObject]@{
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $postEditFormatCommand; async = $false }
+    )
+}
+$existingFormatGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$postEditFormatMarker*" })
+})
+$settingsObj.hooks.PostToolUse = @($existingFormatGroups) + @($ourFormatEntry)
 
 $ourStopEntry = [PSCustomObject]@{
     hooks = @(
@@ -383,6 +415,38 @@ Get-ChildItem $dashboardSrcDir -Filter *.js | Where-Object { $_.Name -ne 'openco
     Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeDashboardDir $_.Name)
 }
 Sync-Managed -SrcFile (Join-Path $dashboardSrcDir "opencode-usage-logger.js") -DestFile (Join-Path $opencodePluginsDir "opencode-usage-logger.js")
+
+$dashboardLibSrcDir = Join-Path $dashboardSrcDir "lib"
+if (Test-Path $dashboardLibSrcDir) {
+    $claudeDashboardLibDir   = Join-Path $claudeDashboardDir "lib"
+    $opencodeDashboardLibDir = Join-Path $opencodeDashboardDir "lib"
+    New-Item -ItemType Directory -Force -Path $claudeDashboardLibDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $opencodeDashboardLibDir | Out-Null
+    Get-ChildItem $dashboardLibSrcDir -Filter *.js | ForEach-Object {
+        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $claudeDashboardLibDir $_.Name)
+        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeDashboardLibDir $_.Name)
+    }
+}
+
+# ---------------------------------------------------------------------
+# 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
+# ---------------------------------------------------------------------
+Write-Step "Syncing hook scripts..."
+$hooksSrcDir = Join-Path $sourceDir "hooks"
+if (Test-Path $hooksSrcDir) {
+    Get-ChildItem $hooksSrcDir -Filter *.js | ForEach-Object {
+        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $claudeHooksDir $_.Name)
+    }
+}
+
+# ---------------------------------------------------------------------
+# 8c. scan-skill.js - lightweight pre-trust scan, used by /plugins before
+# installing a third-party skill. See ROADMAP item 10.
+# ---------------------------------------------------------------------
+$scanSkillSrc = Join-Path $repoRoot "scripts\scan-skill.js"
+if (Test-Path $scanSkillSrc) {
+    Sync-Managed -SrcFile $scanSkillSrc -DestFile (Join-Path $claudeScriptsDir "scan-skill.js")
+}
 
 # ---------------------------------------------------------------------
 # 9. Record the repo path so the dashboard can check for updates later

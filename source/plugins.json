@@ -1,6 +1,25 @@
 {
   "_managed_by": "base_project",
   "_note": "Optional catalog read by the /plugins command. Add entries here to extend the catalog — no code changes needed elsewhere. Re-run the installer after editing to sync.",
+  "profiles": {
+    "minimal": ["headroom", "ponytail"],
+    "design": ["skill-ui", "emil-design-eng", "impeccable", "taste-skill"],
+    "full": [
+      "playwright",
+      "supabase",
+      "postgres",
+      "sqlite",
+      "strix",
+      "skill-ui",
+      "emil-design-eng",
+      "impeccable",
+      "taste-skill",
+      "example-skills",
+      "headroom",
+      "ruflo",
+      "ponytail"
+    ]
+  },
   "catalog": [
     {
       "id": "playwright",

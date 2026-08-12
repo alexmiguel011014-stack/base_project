@@ -109,11 +109,18 @@ const SKILL_MAP = {
 // base_project's own built-in slash commands (source/claude/commands/*.md) —
 // only visible via the UserPromptExpansion hook, which is the sole hook event
 // that carries the actual command name the user typed.
-const COMMAND_IDS = new Set(["council", "bootstrap", "audit", "plugins", "dashboard"]);
+const COMMAND_IDS = new Set([
+  "council",
+  "bootstrap",
+  "audit",
+  "plugins",
+  "dashboard",
+]);
 
 function resolvePlugin(toolName, toolInput) {
   if (toolName === "Skill") {
-    const skillName = toolInput && typeof toolInput.skill === "string" ? toolInput.skill : "";
+    const skillName =
+      toolInput && typeof toolInput.skill === "string" ? toolInput.skill : "";
     return SKILL_MAP[skillName] || null;
   }
   if (toolName) {
@@ -126,7 +133,10 @@ function resolvePlugin(toolName, toolInput) {
   }
   // Bash (or PowerShell) tool: the plugin/CLI name, if any, is only visible in
   // the actual shell command text, not in tool_name (which is just "Bash").
-  const command = toolInput && typeof toolInput.command === "string" ? toolInput.command.toLowerCase() : "";
+  const command =
+    toolInput && typeof toolInput.command === "string"
+      ? toolInput.command.toLowerCase()
+      : "";
   if (command) {
     for (const key of Object.keys(CLI_MAP)) {
       if (command.includes(key)) return CLI_MAP[key];
@@ -156,6 +166,8 @@ function readStdin() {
 const isStopHook = process.argv.includes("--stop");
 const isPromptExpansionHook = process.argv.includes("--prompt-expansion");
 
+module.exports = { resolvePlugin, resolveCommand };
+
 async function main() {
   try {
     const raw = await readStdin();
@@ -172,7 +184,10 @@ async function main() {
       };
     } else if (isPromptExpansionHook) {
       const commandId = resolveCommand(input.command_name || null);
-      if (!commandId) { process.exit(0); return; } // not one of ours — don't log noise
+      if (!commandId) {
+        process.exit(0);
+        return;
+      } // not one of ours — don't log noise
       record = {
         ts: new Date().toISOString(),
         engine: "claude",
@@ -188,7 +203,10 @@ async function main() {
         engine: "claude",
         project: process.cwd(),
         tool: input.tool_name || null,
-        plugin: resolvePlugin(input.tool_name || null, input.tool_input || null),
+        plugin: resolvePlugin(
+          input.tool_name || null,
+          input.tool_input || null,
+        ),
         session_id: input.session_id || null,
         prompt_id: input.prompt_id || null,
       };
@@ -201,4 +219,6 @@ async function main() {
   process.exit(0);
 }
 
-main();
+if (require.main === module) {
+  main();
+}

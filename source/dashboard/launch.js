@@ -10,7 +10,9 @@ const path = require("path");
 const PORT = process.env.BASE_PROJECT_DASHBOARD_PORT || 4317;
 // Scoped to the project this was launched from by default — pass
 // BASE_PROJECT_DASHBOARD_ALL=1 to open the all-projects view instead.
-const SCOPE = process.env.BASE_PROJECT_DASHBOARD_ALL ? "__all__" : process.cwd();
+const SCOPE = process.env.BASE_PROJECT_DASHBOARD_ALL
+  ? "__all__"
+  : process.cwd();
 const URL = `http://127.0.0.1:${PORT}/?project=${encodeURIComponent(SCOPE)}`;
 const SERVER_PATH = path.join(__dirname, "server.js");
 
@@ -37,7 +39,10 @@ function openBrowser() {
 
 async function main() {
   if (!(await isRunning())) {
-    spawn(process.execPath, [SERVER_PATH], { detached: true, stdio: "ignore" }).unref();
+    spawn(process.execPath, [SERVER_PATH], {
+      detached: true,
+      stdio: "ignore",
+    }).unref();
     await new Promise((r) => setTimeout(r, 600));
   }
   console.log(`base_project dashboard: ${URL}`);

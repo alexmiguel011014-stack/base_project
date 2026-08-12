@@ -11,6 +11,12 @@ const os = require("os");
 const path = require("path");
 const { execFile } = require("child_process");
 const { DatabaseSync } = require("node:sqlite");
+const {
+  normalizeProjectPath,
+  readEventsForProject: readEventsForProjectImpl,
+  readCatalog: readCatalogImpl,
+  buildCatalogSnapshot,
+} = require("./lib/snapshot.js");
 
 const HOME = os.homedir();
 const STATE_DIR = path.join(HOME, ".base_project");
@@ -31,11 +37,39 @@ const CORE_PLUGIN_IDS = ["context7", "filesystem", "git", "github", "graphify"];
 // Not part of plugins.json since they're not opt-in — always present after install, so they're
 // always shown as installed in the catalog checklist.
 const BUILTIN_COMMANDS = [
-  { id: "council", name: "/council", kind: "command", summary: "Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict." },
-  { id: "bootstrap", name: "/bootstrap", kind: "command", summary: "Maps the current project into graphify-out/ + repomix-output.xml for token-efficient context." },
-  { id: "audit", name: "/audit", kind: "command", summary: "Security scan (dependency vulnerabilities, exposed secrets)." },
-  { id: "plugins", name: "/plugins", kind: "command", summary: "Recommends and installs optional plugins based on the current project." },
-  { id: "dashboard", name: "/dashboard", kind: "command", summary: "Opens this local usage dashboard." },
+  {
+    id: "council",
+    name: "/council",
+    kind: "command",
+    summary:
+      "Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict.",
+  },
+  {
+    id: "bootstrap",
+    name: "/bootstrap",
+    kind: "command",
+    summary:
+      "Maps the current project into graphify-out/ + repomix-output.xml for token-efficient context.",
+  },
+  {
+    id: "audit",
+    name: "/audit",
+    kind: "command",
+    summary: "Security scan (dependency vulnerabilities, exposed secrets).",
+  },
+  {
+    id: "plugins",
+    name: "/plugins",
+    kind: "command",
+    summary:
+      "Recommends and installs optional plugins based on the current project.",
+  },
+  {
+    id: "dashboard",
+    name: "/dashboard",
+    kind: "command",
+    summary: "Opens this local usage dashboard.",
+  },
 ];
 
 // --- Local state (SQLite) ---------------------------------------------
@@ -54,7 +88,9 @@ db.exec(`
 `);
 
 function getProjectState(projectPath) {
-  const row = db.prepare("SELECT * FROM project_state WHERE project = ?").get(projectPath);
+  const row = db
+    .prepare("SELECT * FROM project_state WHERE project = ?")
+    .get(projectPath);
   if (!row) return null;
   return { ...row, ui_prefs: row.ui_prefs ? JSON.parse(row.ui_prefs) : {} };
 }
@@ -85,7 +121,10 @@ const MCP_JSON_PATH = path.join(HOME, ".config", "opencode", "mcp.json");
 function commandExistsSync(cmd) {
   const { execFileSync } = require("child_process");
   try {
-    execFileSync(process.platform === "win32" ? "where" : "which", [cmd], { timeout: 5000, stdio: "ignore" });
+    execFileSync(process.platform === "win32" ? "where" : "which", [cmd], {
+      timeout: 5000,
+      stdio: "ignore",
+    });
     return true;
   } catch {
     return false;
@@ -123,12 +162,15 @@ function runSetupCheck() {
     id: "docker",
     ok: dockerOk,
     title: "Docker",
-    reason: "Necessário para o Strix (pentest autônomo usado pelo /audit quando instalado).",
-    steps: dockerOk ? [] : [
-      "Baixe o Docker Desktop em https://www.docker.com/products/docker-desktop/",
-      "Instale e abra o Docker Desktop pelo menos uma vez para ele iniciar o daemon.",
-      "Confirme que funcionou rodando: docker --version",
-    ],
+    reason:
+      "Necessário para o Strix (pentest autônomo usado pelo /audit quando instalado).",
+    steps: dockerOk
+      ? []
+      : [
+          "Baixe o Docker Desktop em https://www.docker.com/products/docker-desktop/",
+          "Instale e abra o Docker Desktop pelo menos uma vez para ele iniciar o daemon.",
+          "Confirme que funcionou rodando: docker --version",
+        ],
   });
 
   // 2. Credentials left as placeholders in the installed mcp.json.
@@ -140,17 +182,23 @@ function runSetupCheck() {
   }
   if (mcpConfig && mcpConfig.mcpServers) {
     const github = mcpConfig.mcpServers["github"];
-    const githubOk = !github || !JSON.stringify(github).includes("YOUR_GITHUB_TOKEN");
+    const githubOk =
+      !github || !JSON.stringify(github).includes("YOUR_GITHUB_TOKEN");
     items.push({
       id: "github-token",
       ok: githubOk,
       title: "Token do GitHub MCP",
-      reason: "O MCP github está registrado mas com um placeholder no lugar do token real.",
-      steps: githubOk ? [] : [
-        "Gere um token em https://github.com/settings/tokens (permissões conforme o que você for usar)",
-        "Edite " + MCP_JSON_PATH + " e troque YOUR_GITHUB_TOKEN pelo token.",
-        "Registre: claude mcp add --scope user --transport http github https://api.githubcopilot.com/mcp/ --header \"Authorization: Bearer <seu-token>\"",
-      ],
+      reason:
+        "O MCP github está registrado mas com um placeholder no lugar do token real.",
+      steps: githubOk
+        ? []
+        : [
+            "Gere um token em https://github.com/settings/tokens (permissões conforme o que você for usar)",
+            "Edite " +
+              MCP_JSON_PATH +
+              " e troque YOUR_GITHUB_TOKEN pelo token.",
+            'Registre: claude mcp add --scope user --transport http github https://api.githubcopilot.com/mcp/ --header "Authorization: Bearer <seu-token>"',
+          ],
     });
   }
 
@@ -191,9 +239,10 @@ function runSetupCheck() {
       id: p.id,
       ok,
       title: p.title,
-      reason: installedPlugins === null
-        ? "Não foi possível checar plugins instalados (CLI claude indisponível) — status desconhecido."
-        : "Instala código de terceiros, então a confirmação humana é obrigatória por design. Rode os comandos abaixo num terminal (não como /plugin dentro do chat).",
+      reason:
+        installedPlugins === null
+          ? "Não foi possível checar plugins instalados (CLI claude indisponível) — status desconhecido."
+          : "Instala código de terceiros, então a confirmação humana é obrigatória por design. Rode os comandos abaixo num terminal (não como /plugin dentro do chat).",
       steps: p.steps,
     });
   }
@@ -210,78 +259,73 @@ function checkForUpdates() {
   try {
     repoPath = fs.readFileSync(REPO_PATH_FILE, "utf8").trim();
   } catch {
-    updateCache = { data: { available: false, reason: "repo-path not recorded — re-run install" }, fetchedAt: Date.now(), fetching: false };
+    updateCache = {
+      data: {
+        available: false,
+        reason: "repo-path not recorded — re-run install",
+      },
+      fetchedAt: Date.now(),
+      fetching: false,
+    };
     return;
   }
   if (!repoPath || !fs.existsSync(repoPath)) {
-    updateCache = { data: { available: false, reason: "recorded repo path no longer exists" }, fetchedAt: Date.now(), fetching: false };
+    updateCache = {
+      data: { available: false, reason: "recorded repo path no longer exists" },
+      fetchedAt: Date.now(),
+      fetching: false,
+    };
     return;
   }
   updateCache.fetching = true;
-  execFile("git", ["fetch", "origin"], { cwd: repoPath, timeout: 15000 }, (fetchErr) => {
-    if (fetchErr) {
-      updateCache = { data: { available: false, reason: "git fetch failed (offline?)" }, fetchedAt: Date.now(), fetching: false };
-      return;
-    }
-    execFile(
-      "git",
-      ["rev-list", "--count", "HEAD..origin/main"],
-      { cwd: repoPath, timeout: 10000 },
-      (countErr, stdout) => {
-        updateCache.fetching = false;
-        if (countErr) {
-          updateCache = { data: { available: false, reason: "could not compare with origin/main" }, fetchedAt: Date.now(), fetching: false };
-          return;
-        }
-        const behind = parseInt(String(stdout).trim(), 10) || 0;
+  execFile(
+    "git",
+    ["fetch", "origin"],
+    { cwd: repoPath, timeout: 15000 },
+    (fetchErr) => {
+      if (fetchErr) {
         updateCache = {
-          data: { available: behind > 0, commitsBehind: behind, repoPath },
+          data: { available: false, reason: "git fetch failed (offline?)" },
           fetchedAt: Date.now(),
           fetching: false,
         };
-      },
-    );
-  });
+        return;
+      }
+      execFile(
+        "git",
+        ["rev-list", "--count", "HEAD..origin/main"],
+        { cwd: repoPath, timeout: 10000 },
+        (countErr, stdout) => {
+          updateCache.fetching = false;
+          if (countErr) {
+            updateCache = {
+              data: {
+                available: false,
+                reason: "could not compare with origin/main",
+              },
+              fetchedAt: Date.now(),
+              fetching: false,
+            };
+            return;
+          }
+          const behind = parseInt(String(stdout).trim(), 10) || 0;
+          updateCache = {
+            data: { available: behind > 0, commitsBehind: behind, repoPath },
+            fetchedAt: Date.now(),
+            fetching: false,
+          };
+        },
+      );
+    },
+  );
 }
 
 function readCatalog() {
-  for (const p of CATALOG_PATHS) {
-    try {
-      return JSON.parse(fs.readFileSync(p, "utf8")).catalog || [];
-    } catch {
-      // try next path
-    }
-  }
-  return [];
+  return readCatalogImpl(CATALOG_PATHS);
 }
 
-function normalizeProjectPath(p) {
-  if (!p) return "";
-  return p.replace(/\\/g, "/").toLowerCase().replace(/\/+$/, "");
-}
-
-// The usage log is a single shared file (multiple projects log into it), but the
-// dashboard itself never shows more than one project's data — every read filters
-// down to the requesting project right here, before anything reaches the client.
 function readEventsForProject(projectPath) {
-  const target = normalizeProjectPath(projectPath);
-  if (!target) return [];
-  try {
-    const raw = fs.readFileSync(LOG_PATH, "utf8");
-    return raw
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      })
-      .filter((e) => e && normalizeProjectPath(e.project) === target);
-  } catch {
-    return [];
-  }
+  return readEventsForProjectImpl(LOG_PATH, projectPath);
 }
 
 const sseClients = new Set();
@@ -292,7 +336,9 @@ let lastSize = 0;
 function broadcast(events) {
   for (const res of sseClients) {
     const target = res._scopedProject;
-    const filtered = target ? events.filter((e) => normalizeProjectPath(e.project) === target) : [];
+    const filtered = target
+      ? events.filter((e) => normalizeProjectPath(e.project) === target)
+      : [];
     if (filtered.length) res.write(`data: ${JSON.stringify(filtered)}\n\n`);
   }
 }
@@ -339,7 +385,8 @@ function graphifyStatusForProject(projectPath) {
   if (!projectPath) return { available: false };
   const graphHtml = path.join(projectPath, "graphify-out", "graph.html");
   const graphJson = path.join(projectPath, "graphify-out", "graph.json");
-  if (!fs.existsSync(graphHtml) || !fs.existsSync(graphJson)) return { available: false };
+  if (!fs.existsSync(graphHtml) || !fs.existsSync(graphJson))
+    return { available: false };
   let stats = null;
   try {
     const g = JSON.parse(fs.readFileSync(graphJson, "utf8"));
@@ -349,7 +396,11 @@ function graphifyStatusForProject(projectPath) {
   } catch {
     // graph.json present but unreadable — still offer the link
   }
-  return { available: true, generatedAt: fs.statSync(graphHtml).mtime.toISOString(), stats };
+  return {
+    available: true,
+    generatedAt: fs.statSync(graphHtml).mtime.toISOString(),
+    stats,
+  };
 }
 
 // --- HTML page ---------------------------------------------------------
@@ -879,27 +930,25 @@ fetch('/api/snapshot?project=' + encodeURIComponent(scopeProject)).then(r => r.j
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
   if (url.pathname === "/" || url.pathname === "/index.html") {
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
     res.end(PAGE);
     return;
   }
   if (url.pathname === "/api/snapshot") {
     const projectParam = url.searchParams.get("project");
     const events = readEventsForProject(projectParam);
-    const usedIds = new Set(events.map((e) => e.plugin).filter(Boolean));
     // "installed" combines two independent signals: the plugin was actually used
-    // (usedIds, from real hook events) OR — for plugins.json entries with a
-    // pluginName — `claude plugin list` confirms it's installed even if never
-    // used yet. Skills installed via `npx skills add` (no central registry, e.g.
+    // (from real hook events) OR — for plugins.json entries with a pluginName —
+    // `claude plugin list` confirms it's installed even if never used yet.
+    // Skills installed via `npx skills add` (no central registry, e.g.
     // emil-design-eng/taste-skill) only ever get the "used" signal.
     const claudePlugins = installedClaudePlugins(); // null if undetectable
     const catalog = [
       ...BUILTIN_COMMANDS.map((c) => ({ ...c, installed: true, used: true })),
-      ...readCatalog().map((p) => {
-        const used = usedIds.has(p.id);
-        const installedViaPlugin = !!(p.pluginName && claudePlugins && claudePlugins.has(p.pluginName));
-        return { ...p, installed: used || installedViaPlugin, used, installedViaPlugin };
-      }),
+      ...buildCatalogSnapshot(readCatalog(), events, claudePlugins),
     ];
     let projectState = null;
     if (projectParam) {
@@ -908,7 +957,14 @@ const server = http.createServer((req, res) => {
       projectState = previous; // return what it was BEFORE this open, so the client can show "last opened X ago"
     }
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-    res.end(JSON.stringify({ events, catalog, corePluginIds: CORE_PLUGIN_IDS, projectState }));
+    res.end(
+      JSON.stringify({
+        events,
+        catalog,
+        corePluginIds: CORE_PLUGIN_IDS,
+        projectState,
+      }),
+    );
     return;
   }
   if (url.pathname === "/api/ui-prefs" && req.method === "POST") {
@@ -918,7 +974,9 @@ const server = http.createServer((req, res) => {
       try {
         const { project, prefs } = JSON.parse(body);
         if (project) saveUiPrefs(project, prefs || {});
-        res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+        res.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+        });
         res.end(JSON.stringify({ ok: true }));
       } catch {
         res.writeHead(400);
@@ -928,11 +986,18 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (url.pathname === "/api/update-check") {
-    if (!updateCache.data || Date.now() - updateCache.fetchedAt > UPDATE_CHECK_TTL_MS) {
+    if (
+      !updateCache.data ||
+      Date.now() - updateCache.fetchedAt > UPDATE_CHECK_TTL_MS
+    ) {
       checkForUpdates();
     }
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-    res.end(JSON.stringify(updateCache.data || { available: false, reason: "checking..." }));
+    res.end(
+      JSON.stringify(
+        updateCache.data || { available: false, reason: "checking..." },
+      ),
+    );
     return;
   }
   if (url.pathname === "/api/setup-check") {
@@ -955,7 +1020,9 @@ const server = http.createServer((req, res) => {
       return;
     }
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    fs.createReadStream(path.join(projectParam, "graphify-out", "graph.html")).pipe(res);
+    fs.createReadStream(
+      path.join(projectParam, "graphify-out", "graph.html"),
+    ).pipe(res);
     return;
   }
   if (url.pathname === "/api/stream") {

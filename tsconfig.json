@@ -8,5 +8,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["source/dashboard/**/*.js"]
+  "include": ["source/dashboard/**/*.js", "source/hooks/**/*.js", "scripts/*.js", "tests/**/*.js"]
 }

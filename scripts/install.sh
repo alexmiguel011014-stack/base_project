@@ -71,9 +71,11 @@ OPENCODE_COMMAND_DIR="$OPENCODE_HOME/command"
 CLAUDE_DASHBOARD_DIR="$CLAUDE_HOME/base_project/dashboard"
 OPENCODE_DASHBOARD_DIR="$OPENCODE_HOME/base_project/dashboard"
 OPENCODE_PLUGINS_DIR="$OPENCODE_HOME/plugins"
+CLAUDE_HOOKS_DIR="$CLAUDE_HOME/base_project/hooks"
+CLAUDE_SCRIPTS_DIR="$CLAUDE_HOME/base_project/scripts"
 
 mkdir -p "$CLAUDE_AGENTS_DIR" "$CLAUDE_COMMANDS_DIR" "$OPENCODE_AGENT_DIR" "$OPENCODE_COMMAND_DIR" \
-    "$CLAUDE_DASHBOARD_DIR" "$OPENCODE_DASHBOARD_DIR" "$OPENCODE_PLUGINS_DIR"
+    "$CLAUDE_DASHBOARD_DIR" "$OPENCODE_DASHBOARD_DIR" "$OPENCODE_PLUGINS_DIR" "$CLAUDE_HOOKS_DIR" "$CLAUDE_SCRIPTS_DIR"
 
 # ---------------------------------------------------------------------
 # 3. CLAUDE.md — inject a delimited, replaceable block
@@ -135,6 +137,25 @@ if command -v jq &>/dev/null; then
          | .hooks.UserPromptExpansion = ((.hooks.UserPromptExpansion // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $promptExpansionCmd, "async": true}]}]' \
         > "$SETTINGS_PATH"
     ok "settings.json (usage-dashboard hooks merged, your other hooks/settings untouched)"
+
+    # Loop-detection and auto-format hooks — real behavior, not just logging
+    # (see ROADMAP.md item 2). Synchronous (not async): loop-detect's stderr
+    # warning and post-edit-format's write need to land before the next tool
+    # call, but neither ever throws or blocks (swallow-all-errors by design).
+    LOOP_DETECT_PATH="$CLAUDE_HOOKS_DIR/loop-detect.js"
+    LOOP_DETECT_MARKER="base_project/hooks/loop-detect.js"
+    POST_EDIT_FORMAT_PATH="$CLAUDE_HOOKS_DIR/post-edit-format.js"
+    POST_EDIT_FORMAT_MARKER="base_project/hooks/post-edit-format.js"
+    BASE_SETTINGS="$(cat "$SETTINGS_PATH")"
+    echo "$BASE_SETTINGS" | jq \
+        --arg loopCmd "node \"$LOOP_DETECT_PATH\"" \
+        --arg loopMarker "$LOOP_DETECT_MARKER" \
+        --arg formatCmd "node \"$POST_EDIT_FORMAT_PATH\"" \
+        --arg formatMarker "$POST_EDIT_FORMAT_MARKER" \
+        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]' \
+        > "$SETTINGS_PATH"
+    ok "settings.json (loop-detect + post-edit-format hooks merged)"
 else
     warn "'jq' not found - skipping settings.json hook merge. Install jq, then re-run this script."
 fi
@@ -290,6 +311,35 @@ for f in "$DASHBOARD_SRC_DIR"/*.js; do
     sync_managed "$f" "$OPENCODE_DASHBOARD_DIR/$base"
 done
 sync_managed "$DASHBOARD_SRC_DIR/opencode-usage-logger.js" "$OPENCODE_PLUGINS_DIR/opencode-usage-logger.js"
+
+if [ -d "$DASHBOARD_SRC_DIR/lib" ]; then
+    mkdir -p "$CLAUDE_DASHBOARD_DIR/lib" "$OPENCODE_DASHBOARD_DIR/lib"
+    for f in "$DASHBOARD_SRC_DIR"/lib/*.js; do
+        base="$(basename "$f")"
+        sync_managed "$f" "$CLAUDE_DASHBOARD_DIR/lib/$base"
+        sync_managed "$f" "$OPENCODE_DASHBOARD_DIR/lib/$base"
+    done
+fi
+
+# ---------------------------------------------------------------------
+# 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
+# ---------------------------------------------------------------------
+step "Syncing hook scripts..."
+HOOKS_SRC_DIR="$SOURCE_DIR/hooks"
+if [ -d "$HOOKS_SRC_DIR" ]; then
+    for f in "$HOOKS_SRC_DIR"/*.js; do
+        sync_managed "$f" "$CLAUDE_HOOKS_DIR/$(basename "$f")"
+    done
+fi
+
+# ---------------------------------------------------------------------
+# 8c. scan-skill.js - lightweight pre-trust scan, used by /plugins before
+# installing a third-party skill. See ROADMAP item 10.
+# ---------------------------------------------------------------------
+SCAN_SKILL_SRC="$SCRIPT_DIR/scan-skill.js"
+if [ -f "$SCAN_SKILL_SRC" ]; then
+    sync_managed "$SCAN_SKILL_SRC" "$CLAUDE_SCRIPTS_DIR/scan-skill.js"
+fi
 
 # ---------------------------------------------------------------------
 # 9. Record the repo path so the dashboard can check for updates later
