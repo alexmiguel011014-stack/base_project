@@ -56,18 +56,28 @@ jobs:
           sudo apt-get update -y && sudo apt-get install -y jq
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
-          bash scripts/install.sh
+          bash dev/scripts/install.sh
           test -f "$CLAUDE_HOME/CLAUDE.md"
           test -f "$CLAUDE_HOME/settings.json"
           test -f "$CLAUDE_HOME/base_project/plugins.json"
-          test -f "$CLAUDE_HOME/base_project/dashboard/server.js"
-          test -f "$CLAUDE_HOME/base_project/dashboard/lib/snapshot.js"
           test -f "$CLAUDE_HOME/base_project/hooks/loop-detect.js"
           test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
+          test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
+          test -f "$CLAUDE_HOME/base_project/references/command-menu.md"
           test -f "$CLAUDE_HOME/agents/reviewer.md"
+          test -f "$CLAUDE_HOME/commands/newproject.md"
+          test -f "$CLAUDE_HOME/commands/scanproject.md"
+          test -f "$CLAUDE_HOME/commands/fixproject.md"
+          test -f "$CLAUDE_HOME/commands/cleanproject.md"
+          test -f "$CLAUDE_HOME/commands/wpp.md"
+          test -f "$CLAUDE_HOME/commands/status.md"
+          test -f "$CLAUDE_HOME/commands/update.md"
+          test -f "$CLAUDE_HOME/commands/uninstall.md"
           test -f "$OPENCODE_HOME/opencode.jsonc"
           test -f "$OPENCODE_HOME/base_project/plugins.json"
+          test -f "$OPENCODE_HOME/base_project/references/project-standards.md"
+          test -f "$OPENCODE_HOME/command/newproject.md"
           node -e "JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8'))"
           echo "install.sh: all expected artifacts present and settings.json is valid JSON"
 
@@ -77,19 +87,29 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
-          & "scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
+          & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           $expected = @(
             (Join-Path $claudeHome "CLAUDE.md"),
             (Join-Path $claudeHome "settings.json"),
             (Join-Path $claudeHome "base_project\plugins.json"),
-            (Join-Path $claudeHome "base_project\dashboard\server.js"),
-            (Join-Path $claudeHome "base_project\dashboard\lib\snapshot.js"),
             (Join-Path $claudeHome "base_project\hooks\loop-detect.js"),
             (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
+            (Join-Path $claudeHome "base_project\references\project-standards.md"),
+            (Join-Path $claudeHome "base_project\references\command-menu.md"),
             (Join-Path $claudeHome "agents\reviewer.md"),
+            (Join-Path $claudeHome "commands\newproject.md"),
+            (Join-Path $claudeHome "commands\scanproject.md"),
+            (Join-Path $claudeHome "commands\fixproject.md"),
+            (Join-Path $claudeHome "commands\cleanproject.md"),
+            (Join-Path $claudeHome "commands\wpp.md"),
+            (Join-Path $claudeHome "commands\status.md"),
+            (Join-Path $claudeHome "commands\update.md"),
+            (Join-Path $claudeHome "commands\uninstall.md"),
             (Join-Path $opencodeHome "opencode.jsonc"),
-            (Join-Path $opencodeHome "base_project\plugins.json")
+            (Join-Path $opencodeHome "base_project\plugins.json"),
+            (Join-Path $opencodeHome "base_project\references\project-standards.md"),
+            (Join-Path $opencodeHome "command\newproject.md")
           )
           foreach ($path in $expected) {
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
@@ -102,7 +122,7 @@ jobs:
         run: |
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
-          bash scripts/install.sh
+          bash dev/scripts/install.sh
           echo "second run succeeded without error"
 
       - name: Re-run installer to confirm it's idempotent (Windows)
@@ -111,5 +131,5 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
-          & "scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
+          & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           Write-Output "second run succeeded without error"

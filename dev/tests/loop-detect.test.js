@@ -6,7 +6,7 @@ const {
   signatureFor,
   checkAndUpdate,
   stateFilePath,
-} = require("../source/hooks/loop-detect.js");
+} = require("../../source/hooks/loop-detect.js");
 
 function cleanup(sessionId) {
   try {

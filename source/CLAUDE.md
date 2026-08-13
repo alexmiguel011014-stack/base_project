@@ -30,6 +30,18 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
   suggestion low-friction while preserving the project's zero-surprise-side-effect rule.
 - Don't repeat the same suggestion again within one session once it's been mentioned or declined.
 
+### "What do you want to do now?" menu (WhatsApp-style)
+- Show this menu in two moments only: (1) at the very start of a session, right after
+  any git-context hook output, before doing anything else — unless the user's first
+  message already states a clear, specific request (in that case just do the work, no
+  menu); (2) right after closing out a substantial task (one that used TodoWrite,
+  subagents, or multiple file edits) — not after every reply, and never after a small
+  Q&A exchange.
+- Render it by reading `~/.claude/base_project/references/command-menu.md` verbatim —
+  do not redigit the list from memory, so it never drifts from the real command set.
+- If the user's next message is already a direct request, skip the menu that turn — it
+  exists to lower friction for someone unsure what to do next, not to gate every turn.
+
 ### Self-Correction
 - After any code change, detect and run the project's own test/typecheck/lint commands from its manifest
   (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) — do not assume a specific stack or toolchain.

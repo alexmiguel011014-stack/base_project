@@ -22,7 +22,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot  = Split-Path -Parent $PSScriptRoot
+$repoRoot  = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $sourceDir = Join-Path $repoRoot "source"
 
 $MARK_START = "<!-- base_project:start -->"
@@ -109,13 +109,12 @@ $claudeAgentsDir      = Join-Path $ClaudeHome "agents"
 $claudeCommandsDir    = Join-Path $ClaudeHome "commands"
 $opencodeAgentDir     = Join-Path $OpencodeHome "agent"
 $opencodeCommandDir   = Join-Path $OpencodeHome "command"
-$claudeDashboardDir   = Join-Path $ClaudeHome "base_project\dashboard"
-$opencodeDashboardDir = Join-Path $OpencodeHome "base_project\dashboard"
-$opencodePluginsDir   = Join-Path $OpencodeHome "plugins"
 $claudeHooksDir       = Join-Path $ClaudeHome "base_project\hooks"
 $claudeScriptsDir     = Join-Path $ClaudeHome "base_project\scripts"
+$claudeReferencesDir  = Join-Path $ClaudeHome "base_project\references"
+$opencodeReferencesDir = Join-Path $OpencodeHome "base_project\references"
 
-foreach ($dir in @($ClaudeHome, $claudeAgentsDir, $claudeCommandsDir, $OpencodeHome, $opencodeAgentDir, $opencodeCommandDir, $claudeDashboardDir, $opencodeDashboardDir, $opencodePluginsDir, $claudeHooksDir, $claudeScriptsDir)) {
+foreach ($dir in @($ClaudeHome, $claudeAgentsDir, $claudeCommandsDir, $OpencodeHome, $opencodeAgentDir, $opencodeCommandDir, $claudeHooksDir, $claudeScriptsDir, $claudeReferencesDir, $opencodeReferencesDir)) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 
@@ -153,16 +152,11 @@ Write-Utf8NoBom -Path $claudeMdPath -Content $updated
 Write-Ok "CLAUDE.md (your own content outside the base_project block is untouched)"
 
 # ---------------------------------------------------------------------
-# 3b. settings.json — merge the usage-dashboard PostToolUse hook, preserve the rest
+# 3b. settings.json — merge base_project's hooks, preserve the rest
 # ---------------------------------------------------------------------
 Write-Step "Updating $ClaudeHome\settings.json..."
 
 $settingsPath = Join-Path $ClaudeHome "settings.json"
-$hookLoggerPath = (Join-Path $claudeDashboardDir "log-usage.js") -replace '\\', '/'
-$hookMarker = "base_project/dashboard/log-usage.js"
-$hookCommand = "node `"$hookLoggerPath`""
-$stopHookCommand = "node `"$hookLoggerPath`" --stop"
-$promptExpansionHookCommand = "node `"$hookLoggerPath`" --prompt-expansion"
 
 $settingsObj = $null
 if (Test-Path $settingsPath) {
@@ -182,25 +176,9 @@ if (-not $settingsObj.PSObject.Properties['hooks']) {
 if (-not $settingsObj.hooks.PSObject.Properties['PostToolUse']) {
     $settingsObj.hooks | Add-Member -NotePropertyName PostToolUse -NotePropertyValue @() -Force
 }
-if (-not $settingsObj.hooks.PSObject.Properties['Stop']) {
-    $settingsObj.hooks | Add-Member -NotePropertyName Stop -NotePropertyValue @() -Force
-}
-if (-not $settingsObj.hooks.PSObject.Properties['UserPromptExpansion']) {
-    $settingsObj.hooks | Add-Member -NotePropertyName UserPromptExpansion -NotePropertyValue @() -Force
-}
 if (-not $settingsObj.hooks.PSObject.Properties['SessionStart']) {
     $settingsObj.hooks | Add-Member -NotePropertyName SessionStart -NotePropertyValue @() -Force
 }
-
-$ourEntry = [PSCustomObject]@{
-    hooks = @(
-        [PSCustomObject]@{ type = "command"; command = $hookCommand; async = $true }
-    )
-}
-$existingGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
-    -not ($_.hooks | Where-Object { $_.command -like "*$hookMarker*" })
-})
-$settingsObj.hooks.PostToolUse = @($existingGroups) + @($ourEntry)
 
 # Loop-detection and auto-format hooks — real behavior, not just logging (see
 # ROADMAP.md item 2). Both are synchronous (not async) so their stderr output/
@@ -250,28 +228,17 @@ $existingSessionStartGroups = @($settingsObj.hooks.SessionStart | Where-Object {
 })
 $settingsObj.hooks.SessionStart = @($existingSessionStartGroups) + @($ourSessionStartEntry)
 
-$ourStopEntry = [PSCustomObject]@{
-    hooks = @(
-        [PSCustomObject]@{ type = "command"; command = $stopHookCommand; async = $true }
-    )
-}
-$existingStopGroups = @($settingsObj.hooks.Stop | Where-Object {
-    -not ($_.hooks | Where-Object { $_.command -like "*$hookMarker*" })
-})
-$settingsObj.hooks.Stop = @($existingStopGroups) + @($ourStopEntry)
-
-$ourPromptExpansionEntry = [PSCustomObject]@{
-    hooks = @(
-        [PSCustomObject]@{ type = "command"; command = $promptExpansionHookCommand; async = $true }
-    )
-}
-$existingPromptExpansionGroups = @($settingsObj.hooks.UserPromptExpansion | Where-Object {
-    -not ($_.hooks | Where-Object { $_.command -like "*$hookMarker*" })
-})
-$settingsObj.hooks.UserPromptExpansion = @($existingPromptExpansionGroups) + @($ourPromptExpansionEntry)
-
 Write-Utf8NoBom -Path $settingsPath -Content ($settingsObj | ConvertTo-Json -Depth 10)
-Write-Ok "settings.json (usage-dashboard hooks merged, your other hooks/settings untouched)"
+Write-Ok "settings.json (base_project hooks merged, your other hooks/settings untouched)"
+
+# Informational only - never written automatically. fallbackModel is a real Claude
+# Code setting (up to 3 backup models tried in order on a 529/overload error) that
+# reduces mid-task failures for zero cost - but it's a behavior change (which model
+# answers your prompt), so base_project only suggests it, same as the plugin
+# auto-suggestion rule: mention once, never silently edit settings.json for the user.
+if (-not $settingsObj.PSObject.Properties['fallbackModel']) {
+    Write-Warn "Tip: settings.json has no 'fallbackModel' set. Consider adding e.g. `"fallbackModel`": [`"claude-sonnet-4-6`", `"claude-haiku-4-5`"] to $settingsPath - Claude Code tries these in order if the primary model is overloaded. Not applied automatically."
+}
 
 # ---------------------------------------------------------------------
 # 4. opencode.jsonc — link instructions + mcp file, preserve the rest
@@ -426,30 +393,6 @@ Sync-Catalog (Join-Path $ClaudeHome "base_project\plugins.json")
 Sync-Catalog (Join-Path $OpencodeHome "base_project\plugins.json")
 
 # ---------------------------------------------------------------------
-# 8. Usage dashboard - shared logger, server, launcher, and the opencode plugin
-# ---------------------------------------------------------------------
-Write-Step "Syncing usage dashboard files..."
-$dashboardSrcDir = Join-Path $sourceDir "dashboard"
-
-Get-ChildItem $dashboardSrcDir -Filter *.js | Where-Object { $_.Name -ne 'opencode-usage-logger.js' } | ForEach-Object {
-    Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $claudeDashboardDir $_.Name)
-    Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeDashboardDir $_.Name)
-}
-Sync-Managed -SrcFile (Join-Path $dashboardSrcDir "opencode-usage-logger.js") -DestFile (Join-Path $opencodePluginsDir "opencode-usage-logger.js")
-
-$dashboardLibSrcDir = Join-Path $dashboardSrcDir "lib"
-if (Test-Path $dashboardLibSrcDir) {
-    $claudeDashboardLibDir   = Join-Path $claudeDashboardDir "lib"
-    $opencodeDashboardLibDir = Join-Path $opencodeDashboardDir "lib"
-    New-Item -ItemType Directory -Force -Path $claudeDashboardLibDir | Out-Null
-    New-Item -ItemType Directory -Force -Path $opencodeDashboardLibDir | Out-Null
-    Get-ChildItem $dashboardLibSrcDir -Filter *.js | ForEach-Object {
-        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $claudeDashboardLibDir $_.Name)
-        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeDashboardLibDir $_.Name)
-    }
-}
-
-# ---------------------------------------------------------------------
 # 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
 # ---------------------------------------------------------------------
 Write-Step "Syncing hook scripts..."
@@ -464,13 +407,30 @@ if (Test-Path $hooksSrcDir) {
 # 8c. scan-skill.js - lightweight pre-trust scan, used by /plugins before
 # installing a third-party skill. See ROADMAP item 10.
 # ---------------------------------------------------------------------
-$scanSkillSrc = Join-Path $repoRoot "scripts\scan-skill.js"
+$scanSkillSrc = Join-Path $repoRoot "dev\scripts\scan-skill.js"
 if (Test-Path $scanSkillSrc) {
     Sync-Managed -SrcFile $scanSkillSrc -DestFile (Join-Path $claudeScriptsDir "scan-skill.js")
 }
 
 # ---------------------------------------------------------------------
-# 9. Record the repo path so the dashboard can check for updates later
+# 8d. Reference docs read by commands (project-standards.md, command-menu.md)
+# ---------------------------------------------------------------------
+Write-Step "Syncing reference docs..."
+$claudeReferencesSrcDir   = Join-Path $sourceDir "claude\references"
+$opencodeReferencesSrcDir = Join-Path $sourceDir "opencode\references"
+if (Test-Path $claudeReferencesSrcDir) {
+    Get-ChildItem $claudeReferencesSrcDir -Filter *.md | ForEach-Object {
+        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $claudeReferencesDir $_.Name)
+    }
+}
+if (Test-Path $opencodeReferencesSrcDir) {
+    Get-ChildItem $opencodeReferencesSrcDir -Filter *.md | ForEach-Object {
+        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeReferencesDir $_.Name)
+    }
+}
+
+# ---------------------------------------------------------------------
+# 9. Record the repo path (used to check for base_project updates later)
 # ---------------------------------------------------------------------
 $stateDir = Join-Path $HOME ".base_project"
 New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
@@ -484,8 +444,8 @@ Write-Ok "recorded repo path for update checks: $repoRoot"
 # ---------------------------------------------------------------------
 $iconPath = Join-Path $repoRoot "assets\icone.ico"
 if (Test-Path $iconPath) {
-    Write-Step "Applying folder icon to source/, scripts/, assets/..."
-    foreach ($folder in @("source", "scripts", "assets")) {
+    Write-Step "Applying folder icon to source/, dev/, assets/..."
+    foreach ($folder in @("source", "dev", "assets")) {
         $folderPath = Join-Path $repoRoot $folder
         if (-not (Test-Path $folderPath)) { continue }
         $iniPath = Join-Path $folderPath "desktop.ini"

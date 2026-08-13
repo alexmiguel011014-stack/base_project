@@ -14,23 +14,10 @@ Tem um `package.json` na raiz (desde o item 8 do ROADMAP — validação de `plu
 
 ## Sincronização fonte → instalado
 
-`source/dashboard/*.js` e `source/plugins.json` têm cópias instaladas em
-`~/.claude/base_project/` e `~/.config/opencode/base_project/`. Editar só `source/` não tem
-efeito imediato na máquina de dev — depois de editar, sincronize manualmente ou rode o
-instalador de novo:
-
-```powershell
-Copy-Item source\dashboard\server.js "$env:USERPROFILE\.claude\base_project\dashboard\server.js" -Force
-Copy-Item source\dashboard\log-usage.js "$env:USERPROFILE\.claude\base_project\dashboard\log-usage.js" -Force
-Copy-Item source\plugins.json "$env:USERPROFILE\.claude\base_project\plugins.json" -Force
-```
-
-O dashboard (`server.js`) precisa reiniciar para pegar mudanças de código — não hot-reload:
-
-```powershell
-Get-NetTCPConnection -LocalPort 4317 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
-node "$env:USERPROFILE\.claude\base_project\dashboard\launch.js"
-```
+`source/hooks/*.js`, `source/plugins.json`, `source/claude/`, `source/opencode/` têm cópias
+instaladas em `~/.claude/` e `~/.config/opencode/`. Editar só `source/` não tem efeito
+imediato na máquina de dev — depois de editar, rode o instalador de novo
+(`dev\scripts\install.ps1` / `dev/scripts/install.sh`) para sincronizar.
 
 ## Ferramentas instaladas nesta máquina para trabalhar em design/UI
 
@@ -49,18 +36,35 @@ Se um `biome check --write` (ou qualquer formatter) reescrever mais do que o esp
 no arquivo, não só a reformatação. Prefira `git diff` para revisar e reverter manualmente as
 partes indesejadas, ou `git stash` antes de rodar formatters amplos.
 
+## Layout: `dev/` guarda tudo que só quem desenvolve o base_project precisa
+
+`scripts/`, `schemas/`, `tests/`, `ROADMAP.md` vivem dentro de `dev/` — nada disso importa
+pra quem só *usa* o base_project (roda o installer, usa os comandos). O que fica na raiz é
+só o que um usuário final precisa ver (`README.md`, `ARCHITECTURE.md`, `source/`) mais o que
+ferramentas externas exigem estar na raiz por convenção: `package.json`/`package-lock.json`
+(`npm ci`/`cache: "npm"`), e **`biome.json`/`tsconfig.json` também continuam na raiz** —
+tentativa deliberada de movê-los pra `dev/` foi revertida: o Biome 2.x recusa um
+`includes`/pattern que escape do diretório do próprio config via `../` ("Found a nested
+root configuration" / "these paths were ignored"), e como o lint precisa cobrir
+`source/hooks/**/*.js` (fora de `dev/`) além de `dev/scripts/*.js`/`dev/tests/**/*.js`
+(dentro), o config só funciona ficando num ponto que enxerga as duas árvores — a raiz.
+`tsconfig.json` tecnicamente toleraria ficar em `dev/` (tsc não tem essa restrição de
+boundary), mas foi movido de volta junto por consistência: os dois configs de tooling do
+mesmo par de diretórios devem morar no mesmo lugar. Os scripts que os comandos globais
+invocam (`dev/scripts/validate-plugins.js` etc.) continuam apontando pra dentro de `dev/`.
+
 ## CI (`.github/workflows/ci.yml`)
 
 - `package.json`/`package-lock.json` existem na raiz desde o item 8 do ROADMAP (dependência
-  real: `ajv`+`ajv-formats` para `scripts/validate-plugins.js`). O CI usa `npm ci` +
+  real: `ajv`+`ajv-formats` para `dev/scripts/validate-plugins.js`). O CI usa `npm ci` +
   `cache: "npm"` normalmente — voltou a isso depois de uma fase intermediária sem lockfile.
-- `biome.json` escopa o lint só a `source/dashboard/**/*.js` — sem isso, o Biome varre
-  `.opencode/`, `graphify-out/`, e qualquer coisa gerada/de terceiros.
-- `tsconfig.json` existe só para permitir `npx tsc` rodar sem erro de "no inputs" — `checkJs`
-  fica `false` de propósito (o dashboard é JS puro sem anotações de tipo; `checkJs: true`
-  geraria centenas de erros de `any` implícito que não refletem bugs reais).
-- `npm run validate:plugins` (= `node scripts/validate-plugins.js`) roda no CI e valida
-  `source/plugins.json` contra `schemas/plugins.schema.json` antes de qualquer merge.
+- `biome.json` (raiz) escopa o lint a `source/hooks/**/*.js`, `dev/scripts/*.js`,
+  `dev/tests/**/*.js` — sem isso, o Biome varre `.opencode/`, `graphify-out/`, e qualquer
+  coisa gerada/de terceiros.
+- `tsconfig.json` (raiz) existe só para permitir `npx tsc` rodar sem erro de "no inputs" —
+  `checkJs` fica `false` de propósito.
+- `npm run validate:plugins` (= `node dev/scripts/validate-plugins.js`) roda no CI e valida
+  `source/plugins.json` contra `dev/schemas/plugins.schema.json` antes de qualquer merge.
 
 ### Bug histórico: CI rodava um Biome fantasma (`biome@0.3.3`)
 

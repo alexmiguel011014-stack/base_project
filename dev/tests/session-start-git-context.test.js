@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   formatGitContext,
-} = require("../source/hooks/session-start-git-context.js");
+} = require("../../source/hooks/session-start-git-context.js");
 
 test("formatGitContext: returns null for a clean tree in sync with upstream", () => {
   const result = formatGitContext({

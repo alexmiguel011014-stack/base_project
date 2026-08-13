@@ -473,22 +473,284 @@ testável sem tocar git de verdade). Sincronizado e registrado no `settings.json
 via `install.ps1`.
 **Status**: `feito`.
 
+### 14. `/newproject`, `/scanproject`, `/fixproject` + menu "o que você deseja fazer agora?"
+
+**O que é**: três comandos novos que fecham o ciclo de vida de um projeto do ponto de
+vista de quem usa o base_project — começar certo, avaliar o que já existe, corrigir o
+que estiver errado — mais um menu estilo WhatsApp mostrado em dois momentos (início de
+sessão e fim de tarefa substancial) listando tudo que dá pra fazer, em linguagem
+simples. Ligado à direção "modo leigo" levantada na mesma conversa.
+
+**Por que pode importar**: os 5 comandos existentes até aqui cobrem ações pontuais
+(mapear, auditar, instalar plugin, decidir, ver painel), mas nenhum deles responde "por
+onde eu começo" ou "o que está faltando no meu projeto" — que são exatamente as
+perguntas que travam alguém sem saber usar a ferramenta corretamente. O menu ataca o
+mesmo problema pelo lado da descoberta: sem ele, um usuário leigo só descobre que
+`/plugins` existe se alguém contar.
+
+**Arquitetura**: os três comandos compartilham uma única fonte de verdade —
+`source/claude/references/project-standards.md` (+ par opencode) — um checklist de 9
+categorias (identidade, controle de versão, segredos, dependências, testes,
+qualidade de código, CI, segurança básica, estrutura) do que é "um projeto bem
+formado". `/newproject` usa o checklist como forma do plano (é read-only, como
+`architect` — nunca cria arquivo sozinho). `/scanproject` usa o mesmo checklist como
+critério de avaliação, reporta achados com severidade e arquivo/linha (mesmo formato
+que `reviewer` já usa), também read-only — nunca corrige nada, pra garantir que o
+resultado é confiável antes de qualquer correção agir sobre ele. `/fixproject` roda
+`/scanproject` primeiro (ou reaproveita achados recentes da mesma conversa), corrige
+cada achado (`architect`→`coder` pra mudanças não-triviais, direto pra correções de
+uma linha), e reverifica cada um de verdade depois (re-rodar o comando que originou o
+achado, não assumir pela forma do diff) — mesma régua de 4 gates do `reviewer` aplicada
+aqui a "a correção realmente resolveu, não só existe".
+
+O menu (`source/claude/references/command-menu.md` + par opencode) é outra fonte única
+— uma instrução em `CLAUDE.md`/`opencode-instructions.md` manda renderizar esse arquivo
+verbatim (nunca redigitar a lista de memória, pra não divergir do conjunto real de
+comandos). Gatilho restrito a dois momentos (início de sessão sem pedido específico já
+dado, e fim de tarefa substancial) — deliberadamente não a cada turno, pra não virar
+ruído em uso de power-user.
+
+**Status**: `feito`. Instalado e sincronizado via `install.ps1` real nesta máquina
+(`~/.claude/commands/{newproject,scanproject,fixproject}.md`,
+`~/.claude/base_project/references/{project-standards,command-menu}.md`, e os
+equivalentes opencode). `install.ps1`/`install.sh`/CI atualizados pra sincronizar a
+pasta `references/` nova. Validado: `npm test` (39/39), `tsc` (limpo), `validate:plugins`
+(catálogo válido). `biome check` aponta só warnings pré-existentes em arquivos `.js` não
+tocados nesta mudança (todos os arquivos novos desta entrega são `.md`) — candidato
+real pro `/scanproject` rodar contra o próprio repo base_project no futuro.
+
+### 15. `/cleanproject` e alias `/wpp`
+
+**O que é**: dois complementos pequenos ao trio 14. `/cleanproject` audita organização
+de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) — categoria
+distinta de `/scanproject` (que audita qualidade/segurança/CI), mas mesmo contrato
+read-only e mesmo consumidor de correção (`/fixproject`, que agora aceita achados de
+qualquer um dos dois). `/wpp` é um alias que renderiza o menu "o que você deseja fazer
+agora?" sob demanda, além dos dois gatilhos automáticos já existentes.
+
+**Contexto da decisão**: nasceu de uma ideia do usuário de criar uma pasta vazia
+`PROJETO/` dentro do repositório do base_project pra isolar projetos pessoais dele — a
+causa raiz real, depois de perguntar, era achar que a estrutura deste repositório
+(`base_project` em si) estava bagunçada, não um risco genuíno de vazamento entre
+projetos (que já não existe, dada a regra "zero pegada": nada do base_project é escrito
+dentro de um projeto consumidor — ver "Decisões já tomadas"). A pasta `PROJETO/` foi
+descartada como solução (não resolvia a causa raiz, e criava um risco novo de
+confusão entre o histórico git do instalador e o de um projeto pessoal, caso fossem
+commitados no mesmo repositório) — `/cleanproject` ataca a causa raiz de verdade.
+
+**Implementação real**: `source/claude/commands/cleanproject.md` +
+`source/opencode/command/cleanproject.md` (mapeia a árvore real via
+graphify/repomix quando disponível, verifica achado por grep real — nunca por nome de
+arquivo isolado — e propõe estrutura-alvo sem executar nada). `fixproject.md` (ambos
+os engines) atualizado pra aceitar achados de `/cleanproject` também, com a regra
+explícita de que mover um arquivo inclui atualizar toda referência/import no mesmo
+passo. `wpp.md` (ambos os engines) — mesma renderização verbatim de
+`references/command-menu.md` que os dois gatilhos automáticos já usam.
+`command-menu.md` (ambos) ganhou a entrada de `/cleanproject`.
+
+**Status**: `feito`. Instalado e sincronizado via `install.ps1` real
+(`~/.claude/commands/{cleanproject,wpp}.md` + equivalentes opencode). `npm test`
+(39/39), `tsc` limpo, `validate:plugins` ok — nenhum código novo (arquivos são todos
+`.md`), então nada para o Biome cobrir além do que já existia. CI atualizado pra
+conferir os 2 artefatos novos nos dois jobs.
+
 ### 13. Remover o dashboard
 
 **O que é**: o dashboard local (`/dashboard`, `source/dashboard/*.js`, servidor em
 `http://127.0.0.1:4317`) foi útil enquanto validávamos manualmente a lógica de detecção
 de plugin instalado/usado, mas você avaliou que ele não é mais necessário no uso real do
 projeto hoje.
-**Decisão**: `decidido: fazer` — remover, ainda não executado (só registrado aqui pra
-não esquecer). Quando formos executar, isso inclui: `source/dashboard/` inteiro (server,
-lib/snapshot.js, launch.js, opencode-usage-logger.js), o hook `log-usage.js` e seu
-registro em `PostToolUse`/`Stop`/`UserPromptExpansion` no installer, o comando
-`/dashboard` (`source/claude/commands/dashboard.md` + equivalente opencode), as entradas
-correspondentes em `~/.base_project/` (log e SQLite), e os testes que cobrem essas
-peças (`snapshot.test.js`, parte de `log-usage.test.js`). Precisa decidir também se o
-`log-usage.js` como *coletor* de eventos morre junto ou se algum outro uso quer manter
-(hoje o único consumidor do log é o próprio dashboard).
-**Status**: `decidido: fazer`, aguardando execução.
+
+**Execução real**: removido por completo. `source/dashboard/` inteiro apagado (server.js,
+lib/snapshot.js, launch.js, opencode-usage-logger.js, log-usage.js — o coletor foi
+removido junto com o dashboard, não mantido separado: sem consumidor, vira código morto,
+decisão confirmada explicitamente antes de executar). Comando `/dashboard` removido dos
+dois engines (`source/claude/commands/dashboard.md` + par opencode). `install.ps1`/
+`install.sh`: removida toda a lógica de sincronização do dashboard (diretórios
+`claudeDashboardDir`/`opencodeDashboardDir`/`opencodePluginsDir`, a seção inteira de sync
+de arquivos) e o merge de hooks `PostToolUse` (entrada `log-usage.js`), `Stop` e
+`UserPromptExpansion` (ambos ficaram vazios sem o dashboard, removidos do objeto de
+settings inteiramente — `loop-detect`/`post-edit-format`/`SessionStart` preservados
+intactos). `biome.json`/`tsconfig.json`: removido `source/dashboard/**/*.js` do escopo.
+`ci.yml`: removidos os checks de artefato `dashboard/server.js`/`dashboard/lib/
+snapshot.js` nos dois jobs de instalação. Testes: `tests/snapshot.test.js` e
+`tests/log-usage.test.js` apagados por completo (39 → 25 testes). `command-menu.md`
+(ambos os engines): entrada `/dashboard` removida.
+
+Máquina real limpa também, não só o repositório-fonte: `~/.claude/base_project/dashboard/`
+e `~/.config/opencode/base_project/dashboard/` removidos, `~/.config/opencode/plugins/`
+removido (só existia pro `opencode-usage-logger.js`), comandos `/dashboard` instalados
+apagados, `settings.json` real editado à mão pra remover a entrada `log-usage.js` de
+`PostToolUse` e as seções `Stop`/`UserPromptExpansion` (validado como JSON ainda válido
+depois), `~/.base_project/usage.jsonl` e `~/.base_project/state.db` apagados
+(`repo-path.txt` mantido — ainda é usado pra localizar o repositório). Validado: `npm
+test` (25/25), `tsc` limpo, `validate:plugins` ok, `install.ps1` re-rodado sem erro e sem
+nenhuma menção a `dashboard` na saída.
+
+**Status**: `feito`.
+
+### 16. Versionamento (`package.json` + git tag) e `/status`
+
+**O que é**: até aqui o base_project não tinha número de versão nenhum — nenhuma forma
+de responder "que versão eu tenho instalada" sem ler o git log inteiro. Junto,
+`/status`: um comando que mostra a versão e uma lista simples (só nomes, sem explicar
+nada) de tudo que está ativo de verdade na máquina agora — agentes, comandos, hooks,
+plugins instalados.
+
+**Decisão de versionamento**: sem publicar pacote/app nenhum, `git tag` já é suficiente
+pra marcar pontos no histórico (aparece automaticamente na página do repositório no
+GitHub, sem nenhum fluxo de "release"). Campo `version` em `package.json` (que já
+existe na raiz por causa do item 8) é a fonte formal e fácil de ler programaticamente;
+a tag git ancora esse número a um commit específico. Primeira tag: `v1.0.0` — criada
+localmente, sem push (decisão explícita: dar push é uma ação visível/compartilhada que
+merece confirmação separada, não empacotada dentro de uma tarefa maior).
+
+**Implementação real**: `package.json` ganhou `"version": "1.0.0"`.
+`source/claude/commands/status.md` + `source/opencode/command/status.md`: lê a versão
+via `git describe --tags` no repositório do base_project (localizado via
+`~/.base_project/repo-path.txt`) + `package.json`, lista agentes/comandos ativos via
+marcador `base_project:managed` nos arquivos `.md` instalados, hooks ativos lendo
+`settings.json` real, e plugins do catálogo detectados como instalados (mesma lógica de
+detecção que já existia — `claude plugin list --json` pro lado Claude Code,
+`mcp.json`/`mcpServers` pro lado opencode). Deliberadamente **sem nenhuma explicação**
+no output — só nomes, formato compacto, porque o objetivo é inventário rápido, não
+documentação (isso já existe em ARCHITECTURE.md). `command-menu.md` (ambos os engines)
+ganhou a entrada.
+
+**Status**: `feito`. Instalado e sincronizado via `install.ps1` real
+(`~/.claude/commands/status.md` + equivalente opencode). `npm test` (25/25), `tsc`
+limpo, `validate:plugins` ok (mostrando `base_project@1.0.0` — confirma que o campo foi
+lido). CI atualizado pra conferir o artefato novo.
+
+### 17. Reorganizar a raiz do repositório: pasta `dev/` pra separar admin de produto
+
+**O que é**: você perguntou se dava pra separar o que é "admin-only" (só quem desenvolve
+o base_project precisa) do que é "produto" (o que qualquer usuário do base_project usa,
+mesmo sem saber que existe) — como alternativa à ideia descartada de criar uma pasta
+`PROJETO/` vazia (a causa raiz real era a raiz deste repositório parecer bagunçada, não
+risco de vazamento entre projetos, que já não existe pela regra "zero pegada").
+
+**Decisão**: criar `dev/` na raiz e mover pra dentro dela tudo que só interessa a quem
+desenvolve o instalador: `scripts/` (o instalador de verdade + utilitários),
+`schemas/`, `tests/`, `ROADMAP.md`. `source/` (o produto real) e `README.md`/
+`ARCHITECTURE.md` (docs de usuário) continuam na raiz.
+
+**Achado real durante a execução — Biome 2.x não permite `includes` escapando o
+diretório do próprio config via `../`**: a primeira tentativa moveu `biome.json`/
+`tsconfig.json` pra dentro de `dev/` também (já que eram "config de tooling", mesma
+categoria admin). Rodar `npx biome check .` depois disso quebrou com "Found a nested
+root configuration, but there's already a root configuration" — Biome 2.x trata o
+diretório de onde é invocado como uma raiz implícita de projeto, e um `biome.json`
+alojado numa subpasta (`dev/`) vira uma "segunda raiz aninhada" em conflito. Pior:
+mesmo contornando esse erro, um `includes: ["../source/hooks/**/*.js"]` relativo ao
+config em `dev/` é rejeitado ("path ignored") — Biome 2.x não deixa um config escapar
+pra fora do próprio diretório via `../` de jeito nenhum, mesmo com `--config-path`
+explícito. Como o lint precisa cobrir `source/hooks/**/*.js` (fora de `dev/`) *e*
+`dev/scripts/*.js`/`dev/tests/**/*.js` (dentro), o único lugar que os dois configs
+conseguem enxergar as duas árvores é a raiz — `biome.json`/`tsconfig.json` foram
+revertidos pra lá. `tsconfig.json` tecnicamente não tem essa restrição de boundary (o
+`tsc` aceita `../` sem reclamar), mas foi junto por consistência (os dois configs do
+mesmo par de diretórios devem morar no mesmo lugar).
+
+**Implementação real**: `git mv` preservando histórico pra
+`dev/{scripts,schemas,tests}/` e `dev/ROADMAP.md`. Corrigido: `$repoRoot`/`REPO_ROOT`
+em `install.ps1`/`install.sh` (agora sobem 2 níveis, não 1, já que os scripts moveram
+uma pasta mais fundo); `scanSkillSrc` no `install.ps1` (referenciava `scripts\` direto
+a partir do `repoRoot`, não do próprio `$PSScriptRoot` como o `.sh` já fazia
+corretamente); ícone de pasta do Windows Explorer (aplicava a `source/scripts/assets`,
+agora `source/dev/assets`); `validate-plugins.js` (ganhou `DEV_ROOT`/`REPO_ROOT`
+separados, já que schema e catálogo agora vivem em árvores diferentes); os 5 arquivos
+de teste que fazem `require("../source/hooks/...")` (ganharam um `../` a mais);
+`package.json` (`scripts.*` apontando pra `dev/`); `ci.yml` (invocação de
+`dev/scripts/install.sh`/`.ps1`, os asserts de artefato instalado ficaram inalterados
+— esses são destinos em `~/.claude/base_project/`, não mudam com o reorg da fonte).
+
+**Validado de verdade, não só editado**: `install.ps1` re-rodado a partir do novo
+local (`dev\scripts\install.ps1`) sincronizou tudo sem erro; `npx biome check .` e
+`npx tsc` rodados da raiz — **mesma contagem de arquivo processada de antes do reorg**
+(`Checked 11 files`, idêntico ao baseline), confirmando que o escopo do lint não
+encolheu nem cresceu por acidente; `npm test` 25/25; `npm run validate:plugins` ok;
+`/scanproject` rodado contra o repositório reorganizado depois de tudo, sem achado
+novo além dos já conhecidos (1 warning de Biome pré-existente, não relacionado).
+
+**Status**: `feito`. Raiz do repositório reduzida de ~15 entradas rastreadas pra ~10
+(`source/`, `dev/`, `README.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `package.json`,
+`package-lock.json`, `biome.json`, `tsconfig.json`, `.github/`).
+
+### 18. `/update`, `/uninstall`, e sugestão de `fallbackModel` — pesquisa de "o que falta"
+
+**O que é**: com a v1.0.0 próxima do fechamento, pedimos pesquisa real (web, não só
+comparação com o ECC já minerado) sobre o que mais valeria acrescentar. Achados
+relevantes, verificados contra documentação/artigos reais, não estimativa:
+
+- **`/recap`** (nativo do Claude Code, lançado recentemente, ligado por padrão):
+  sintetiza git status + mudanças de arquivo ao voltar de um período ocioso na sessão,
+  sugerindo "o que fazer a seguir". Overlap conceitual real com o
+  `session-start-git-context.js` (nosso hook) — mas o gatilho parece ser diferente
+  (retorno de ociosidade dentro da sessão vs. `startup|resume|clear` do nosso hook).
+  **Decisão**: manter o hook como está, sem alteração — não temos certeza suficiente
+  do overlap real pra justificar mexer, e o uso contínuo vai revelar isso melhor que
+  especulação. Reavaliar se ficar claro que é redundante de verdade.
+- **`/doctor`** (nativo, ganhou um upgrade recente — virou checkup completo com
+  autocorreção de settings/skills/MCP/hooks/memória). Confirma que não vale construir
+  um health-check próprio pro base_project — mesma armadilha que já rejeitamos com o
+  skill-router (redundante com algo nativo melhor).
+  **Decisão**: não construir nada — `/status` (item 16) já cobre a parte
+  catalog-aware que o `/doctor` nativo não sabe (o que do *base_project* está ativo).
+- **`fallbackModel`** (nativo, `settings.json`): até 3 modelos de reserva tentados em
+  cadeia quando o principal está sobrecarregado (erro 529). Zero dependência, encaixa
+  na filosofia do projeto.
+  **Decisão**: sugerir, nunca aplicar sozinho — mesma regra do "Plugin
+  auto-suggestion" (item 4): mencionar uma vez, nunca editar `settings.json` sem
+  pedido explícito, porque é uma mudança de comportamento real (qual modelo responde).
+- **`/update`**: gap real, não coberto por nada nativo — o auto-update nativo do
+  Claude Code só cobre plugin de marketplace, e base_project não é isso (é um clone
+  git com installer manual). Padrão bem estabelecido (é o modelo `omz update` do
+  oh-my-zsh). Também reaproveita `~/.base_project/repo-path.txt`, que ficou órfão
+  desde a remoção do dashboard (item 13) — era usado só pelo `/api/update-check` que
+  não existe mais.
+  **Decisão**: construir.
+- **`/uninstall`**: também não coberto por nada nativo. Baixo risco de implementar
+  (é leitura + confirmação antes de apagar), alto valor pra "modo leigo" — poder sair
+  de forma limpa sem caçar arquivo por arquivo em `~/.claude/`.
+  **Decisão**: construir, com confirmação em 3 camadas por pedido explícito do
+  usuário (ver implementação abaixo) — não um único "tem certeza?" genérico.
+
+**Implementação real — `/update`**: `source/claude/commands/update.md` +
+`source/opencode/command/update.md`. Lê `~/.base_project/repo-path.txt`, confere
+`git status --porcelain` no repo do base_project primeiro — **para e não faz nada** se
+houver mudança não commitada (nunca `stash`/`reset` por conta própria), `git fetch` +
+compara `HEAD` com `@{u}`, mostra o log do que há de novo, pede confirmação, só então
+`git pull` (nunca `--force`/`--rebase`) + reroda o installer certo pro SO, reporta
+versão antes→depois. Nunca dá push nem mexe no remoto.
+
+**Implementação real — `/uninstall`**: `source/claude/commands/uninstall.md` +
+`source/opencode/command/uninstall.md`. Inventário real primeiro (nunca por suposição
+de memória), depois 3 tiers de confirmação **separados**, cada um só executado se
+confirmado:
+- **Tier A** (reversível 100% reinstalando, sem efeito fora do namespace do
+  base_project): arquivos `.md` marcados, `plugins.json`, hooks em
+  `~/.claude/base_project/`, bloco delimitado no `CLAUDE.md`, `~/.base_project/`.
+- **Tier B** (muda comportamento de toda sessão futura, não só do base_project): os 3
+  registros de hook em `settings.json`, as chaves `instructions`/`mcp.file` do
+  `opencode.jsonc`.
+- **Tier C** (maior raio de impacto — afeta todo projeto Claude Code/opencode da
+  máquina, não só quem usa base_project): os 4 registros de MCP server via `claude mcp
+  remove --scope user`, e o `mcp.json` do opencode se for 100% nosso.
+Nunca toca em arquivo sem o marcador `base_project:managed`/`_managed_by` (mesma regra
+"não é nosso, pula" do installer) e **nunca apaga o repositório do base_project em
+si** — só os efeitos colaterais instalados globalmente.
+
+**Implementação real — sugestão de `fallbackModel`**: `install.ps1`/`install.sh`,
+logo após o merge de hooks em `settings.json` — se a chave `fallbackModel` não existir,
+imprime uma dica (`Write-Warn`/`warn`) com o snippet exato pra adicionar, nunca escreve
+nada sozinho. Testado de verdade: apareceu corretamente na saída real do installer
+nesta máquina.
+
+**Status**: `feito`. `install.ps1` re-rodado, sincronizou `update.md`/`uninstall.md`
+nos dois engines + o aviso de `fallbackModel` apareceu certo. `npm test` (25/25), `tsc`
+limpo, `validate:plugins` ok, `npx biome check .` mesma contagem de arquivo de sempre
+(`Checked 11 files`, nada novo — os 2 comandos são `.md`, não código).
 
 ---
 

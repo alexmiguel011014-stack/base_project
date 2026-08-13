@@ -1,18 +1,19 @@
 {
-  "name": "base_project",
-  "private": true,
-  "description": "Global config installer for Claude Code + opencode — validation/build tooling only, not a published package.",
-  "scripts": {
-    "validate:plugins": "node scripts/validate-plugins.js",
-    "scan:skill": "node scripts/scan-skill.js",
-    "test": "node --test tests/*.test.js"
-  },
-  "dependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.6",
-    "typescript": "^5.9.3"
-  }
+	"name": "base_project",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Global config installer for Claude Code + opencode — validation/build tooling only, not a published package.",
+	"scripts": {
+		"validate:plugins": "node dev/scripts/validate-plugins.js",
+		"scan:skill": "node dev/scripts/scan-skill.js",
+		"test": "node --test dev/tests/*.test.js"
+	},
+	"dependencies": {
+		"ajv": "^8.17.1",
+		"ajv-formats": "^3.0.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.6",
+		"typescript": "^5.9.3"
+	}
 }

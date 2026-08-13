@@ -13,6 +13,10 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# opencode's own local package install (60MB+ node_modules, machine-specific)
+.opencode/
 
 # graphify output (generated locally by `graphify update .`, not part of the repo)
 graphify-out/

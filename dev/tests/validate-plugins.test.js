@@ -14,7 +14,9 @@ function writeTmpCatalog(obj) {
 }
 
 test("validate: the real source/plugins.json passes", () => {
-  const result = validate(path.join(__dirname, "..", "source", "plugins.json"));
+  const result = validate(
+    path.join(__dirname, "..", "..", "source", "plugins.json"),
+  );
   assert.equal(result.valid, true);
   assert.equal(result.errors, null);
 });

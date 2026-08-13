@@ -10,7 +10,7 @@
 // doesn't require any external CLI beyond Node/git elsewhere, so this doesn't
 // either).
 //
-// Usage: node scripts/scan-skill.js <path-to-skill-or-plugin-dir>
+// Usage: node dev/scripts/scan-skill.js <path-to-skill-or-plugin-dir>
 // Exit code 0 = no findings. Exit code 1 = at least one suspicious pattern
 // found (printed to stderr with file + line). This is advisory, not a gate —
 // nothing currently calls this automatically before an install; it's a tool
@@ -133,7 +133,7 @@ if (require.main === module) {
   const target = process.argv[2];
   if (!target) {
     console.error(
-      "Usage: node scripts/scan-skill.js <path-to-skill-or-plugin-dir>",
+      "Usage: node dev/scripts/scan-skill.js <path-to-skill-or-plugin-dir>",
     );
     process.exit(2);
   }

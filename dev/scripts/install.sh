@@ -10,7 +10,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 SOURCE_DIR="$REPO_ROOT/source"
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
@@ -68,14 +68,13 @@ CLAUDE_AGENTS_DIR="$CLAUDE_HOME/agents"
 CLAUDE_COMMANDS_DIR="$CLAUDE_HOME/commands"
 OPENCODE_AGENT_DIR="$OPENCODE_HOME/agent"
 OPENCODE_COMMAND_DIR="$OPENCODE_HOME/command"
-CLAUDE_DASHBOARD_DIR="$CLAUDE_HOME/base_project/dashboard"
-OPENCODE_DASHBOARD_DIR="$OPENCODE_HOME/base_project/dashboard"
-OPENCODE_PLUGINS_DIR="$OPENCODE_HOME/plugins"
 CLAUDE_HOOKS_DIR="$CLAUDE_HOME/base_project/hooks"
 CLAUDE_SCRIPTS_DIR="$CLAUDE_HOME/base_project/scripts"
+CLAUDE_REFERENCES_DIR="$CLAUDE_HOME/base_project/references"
+OPENCODE_REFERENCES_DIR="$OPENCODE_HOME/base_project/references"
 
 mkdir -p "$CLAUDE_AGENTS_DIR" "$CLAUDE_COMMANDS_DIR" "$OPENCODE_AGENT_DIR" "$OPENCODE_COMMAND_DIR" \
-    "$CLAUDE_DASHBOARD_DIR" "$OPENCODE_DASHBOARD_DIR" "$OPENCODE_PLUGINS_DIR" "$CLAUDE_HOOKS_DIR" "$CLAUDE_SCRIPTS_DIR"
+    "$CLAUDE_HOOKS_DIR" "$CLAUDE_SCRIPTS_DIR" "$CLAUDE_REFERENCES_DIR" "$OPENCODE_REFERENCES_DIR"
 
 # ---------------------------------------------------------------------
 # 3. CLAUDE.md — inject a delimited, replaceable block
@@ -109,13 +108,11 @@ rm -f "$BLOCK_FILE"
 ok "CLAUDE.md (your own content outside the base_project block is untouched)"
 
 # ---------------------------------------------------------------------
-# 3b. settings.json — merge the usage-dashboard PostToolUse hook, preserve the rest
+# 3b. settings.json — merge base_project's hooks, preserve the rest
 # ---------------------------------------------------------------------
 step "Updating $CLAUDE_HOME/settings.json..."
 
 SETTINGS_PATH="$CLAUDE_HOME/settings.json"
-HOOK_LOGGER_PATH="$CLAUDE_DASHBOARD_DIR/log-usage.js"
-HOOK_MARKER="base_project/dashboard/log-usage.js"
 
 if command -v jq &>/dev/null; then
     if [ -f "$SETTINGS_PATH" ] && jq empty "$SETTINGS_PATH" 2>/dev/null; then
@@ -127,16 +124,6 @@ if command -v jq &>/dev/null; then
         fi
         BASE_SETTINGS='{}'
     fi
-    echo "$BASE_SETTINGS" | jq \
-        --arg cmd "node \"$HOOK_LOGGER_PATH\"" \
-        --arg stopCmd "node \"$HOOK_LOGGER_PATH\" --stop" \
-        --arg promptExpansionCmd "node \"$HOOK_LOGGER_PATH\" --prompt-expansion" \
-        --arg marker "$HOOK_MARKER" \
-        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $cmd, "async": true}]}]
-         | .hooks.Stop = ((.hooks.Stop // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $stopCmd, "async": true}]}]
-         | .hooks.UserPromptExpansion = ((.hooks.UserPromptExpansion // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $promptExpansionCmd, "async": true}]}]' \
-        > "$SETTINGS_PATH"
-    ok "settings.json (usage-dashboard hooks merged, your other hooks/settings untouched)"
 
     # Loop-detection and auto-format hooks — real behavior, not just logging
     # (see ROADMAP.md item 2). Synchronous (not async): loop-detect's stderr
@@ -170,6 +157,16 @@ if command -v jq &>/dev/null; then
         '.hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"matcher": "startup|resume|clear", "hooks": [{"type": "command", "command": $cmd, "timeout": 10}]}]' \
         > "$SETTINGS_PATH"
     ok "settings.json (session-start git-context hook merged)"
+
+    # Informational only - never written automatically. fallbackModel is a real
+    # Claude Code setting (up to 3 backup models tried in order on a 529/overload
+    # error) that reduces mid-task failures for zero cost - but it's a behavior
+    # change (which model answers your prompt), so base_project only suggests it,
+    # same as the plugin auto-suggestion rule: mention once, never silently edit
+    # settings.json for the user.
+    if ! jq -e 'has("fallbackModel")' "$SETTINGS_PATH" &>/dev/null; then
+        warn "Tip: settings.json has no 'fallbackModel' set. Consider adding e.g. \"fallbackModel\": [\"claude-sonnet-4-6\", \"claude-haiku-4-5\"] to $SETTINGS_PATH - Claude Code tries these in order if the primary model is overloaded. Not applied automatically."
+    fi
 else
     warn "'jq' not found - skipping settings.json hook merge. Install jq, then re-run this script."
 fi
@@ -313,29 +310,6 @@ sync_catalog "$CLAUDE_HOME/base_project/plugins.json"
 sync_catalog "$OPENCODE_HOME/base_project/plugins.json"
 
 # ---------------------------------------------------------------------
-# 8. Usage dashboard - shared logger, server, launcher, and the opencode plugin
-# ---------------------------------------------------------------------
-step "Syncing usage dashboard files..."
-DASHBOARD_SRC_DIR="$SOURCE_DIR/dashboard"
-
-for f in "$DASHBOARD_SRC_DIR"/*.js; do
-    base="$(basename "$f")"
-    [ "$base" = "opencode-usage-logger.js" ] && continue
-    sync_managed "$f" "$CLAUDE_DASHBOARD_DIR/$base"
-    sync_managed "$f" "$OPENCODE_DASHBOARD_DIR/$base"
-done
-sync_managed "$DASHBOARD_SRC_DIR/opencode-usage-logger.js" "$OPENCODE_PLUGINS_DIR/opencode-usage-logger.js"
-
-if [ -d "$DASHBOARD_SRC_DIR/lib" ]; then
-    mkdir -p "$CLAUDE_DASHBOARD_DIR/lib" "$OPENCODE_DASHBOARD_DIR/lib"
-    for f in "$DASHBOARD_SRC_DIR"/lib/*.js; do
-        base="$(basename "$f")"
-        sync_managed "$f" "$CLAUDE_DASHBOARD_DIR/lib/$base"
-        sync_managed "$f" "$OPENCODE_DASHBOARD_DIR/lib/$base"
-    done
-fi
-
-# ---------------------------------------------------------------------
 # 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
 # ---------------------------------------------------------------------
 step "Syncing hook scripts..."
@@ -356,7 +330,24 @@ if [ -f "$SCAN_SKILL_SRC" ]; then
 fi
 
 # ---------------------------------------------------------------------
-# 9. Record the repo path so the dashboard can check for updates later
+# 8d. Reference docs read by commands (project-standards.md, command-menu.md)
+# ---------------------------------------------------------------------
+step "Syncing reference docs..."
+CLAUDE_REFERENCES_SRC_DIR="$SOURCE_DIR/claude/references"
+OPENCODE_REFERENCES_SRC_DIR="$SOURCE_DIR/opencode/references"
+if [ -d "$CLAUDE_REFERENCES_SRC_DIR" ]; then
+    for f in "$CLAUDE_REFERENCES_SRC_DIR"/*.md; do
+        sync_managed "$f" "$CLAUDE_REFERENCES_DIR/$(basename "$f")"
+    done
+fi
+if [ -d "$OPENCODE_REFERENCES_SRC_DIR" ]; then
+    for f in "$OPENCODE_REFERENCES_SRC_DIR"/*.md; do
+        sync_managed "$f" "$OPENCODE_REFERENCES_DIR/$(basename "$f")"
+    done
+fi
+
+# ---------------------------------------------------------------------
+# 9. Record the repo path (used to check for base_project updates later)
 # ---------------------------------------------------------------------
 STATE_DIR="$HOME/.base_project"
 mkdir -p "$STATE_DIR"

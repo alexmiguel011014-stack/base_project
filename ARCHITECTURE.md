@@ -2,20 +2,22 @@
 
 Este documento é sobre **como o código funciona por dentro** — funções, arquivos, fluxo
 de dados. Para a visão de usuário (o que instalar, como usar `/plugins`, etc.), veja
-`README.md`. Para o histórico de decisões e o que falta fazer, veja `ROADMAP.md`. Para
-lições aprendidas com bugs reais, veja `CLAUDE.md` (regras deste repo) e
-`scripts/NPInstructions.md` (erros conhecidos do catálogo de plugins).
+`README.md`. Para o histórico de decisões e o que falta fazer, veja `dev/ROADMAP.md`.
+Para lições aprendidas com bugs reais, veja `CLAUDE.md` (regras deste repo) e
+`dev/scripts/NPInstructions.md` (erros conhecidos do catálogo de plugins).
 
 ---
 
 ## 1. O que este projeto é, em uma frase
 
-Um instalador (`scripts/install.ps1` / `install.sh`) que copia arquivos de `source/`
+Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `source/`
 para `~/.claude/` e `~/.config/opencode/` — nada mais. Não é um servidor rodando o
 tempo todo, não é um pacote npm publicado, não escreve nada dentro de projetos que o
 usam. O "produto" real são os arquivos que acabam instalados: regras globais, 3
-subagentes, 5 comandos, um catálogo de plugins opcionais, um dashboard local, e 2 hooks
-com comportamento real.
+subagentes, 13 comandos, um catálogo de plugins opcionais, e 3 hooks com comportamento
+real. (O dashboard web existiu até o ROADMAP item 13 — removido por completo, ver
+histórico lá.) Versão rastreada via `package.json` (`version`) + git tag — sem nenhum
+fluxo de release/publicação.
 
 ---
 
@@ -28,38 +30,52 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   └── commands/*.md       → ~/.claude/commands/     (/bootstrap /audit /plugins /council /dashboard)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (/newproject /scanproject /fixproject /bootstrap /audit /plugins /council /dashboard)
+│   │   └── references/*.md     → ~/.claude/base_project/references/ (project-standards.md, command-menu.md)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
 │   │   ├── command/*.md        → ~/.config/opencode/command/   (mesmos comandos, formato opencode)
+│   │   ├── references/*.md     → ~/.config/opencode/base_project/references/ (mesmo par, formato opencode)
 │   │   └── mcp.json            → ~/.config/opencode/mcp.json + registrado via `claude mcp add`
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
-│   ├── dashboard/*.js          → ~/.claude/base_project/dashboard/ (+ cópia opencode)
 │   └── hooks/*.js              → ~/.claude/base_project/hooks/
 │
-├── scripts/
-│   ├── install.ps1 / install.sh   ← o instalador de verdade (idempotente, faz merge não overwrite)
-│   ├── validate-plugins.js        ← CLI: valida source/plugins.json contra o schema (ajv)
-│   ├── scan-skill.js              ← CLI: scan leve de segurança pra skills de terceiro
-│   └── NPInstructions.md          ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
-│
-├── schemas/
-│   └── plugins.schema.json     ← JSON Schema draft-07 validando a forma de plugins.json
-│
-├── tests/                      ← node:test, roda com `npm test`
+├── dev/                        ← ADMIN-ONLY. Nada aqui importa pra quem só USA o base_project.
+│   ├── scripts/
+│   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
+│   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
+│   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
+│   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
+│   ├── schemas/
+│   │   └── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
+│   ├── tests/                  ← node:test, roda com `npm test`
+│   └── ROADMAP.md              ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
 │
 ├── .github/workflows/ci.yml    ← lint, typecheck, schema, testes, e testa os instaladores de verdade
-├── biome.json / tsconfig.json  ← escopo: source/dashboard, source/hooks, scripts/*.js, tests/
-├── package.json                ← só tooling de dev (ajv, biome, typescript) — não é `npm publish`
+├── biome.json / tsconfig.json  ← ficam na raiz (motivo: ver nota abaixo), escopo cobre source/hooks + dev/scripts + dev/tests
+├── package.json                ← fica na raiz (convenção npm/CI), mas seus scripts apontam pra dev/
 ├── README.md                   ← visão de usuário
-├── ROADMAP.md                  ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
 └── ARCHITECTURE.md             ← este arquivo
 ```
 
+**Por que `dev/` existe**: separar o que é "admin" (só quem desenvolve o instalador
+precisa) do que é "produto" (`source/`, o que qualquer usuário do base_project usa,
+mesmo sem saber). Raiz do repositório fica enxuta: `source/`, `dev/`, `README.md`,
+`ARCHITECTURE.md`, `package.json`, `biome.json`/`tsconfig.json`, `.github/`.
+
+**Por que `biome.json`/`tsconfig.json` ficaram na raiz, não em `dev/`**: tentativa real
+de mover os dois pra `dev/` foi revertida depois de testar — o Biome 2.x recusa um
+padrão de `includes` que escape do diretório do próprio config via `../`
+("Found a nested root configuration" / caminho reportado como ignorado). Como o lint
+precisa cobrir `source/hooks/**/*.js` (fora de `dev/`) e `dev/scripts/*.js`/
+`dev/tests/**/*.js` (dentro), o único lugar que enxerga as duas árvores sem violar essa
+regra é a raiz. `tsconfig.json` foi junto por consistência (o `tsc` em si não tem essa
+restrição, mas manter os dois configs de tooling no mesmo lugar evita confusão).
+
 **Regra de sincronização**: editar só `source/` não tem efeito imediato na máquina —
 `source/` é o "código-fonte", os arquivos instalados em `~/.claude/base_project/` são o
-"binário". Depois de editar `source/`, rode o installer de novo (`install.ps1`/`.sh`)
-pra sincronizar. Ver seção 7.
+"binário". Depois de editar `source/`, rode o installer de novo
+(`dev/scripts/install.ps1`/`.sh`) pra sincronizar. Ver seção 6.
 
 ---
 
@@ -83,30 +99,93 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ---
 
-## 4. Os 5 comandos
+## 4. Os 13 comandos
 
 Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 
 | Comando | O que faz |
 |---|---|
+| `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. |
+| `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
+| `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
+| `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
 | `/bootstrap` | Mapeia o projeto atual em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
 | `/audit` | Scan de segurança (vulnerabilidade de dependência, segredo exposto). Usa Strix se instalado, senão `npm audit`/`pip-audit` + `gitleaks`/`trufflehog`. |
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
 | `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. |
-| `/dashboard` | Abre o dashboard local (`http://127.0.0.1:4317`). |
+| `/wpp` | Mostra o menu "o que você deseja fazer agora?" sob demanda (mesmo conteúdo que aparece automaticamente no início de sessão / fim de tarefa). |
+| `/status` | Mostra a versão do base_project e uma lista simples (só nomes) de tudo que está ativo agora — agentes, comandos, hooks, plugins instalados. |
+| `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
+| `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
+
+### 4.1 `/newproject` → `/scanproject` / `/cleanproject` → `/fixproject`, e a referência compartilhada
+
+Os três comandos apontam pro mesmo arquivo — `references/project-standards.md` — em vez
+de cada um definir "projeto bem formado" à sua maneira. 9 categorias: identidade,
+controle de versão, segredos, dependências, testes, qualidade de código, CI, segurança
+básica, estrutura.
+
+- `/newproject` usa o checklist como **forma do plano** (o que criar primeiro, nessa
+  ordem). Read-only — nunca escreve arquivo, mesmo contrato do `architect`.
+- `/scanproject` usa o checklist como **critério de avaliação** — cada item vira
+  `ok`/`missing`/`broken` com severidade e arquivo/linha, mesmo formato que `reviewer`
+  já usa pra achado de revisão de código. Também read-only: garante que o resultado é
+  confiável antes de qualquer correção agir sobre ele.
+- `/cleanproject` é um zoom na categoria 9 ("Estrutura") do mesmo checklist — arquivo
+  morto, pasta fora de convenção, duplicação — sempre com evidência real (grep
+  confirmando zero referência, não inferência pelo nome do arquivo). Também read-only;
+  se `/scanproject` já rodou na mesma conversa, reaproveita o achado da seção 9 em vez
+  de escanear tudo de novo.
+- `/fixproject` roda `/scanproject` e/ou `/cleanproject` primeiro (ou reaproveita
+  achados recentes da mesma conversa), corrige cada achado (`architect`→`coder` pra
+  mudança não-trivial, direto pra correção de uma linha — mover arquivo inclui
+  atualizar toda referência/import no mesmo passo), e **reverifica de verdade** —
+  re-roda o comando que originou o achado, não assume pela forma do diff. Mesma régua
+  de 4 gates que `reviewer.md` já usa (seção 3), aplicada aqui a "a correção resolveu,
+  não só existe".
+
+### 4.2 O menu "o que você deseja fazer agora?" (estilo WhatsApp)
+
+Instrução em `CLAUDE.md`/`opencode-instructions.md`: renderizar
+`references/command-menu.md` **verbatim** (nunca redigitar a lista de memória) em dois
+momentos automáticos — início de sessão sem pedido específico já dado, e logo depois de
+fechar uma tarefa substancial (múltiplos edits, subagentes, ou TodoWrite envolvido).
+Não dispara a cada turno — existe pra baixar a fricção de quem não sabe por onde
+começar, não pra virar ruído em uso avançado. `/wpp` é o mesmo menu sob demanda, pra
+quando o usuário quer vê-lo fora dos dois gatilhos automáticos. `command-menu.md` é a
+mesma fonte única que `plugins.json`/`project-standards.md`: um arquivo, todos os
+pontos de entrada (`CLAUDE.md`, `opencode-instructions.md`, `/wpp` nos dois engines)
+apontam pra ele em vez de duplicar a lista.
+
+### 4.3 `/update` e `/uninstall` — ciclo de vida da própria instalação
+
+- **`/update`**: lê `~/.base_project/repo-path.txt` pra achar o repositório do
+  base_project, confere `git status --porcelain` primeiro — **para sem fazer nada** se
+  houver mudança local não commitada (nunca `stash`/`reset` por conta própria), depois
+  `git fetch` + compara `HEAD` com `@{u}`. Se houver novidade, mostra o log e só dá
+  `git pull` (nunca `--force`) com confirmação explícita, seguido de rerodar o
+  installer certo pro SO. Nunca dá push nem toca no remoto — só puxa.
+- **`/uninstall`**: inventário real primeiro (nunca por suposição), depois 3 tiers de
+  confirmação **separados** por raio de impacto — Tier A (arquivos próprios do
+  base_project, reversível reinstalando), Tier B (os 3 registros de hook em
+  `settings.json` + `instructions`/`mcp.file` do `opencode.jsonc` — muda comportamento
+  de toda sessão futura), Tier C (os 4 registros de MCP server via `claude mcp remove
+  --scope user` — afeta todo projeto da máquina, não só quem usa base_project). Nunca
+  toca em arquivo sem o marcador `base_project:managed`, e **nunca apaga o repositório
+  do base_project em si**, só os efeitos instalados globalmente.
 
 ---
 
 ## 5. O catálogo de plugins (`plugins.json`)
 
-**Schema**: `schemas/plugins.schema.json` (JSON Schema draft-07). Raiz exige
+**Schema**: `dev/schemas/plugins.schema.json` (JSON Schema draft-07). Raiz exige
 `_managed_by` (const `"base_project"`) e `catalog` (array). Cada `catalogEntry` exige
 `id`/`name`/`kind` (`mcp`|`cli`|`skill`)/`summary`/`recommend_if`; campos opcionais
 incluem `pluginName` (nome real do plugin instalado, quando difere do `id`),
 `dependsOn` (ainda não populado — ver seção 5.1), `claude`/`opencode` (blocos de
 instalação por engine), `install` (comando CLI).
 
-**Validação**: `scripts/validate-plugins.js` compila o schema com `ajv`+`ajv-formats`,
+**Validação**: `dev/scripts/validate-plugins.js` compila o schema com `ajv`+`ajv-formats`,
 roda contra o catálogo real, e faz uma checagem extra pós-schema (não expressável em
 JSON Schema puro): toda referência em `dependsOn`/`profiles` precisa apontar pra um `id`
 que existe de verdade no catálogo. Exporta `validate(path)` — reusado pelos testes e
@@ -162,7 +241,12 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **architect** | subagente | Planeja mudança não-trivial. Só lê, nunca edita. |
 | **coder** | subagente | Aplica o plano com edição cirúrgica e escopada. |
 | **reviewer** | subagente | Roda lint/typecheck/teste do projeto, monta mensagem de commit, confere se a entrega bate com o pedido (régua de 4 níveis). Nunca commita sem pedido. |
+| **`/newproject`** | comando | Planeja a estrutura de um projeto novo contra `project-standards.md`. Read-only. |
+| **`/scanproject`** | comando | Avalia um projeto existente contra `project-standards.md`, reporta achados. Read-only. |
+| **`/cleanproject`** | comando | Avalia organização de arquivo/pasta (arquivo morto, estrutura, duplicação), propõe reorganização. Read-only. |
+| **`/fixproject`** | comando | Corrige os achados do `/scanproject` e/ou `/cleanproject`, com reverificação real de cada correção. |
 | **`/council`** | comando | Pressão-testa uma decisão difícil com 5 perspectivas de conselheiro independentes + veredito. |
+| **`/status`** | comando | Lista, só por nome, tudo que está ativo agora + versão do base_project. |
 | **Ruflo** (`ruflo`) | plugin (MCP) | Meta-orquestrador multi-agente pesado (~98 agentes especializados, memória vetorial persistente) — infraestrutura, não uma skill única. |
 | **Ponytail** (`ponytail`) | plugin (skill) | Disciplina "sempre a solução mais simples que funciona" — reforça o próprio `coder`. |
 | **Headroom** (`headroom`) | plugin (CLI) | Comprime output de tool/log/JSON antes de chegar no modelo — economia de token. |
@@ -172,6 +256,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 |---|---|---|
 | **`/bootstrap`** | comando | Mapeia o projeto atual em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
 | **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
+| **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão e ao fechar tarefa substancial — lista todos os comandos em linguagem simples. |
 | **context7** | MCP (sempre ativo) | Busca documentação atualizada de biblioteca/framework. |
 | **filesystem** | MCP (sempre ativo) | Acesso a arquivo fora do diretório de trabalho padrão. |
 | **git** | MCP (sempre ativo) | Operações git estruturadas. |
@@ -187,110 +272,17 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **`/plugins`** | comando | Recomenda e instala plugins do catálogo pro projeto atual, ou instala um perfil pronto. |
-| **`install.ps1` / `install.sh`** | script | O instalador de verdade — copia tudo isso pra `~/.claude/`/`~/.config/opencode/`. |
+| **`/update`** | comando | Confere e aplica atualização do base_project (`git pull` + reroda o installer), com confirmação. |
+| **`/uninstall`** | comando | Remove o que o base_project instalou globalmente, em 3 níveis de confirmação. |
+| **`install.ps1` / `install.sh`** | script | O instalador de verdade — copia tudo isso pra `~/.claude/`/`~/.config/opencode/`. Também sugere (nunca aplica sozinho) configurar `fallbackModel`. |
 | **`validate-plugins.js`** | script | Valida `plugins.json` contra o schema antes de aceitar. |
 
-### 📊 Painel de uso (candidato a remoção — ver ROADMAP item 13)
-| Nome | Tipo | O que faz |
-|---|---|---|
-| **`/dashboard`** | comando | Abre painel local mostrando uso de plugin/MCP por projeto. |
-| **`log-usage.js`** | hook | Registra cada tool usada no log compartilhado, pro dashboard consumir. |
-
 ---
 
-## 6. O dashboard *(marcado para remoção — ROADMAP item 13, ainda não executado)*
+## 6. Os 3 hooks com comportamento real
 
-### 6.1 Peças e por que existem separadas
-
-```
-source/dashboard/
-├── server.js              ← servidor HTTP + página HTML/CSS/JS embutida como string (PAGE)
-├── lib/snapshot.js         ← lógica PURA, sem I/O top-level — o que é testável
-├── log-usage.js            ← hook do Claude Code (PostToolUse/Stop/UserPromptExpansion)
-├── opencode-usage-logger.js← plugin do opencode (tool.execute.after) — mesmo log compartilhado
-└── launch.js                ← abre o navegador, garante que o server está rodando
-```
-
-`server.js` **não é testável por unit test diretamente** — ele abre um `DatabaseSync`
-(SQLite) e chama `server.listen()` incondicionalmente no top-level assim que é
-`require()`-ado. Por isso a lógica pura (normalizar path de projeto, ler eventos do log,
-ler o catálogo, montar o snapshot de "instalado") foi extraída pra `lib/snapshot.js` —
-zero I/O no top-level, seguro pra importar em teste sem tocar no SQLite/porta reais.
-`server.js` importa essas funções de `lib/snapshot.js` em vez de redefini-las.
-
-### 6.2 Como um evento chega no dashboard
-
-```
-Você usa uma tool no Claude Code (Bash, Edit, Skill, MCP call, ...)
-        │
-        ▼
-Hook PostToolUse dispara → node log-usage.js
-        │  (lê stdin: {tool_name, tool_input, session_id, prompt_id, ...})
-        ▼
-resolvePlugin(tool_name, tool_input) decide QUAL plugin/CLI/skill isso representa:
-  - tool_name === "Skill"     → olha tool_input.skill contra SKILL_MAP
-  - tool_name = "mcp__X__Y"    → olha o segmento X contra PLUGIN_MAP
-  - tool_name === "Bash"       → olha o TEXTO do comando contra CLI_MAP
-        │
-        ▼
-Uma linha JSON é apendada em ~/.base_project/usage.jsonl (arquivo compartilhado,
-multi-projeto — cada linha tem `project: process.cwd()`)
-        │
-        ▼
-server.js (watchLog) detecta o arquivo cresceu, lê só as linhas novas,
-filtra pra eventos do projeto que cada cliente conectado está olhando,
-e envia via Server-Sent Events (/api/stream) — atualização real-time, não polling
-```
-
-`opencode-usage-logger.js` é o mesmo conceito, formato de plugin do opencode
-(`tool.execute.after`) em vez de hook do Claude Code — escreve no MESMO
-`usage.jsonl`, então o dashboard mostra os dois engines juntos.
-
-### 6.3 A lógica de "instalado" (o bug que motivou o item 1 do ROADMAP)
-
-`buildCatalogSnapshot(catalog, events, claudePlugins)` em `lib/snapshot.js` calcula, pra
-cada entrada do catálogo:
-
-```js
-used              = usedIds.has(entry.id)                          // já apareceu em algum evento?
-installedViaPlugin = entry.pluginName && claudePlugins?.has(entry.pluginName)  // `claude plugin list` confirma?
-installed          = used || installedViaPlugin
-```
-
-`claudePlugins` vem de `installedClaudePlugins()` em `server.js`, que chama
-`claude plugin list --json` via `execFileSync` (com `shell: true` no Windows, porque
-`claude` resolve pra um `.cmd` shim que não spawna direto sem shell). Isso cobre plugins
-de verdade instalados via `claude plugin install` (ex: `skill-ui`, `impeccable`) mesmo
-que nunca tenham sido usados ainda. Skills soltas instaladas via `npx skills add` (ex:
-`emil-design-eng`, `taste-skill`) não têm registro central — pra essas, `installed` só
-vira `true` depois do primeiro uso real.
-
-### 6.4 Endpoints HTTP
-
-| Rota | Método | Faz |
-|---|---|---|
-| `/` | GET | Serve a página (`PAGE`, HTML+CSS+JS inline em uma template string) |
-| `/api/snapshot` | GET | Catálogo + eventos do projeto (`?project=`) + estado salvo |
-| `/api/ui-prefs` | POST | Salva preferência de UI (seção expandida, etc.) no SQLite local |
-| `/api/update-check` | GET | Verifica se o repo do base_project tem commits novos no remoto |
-| `/api/setup-check` | GET | Roda `runSetupCheck()` — Docker, token do GitHub MCP placeholder, plugins pendentes |
-| `/api/graphify` | GET | Status do último `graphify update` rodado no projeto |
-| `/graph-file` | GET | Serve o `graph.json` do graphify pra visualização |
-| `/api/stream` | GET (SSE) | Server-Sent Events — push de eventos novos em tempo real |
-
-### 6.5 Estado local (SQLite)
-
-`~/.base_project/state.db`, tabela `project_state (project, last_opened_at,
-last_graph_seen_at, ui_prefs)`. Guarda só preferências/timestamps por projeto — não
-duplica o log de eventos (esse continua sendo só o `.jsonl`).
-
----
-
-## 7. Os 3 hooks com comportamento real
-
-Diferente de `log-usage.js` (que só observa/loga, nunca bloqueia), estes três têm efeito
-de verdade. Nenhum **falha** o tool call/sessão que os disparou (tudo dentro de
-`try/catch` que engole erro).
+Todos com efeito de verdade, não só observação. Nenhum **falha** o tool call/sessão que
+os disparou (tudo dentro de `try/catch` que engole erro).
 
 ### `source/hooks/loop-detect.js` (`PostToolUse`, síncrono)
 Mantém um contador por `session_id` (arquivo em `os.tmpdir()`, não em
@@ -324,7 +316,7 @@ base_project).
 
 ---
 
-## 8. Scan de segurança pra skill de terceiro (`scripts/scan-skill.js`)
+## 7. Scan de segurança pra skill de terceiro (`dev/scripts/scan-skill.js`)
 
 Node puro (decisão deliberada: não depender de `rg`/ripgrep estar instalado no sistema
 do usuário). Varre um diretório recursivamente (pula `.git`/`node_modules`/`.venv`/
@@ -342,15 +334,11 @@ Sincronizado pelo installer pra `~/.claude/base_project/scripts/scan-skill.js`.
 
 ---
 
-## 9. Testes (`tests/`, `node:test`)
+## 8. Testes (`dev/tests/`, `node:test`)
 
-`npm test` = `node --test tests/*.test.js`. Sem framework externo (Jest/Vitest) —
-`node:test` nativo, zero dependência nova. 39 testes cobrindo:
+`npm test` = `node --test dev/tests/*.test.js`. Sem framework externo (Jest/Vitest) —
+`node:test` nativo, zero dependência nova. 25 testes cobrindo:
 
-- `snapshot.test.js` — `lib/snapshot.js` (normalização de path, filtro de eventos por
-  projeto, lógica de `installed`, resolução de perfil)
-- `log-usage.test.js` — `resolvePlugin`/`resolveCommand` (os 3 caminhos de detecção:
-  Skill/MCP/Bash)
 - `loop-detect.test.js` / `post-edit-format.test.js` / `session-start-git-context.test.js`
   — os 3 hooks
 - `scan-skill.test.js` — as 6 regras do scanner + falsos-positivos (binário,
@@ -364,25 +352,26 @@ coisas de conteúdo de skill em ~130 arquivos de teste).
 
 ---
 
-## 10. CI (`.github/workflows/ci.yml`)
+## 9. CI (`.github/workflows/ci.yml`)
 
 Dois jobs:
 
-1. **`validate`** (ubuntu-latest): `npm ci` → Biome lint → Biome format → `tsc` →
-   `npm run validate:plugins` → `npm test`.
-2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`): roda `install.sh`/
-   `install.ps1` de verdade contra um `$HOME` descartável (via os overrides
-   `CLAUDE_HOME`/`OPENCODE_HOME` que os scripts já suportam nativamente), confere que os
-   artefatos-chave existem e que `settings.json` é JSON válido, e roda o installer uma
-   2ª vez pra confirmar idempotência.
+1. **`validate`** (ubuntu-latest): `npm ci` → `npx biome check .` → `npx biome format .`
+   → `npx tsc` → `npm run validate:plugins` → `npm test`.
+2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`): roda
+   `dev/scripts/install.sh`/`install.ps1` de verdade contra um `$HOME` descartável (via
+   os overrides `CLAUDE_HOME`/`OPENCODE_HOME` que os scripts já suportam nativamente),
+   confere que os artefatos-chave existem e que `settings.json` é JSON válido, e roda o
+   installer uma 2ª vez pra confirmar idempotência.
 
-`biome.json`/`tsconfig.json` escopam a `source/dashboard/**/*.js`, `source/hooks/**/*.js`,
-`scripts/*.js`, `tests/**/*.js` — sem isso o Biome varre `.opencode/`, `graphify-out/`,
-e outro conteúdo gerado/de terceiros que não devia ser lintado.
+`biome.json`/`tsconfig.json` (raiz — ver seção 2 sobre por que não estão em `dev/`)
+escopam `source/hooks/**/*.js`, `dev/scripts/*.js`, `dev/tests/**/*.js` — sem isso o
+Biome varre `.opencode/`, `graphify-out/`, e outro conteúdo gerado/de terceiros que não
+devia ser lintado.
 
 ---
 
-## 11. Decisões de arquitetura que valem lembrar
+## 10. Decisões de arquitetura que valem lembrar
 
 - **Zero pegada em projeto consumidor** — regra central, não negociável. Tudo vive em
   `~/.claude/`/`~/.config/opencode/`.

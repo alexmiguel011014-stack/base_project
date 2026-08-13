@@ -164,7 +164,7 @@ são "opcionais").
 `log-usage.js` e `server.js` existem em duas cópias: a fonte (`source/dashboard/`) e
 a instalada (`~/.claude/base_project/dashboard/`, `~/.config/opencode/base_project/dashboard/`).
 Editar só a fonte não é suficiente para efeito imediato nesta máquina — ou rode o
-instalador (`scripts/install.ps1`/`scripts/install.sh`) de novo, ou copie manualmente
+instalador (`dev/scripts/install.ps1`/`dev/scripts/install.sh`) de novo, ou copie manualmente
 para testar rápido:
 
 ```powershell

@@ -11,10 +11,10 @@ git clone https://github.com/alexmiguel011014-stack/base_project.git
 cd base_project
 
 # Windows
-powershell -File scripts/install.ps1
+powershell -File dev/scripts/install.ps1
 
 # Mac / Linux
-bash scripts/install.sh
+bash dev/scripts/install.sh
 ```
 
 That's it. Open any project — nothing else to configure per-project.
@@ -28,7 +28,7 @@ It's safe to run repeatedly — it only touches the file blocks it manages.
 flowchart LR
     subgraph BP["base_project (this repo)"]
         S["source/"]
-        I["scripts/install.ps1 / install.sh"]
+        I["dev/scripts/install.ps1 / install.sh"]
     end
     subgraph GLOBAL["Your machine"]
         C["~/.claude<br/>agents, commands, CLAUDE.md block"]
@@ -149,8 +149,8 @@ Both scripts accept overrides so you can dry-run into a scratch directory:
 
 ```sh
 # PowerShell
-powershell -File scripts/install.ps1 -ClaudeHome C:\temp\fake-claude -OpencodeHome C:\temp\fake-opencode
+powershell -File dev/scripts/install.ps1 -ClaudeHome C:\temp\fake-claude -OpencodeHome C:\temp\fake-opencode
 
 # bash
-CLAUDE_HOME=/tmp/fake-claude OPENCODE_HOME=/tmp/fake-opencode bash scripts/install.sh
+CLAUDE_HOME=/tmp/fake-claude OPENCODE_HOME=/tmp/fake-opencode bash dev/scripts/install.sh
 ```

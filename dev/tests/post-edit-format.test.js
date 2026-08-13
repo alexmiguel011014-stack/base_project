@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
-const { FORMATTABLE_EXT } = require("../source/hooks/post-edit-format.js");
+const { FORMATTABLE_EXT } = require("../../source/hooks/post-edit-format.js");
 
 test("FORMATTABLE_EXT covers the JS/TS/JSON/CSS family", () => {
   for (const ext of [

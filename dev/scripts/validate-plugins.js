@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // base_project:managed
-// Validates source/plugins.json against schemas/plugins.schema.json.
-// Run manually (`node scripts/validate-plugins.js`) or from CI/tests before
+// Validates source/plugins.json against dev/schemas/plugins.schema.json.
+// Run manually (`node dev/scripts/validate-plugins.js`) or from CI/tests before
 // trusting the catalog — catches malformed entries before they reach the
 // dashboard or /plugins command.
 
@@ -10,9 +10,10 @@ const path = require("node:path");
 const Ajv = require("ajv");
 const addFormats = require("ajv-formats");
 
-const ROOT = path.join(__dirname, "..");
-const SCHEMA_PATH = path.join(ROOT, "schemas", "plugins.schema.json");
-const CATALOG_PATH = path.join(ROOT, "source", "plugins.json");
+const DEV_ROOT = path.join(__dirname, "..");
+const REPO_ROOT = path.join(DEV_ROOT, "..");
+const SCHEMA_PATH = path.join(DEV_ROOT, "schemas", "plugins.schema.json");
+const CATALOG_PATH = path.join(REPO_ROOT, "source", "plugins.json");
 
 function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
