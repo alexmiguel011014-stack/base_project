@@ -241,14 +241,13 @@ if (-not $settingsObj.PSObject.Properties['fallbackModel']) {
 }
 
 # ---------------------------------------------------------------------
-# 4. opencode.jsonc — link instructions + mcp file, preserve the rest
+# 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
 # ---------------------------------------------------------------------
 Write-Step "Updating $OpencodeHome\opencode.jsonc..."
 
 $opencodeConfigPath  = Join-Path $OpencodeHome "opencode.jsonc"
 $instructionsPath    = (Join-Path $sourceDir "opencode-instructions.md") -replace '\\', '/'
-$mcpDestPath         = Join-Path $OpencodeHome "mcp.json"
-$mcpDestPathForward  = $mcpDestPath -replace '\\', '/'
+$mcpSrcPathForConfig = Join-Path $sourceDir "opencode\mcp.json"
 
 $configObj = $null
 if (Test-Path $opencodeConfigPath) {
@@ -265,11 +264,33 @@ if ($null -eq $configObj) {
     $configObj = [PSCustomObject]@{ '$schema' = "https://opencode.ai/config.json" }
 }
 
-$configObj | Add-Member -NotePropertyName instructions -NotePropertyValue $instructionsPath -Force
-$configObj | Add-Member -NotePropertyName mcp -NotePropertyValue ([PSCustomObject]@{ file = $mcpDestPathForward }) -Force
+# opencode's schema wants "instructions" as an array of paths, and "mcp" as a map of
+# server name -> { type: "local", command: [...] } | { type: "remote", url, headers },
+# defined inline - not a pointer to an external file (that "mcp.file" shape doesn't
+# exist in opencode's config schema and fails validation on startup).
+$configObj | Add-Member -NotePropertyName instructions -NotePropertyValue @($instructionsPath) -Force
+
+$mcpSourceConfig = Read-Utf8NoBom $mcpSrcPathForConfig | ConvertFrom-Json
+$mcpForOpencode = [PSCustomObject]@{}
+foreach ($name in $mcpSourceConfig.mcpServers.PSObject.Properties.Name) {
+    $server = $mcpSourceConfig.mcpServers.$name
+    if ($server.type -eq 'remote') {
+        $entry = [PSCustomObject]@{ type = 'remote'; url = $server.url }
+        if ($server.headers) {
+            $entry | Add-Member -NotePropertyName headers -NotePropertyValue $server.headers
+        }
+    } else {
+        $entry = [PSCustomObject]@{ type = 'local'; command = @($server.command) + @($server.args) }
+        if ($server.env) {
+            $entry | Add-Member -NotePropertyName environment -NotePropertyValue $server.env
+        }
+    }
+    $mcpForOpencode | Add-Member -NotePropertyName $name -NotePropertyValue $entry
+}
+$configObj | Add-Member -NotePropertyName mcp -NotePropertyValue $mcpForOpencode -Force
 
 Write-Utf8NoBom -Path $opencodeConfigPath -Content ($configObj | ConvertTo-Json -Depth 10)
-Write-Ok "opencode.jsonc (instructions + mcp linked, other keys preserved)"
+Write-Ok "opencode.jsonc (instructions + mcp servers inlined, other keys preserved)"
 
 # ---------------------------------------------------------------------
 # 5. Copy managed agent/command files (skip anything not ours)
@@ -305,23 +326,10 @@ Get-ChildItem (Join-Path $sourceDir "claude\commands") -Filter *.md | ForEach-Ob
 }
 
 # ---------------------------------------------------------------------
-# 6. MCP servers - opencode (file-based) + Claude Code (via CLI)
+# 6. MCP servers for Claude Code (via CLI) - opencode already got these
+#    inlined into opencode.jsonc directly in step 4, above.
 # ---------------------------------------------------------------------
-Write-Step "Syncing MCP servers for opencode..."
 $mcpSrcPath = Join-Path $sourceDir "opencode\mcp.json"
-
-$mcpDestObj = $null
-if (Test-Path $mcpDestPath) {
-    try { $mcpDestObj = Read-Utf8NoBom $mcpDestPath | ConvertFrom-Json } catch { $mcpDestObj = $null }
-}
-
-$mcpIsOurs = ($null -eq $mcpDestObj) -or ($mcpDestObj.PSObject.Properties.Name -contains '_managed_by')
-if ($mcpIsOurs) {
-    Copy-Item $mcpSrcPath $mcpDestPath -Force
-    Write-Ok "mcp.json -> $mcpDestPath"
-} else {
-    Write-Warn "Skipped mcp.json - exists and isn't managed by base_project. Merge new servers manually if wanted."
-}
 
 Write-Step "Registering MCP servers with Claude Code (if 'claude' CLI is available)..."
 if (Get-Command claude -ErrorAction SilentlyContinue) {

@@ -752,6 +752,101 @@ nos dois engines + o aviso de `fallbackModel` apareceu certo. `npm test` (25/25)
 limpo, `validate:plugins` ok, `npx biome check .` mesma contagem de arquivo de sempre
 (`Checked 11 files`, nada novo — os 2 comandos são `.md`, não código).
 
+### 19. Descoberta viva + período de teste (catálogo deixa de ser só estático)
+
+**O que é**: mudança de arquitetura maior que qualquer item anterior — não é mais só
+sincronizar um catálogo fixo (`plugins.json`), é o `/newproject`/`/plugins` ganharem uma
+etapa de **busca ao vivo** (catálogo → marketplace oficial → web aberta, nessa ordem)
+antes de recomendar, e um **período de teste com veredito automático** pra tudo que
+entra vindo de fora do catálogo. Nasceu de uma conversa longa sobre se o base_project
+"faz sentido" dado o tamanho que ganhou em <1 semana sem validação — a conclusão foi que
+o pedaço genuinamente diferenciado (nenhum marketplace de Claude Code hoje mede se o que
+foi instalado continua sendo usado) é justamente isto, não o instalador em si.
+
+**Por que pode importar**: hoje `plugins.json` só cresce por edição manual (você lembra
+de adicionar uma entrada quando acha algo bom) — é curadoria estática disfarçada de
+automação, e o catálogo nunca sabe se uma entrada existente ainda serve pra alguma
+coisa. A mudança resolve dois problemas ao mesmo tempo: (1) cobre ferramentas que nunca
+foram catalogadas manualmente, e (2) aplica ao próprio catálogo a mesma disciplina de
+"não confiar no achismo" que já vem sendo aplicada ao resto do projeto (ver decisão do
+pipeline de orquestração, acima — reimplementar como instrução magra, não inflar com
+dependência nova).
+
+**Desenho acordado (4 fases, nenhuma implementada ainda)**:
+
+1. **Descoberta — generosa, sem eu pré-filtrar.** Ao descrever um projeto novo (ou
+   escanear um existente), busco em 3 camadas nessa ordem: `plugins.json` primeiro (já
+   validado, mais barato, zero risco), depois marketplace oficial do Claude Code, só
+   então web aberta (GitHub/npm) se nada cobrir. Trago **tudo** relevante que achar —
+   decisão de corte é sempre do dono do projeto, nunca minha. Regra explícita porque é
+   fácil eu errar nisso por padrão: não omitir um achado por eu achar "dispensável".
+2. **Decisão — pergunta simples, modo leigo.** "Achei isto que pode ajudar: [lista].
+   Baixar tudo, tirar algum, ou nenhum?" — nunca pergunta nada técnico. Cada item fora
+   do catálogo passa por `scripts/scan-skill.js` (já existe, item 10) antes de instalar,
+   obrigatório, não opcional como é hoje no fluxo do `/plugins`. Credencial pedida na
+   hora se `requires_input` existir (mesmo campo que `supabase`/etc já usam).
+3. **Período de teste — só para o que veio de fora do catálogo.** Aviso explícito na
+   instalação ("existe, parece útil, mas ainda não sei se funciona bem — vou testar").
+   Contador de N usos reais (não tempo corrido — decisão explícita, porque tempo
+   corrido penaliza ferramenta usada raramente sem relação com qualidade). A cada uso,
+   registro sinal técnico (completou sem erro/timeout, formato de resposta válido) +
+   meu julgamento (o resultado fez sentido pro que foi pedido, ou só "rodou") +
+   ocasionalmente uma pergunta sim/não ao usuário ("isso ajudou aqui?") — nunca pergunta
+   nada que exija entender métrica.
+4. **Veredito — promoção ou descarte, depois de N usos.** Sinal bom → vira entrada
+   permanente em `plugins.json` (mesmo schema do item 8) + ganha uma seção no
+   `CLAUDE.md` do projeto onde foi usado, documentando como invocar/convenções —
+   fecha o "não basta baixar, precisa saber usar", pedido explícito nesta conversa,
+   pra sessões futuras não redescobrirem do zero. Sinal ruim → aviso + pergunta
+   sim/não ("testei N vezes, taxa de erro alta — manter ou remover?"), usuário decide.
+
+**Pontos frágeis já identificados, não resolvidos** (registrar antes de esquecer):
+- Busca web aberta sem nenhum piso de qualidade pode trazer lixo — precisa de um
+  critério mínimo (estrelas/atividade/licença, como já fizemos manualmente pras 4
+  referências pesquisadas na seção de pipeline de orquestração), não zero filtro.
+- "N usos" não pode ser um número fixo universal — MCP chamado toda hora acumula sinal
+  rápido, algo usado 1x/semana leva muito mais tempo corrido pra mesma evidência.
+  Precisa de definição por tipo de ferramenta, não uma constante global.
+- Instalar a partir de um achado de busca aberta é mais arriscado que o catálogo fixo
+  de hoje: o comando de instalação é **inferido** por mim, não testado por alguém antes
+  — maior chance de errar o comando ou (pior) instalar algo malicioso. É o único ponto
+  onde nenhuma versão desse desenho reduz o risco a zero; scan obrigatório + confirmação
+  explícita mitigam, não eliminam.
+- `CLAUDE.md` do projeto-alvo pode inchar rápido se muitas ferramentas forem aceitas —
+  candidato a virar arquivo de referência separado (mesmo padrão que
+  `project-standards.md`/`command-menu.md` já usam aqui) se isso acontecer na prática.
+
+**Status**: `fazendo` — só a Fase 1 (descoberta viva), decisão explícita de fatiar em vez
+de implementar as 4 fases de uma vez, mesma razão registrada acima.
+
+**Implementação real (Fase 1 apenas)**: `source/claude/commands/plugins.md` +
+`source/opencode/command/plugins.md`. Passo 3 original (avaliar `recommend_if` contra o
+catálogo) preservado como "catalog pass", intocado; novo passo 3b faz a busca viva
+(marketplace oficial → web aberta, nessa ordem, só para necessidades que o catálogo não
+cobriu) com regra explícita de não pré-filtrar por gosto próprio — lista generosa,
+decisão de corte é do usuário. Passo 4 (apresentação) atualizado pra separar claramente
+"do catálogo" de "descoberta viva, não validado, comando de instalação inferido". Novo
+passo 5b (Claude Code) / 4c (opencode) cobre instalação do que vier da descoberta viva —
+sempre confirmação explícita do comando exato antes de rodar (nunca reusa a permissão
+genérica do passo 4), prefere escopo local quando existe. Passo de scan
+(`scripts/scan-skill.js`) tornado **obrigatório**, não mais advisory-only, para qualquer
+item vindo da descoberta viva independente do `kind` — cobre o risco já identificado no
+desenho (comando de instalação inferido por mim, não pré-testado por ninguém, é o ponto
+de maior risco). Nada de `plugins.json` foi escrito automaticamente — promoção de um
+achado bom a entrada permanente do catálogo continua sendo trabalho futuro (Fase 4), não
+parte desta mudança.
+
+**Deliberadamente fora desta fatia**: período de teste com N usos, avaliação
+técnica+julgamento, veredito de promoção/descarte automático, seção gravada no
+`CLAUDE.md` do projeto-alvo. Essas são as Fases 2-4 do desenho original — cada uma
+precisa da sua própria decisão de execução, não entram junto por padrão.
+
+**Validado**: `dev/scripts/install.sh` sincroniza os dois arquivos sem erro (rodado
+de verdade neste ambiente, não assumido). `npm run validate:plugins` ok (catálogo
+intocado, ainda válido). `npm test` 25/25. `npx tsc` limpo. Nenhum arquivo de código
+tocado (mudança é só nos dois `.md` de comando + este registro no ROADMAP), então o
+escopo do Biome não muda.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)

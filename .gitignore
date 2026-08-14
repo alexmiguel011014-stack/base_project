@@ -20,3 +20,6 @@ desktop.ini
 
 # graphify output (generated locally by `graphify update .`, not part of the repo)
 graphify-out/
+
+# Claude Code local settings (machine-specific permissions, not shared)
+.claude/settings.local.json

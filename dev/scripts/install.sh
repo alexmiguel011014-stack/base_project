@@ -172,13 +172,13 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 4. opencode.jsonc — link instructions + mcp file, preserve the rest
+# 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
 # ---------------------------------------------------------------------
 step "Updating $OPENCODE_HOME/opencode.jsonc..."
 
 OPENCODE_CONFIG_PATH="$OPENCODE_HOME/opencode.jsonc"
 INSTRUCTIONS_PATH="$SOURCE_DIR/opencode-instructions.md"
-MCP_DEST_PATH="$OPENCODE_HOME/mcp.json"
+MCP_SRC_PATH_FOR_CONFIG="$SOURCE_DIR/opencode/mcp.json"
 
 if command -v jq &>/dev/null; then
     if [ -f "$OPENCODE_CONFIG_PATH" ] && jq empty "$OPENCODE_CONFIG_PATH" 2>/dev/null; then
@@ -190,9 +190,25 @@ if command -v jq &>/dev/null; then
         fi
         BASE_JSON='{"$schema": "https://opencode.ai/config.json"}'
     fi
-    echo "$BASE_JSON" | jq --arg instr "$INSTRUCTIONS_PATH" --arg mcp "$MCP_DEST_PATH" \
-        '.instructions = $instr | .mcp = {file: $mcp}' > "$OPENCODE_CONFIG_PATH"
-    ok "opencode.jsonc (instructions + mcp linked, other keys preserved)"
+    # opencode's schema wants "instructions" as an array of paths, and "mcp" as a map
+    # of server name -> { type: "local", command: [...] } | { type: "remote", url,
+    # headers }, defined inline - not a pointer to an external file (that "mcp.file"
+    # shape doesn't exist in opencode's config schema and fails validation on startup).
+    echo "$BASE_JSON" | jq \
+        --arg instr "$INSTRUCTIONS_PATH" \
+        --argjson mcpsrc "$(cat "$MCP_SRC_PATH_FOR_CONFIG")" \
+        '.instructions = [$instr]
+         | .mcp = ($mcpsrc.mcpServers | with_entries(
+             .value = (
+               if .value.type == "remote" then
+                 {type: "remote", url: .value.url} + (if .value.headers then {headers: .value.headers} else {} end)
+               else
+                 {type: "local", command: ([.value.command] + (.value.args // []))} + (if .value.env then {environment: .value.env} else {} end)
+               end
+             )
+           ))' \
+        > "$OPENCODE_CONFIG_PATH"
+    ok "opencode.jsonc (instructions + mcp servers inlined, other keys preserved)"
 else
     warn "'jq' not found - skipping opencode.jsonc merge. Install jq, then re-run this script."
 fi
@@ -227,31 +243,19 @@ for f in "$SOURCE_DIR"/claude/commands/*.md; do
 done
 
 # ---------------------------------------------------------------------
-# 6. MCP servers - opencode (file-based) + Claude Code (via CLI)
+# 6. MCP servers for Claude Code (via CLI) - opencode already got these
+#    inlined into opencode.jsonc directly in step 4, above.
 # ---------------------------------------------------------------------
-step "Syncing MCP servers for opencode..."
 MCP_SRC_PATH="$SOURCE_DIR/opencode/mcp.json"
-
-MCP_IS_OURS=1
-if [ -f "$MCP_DEST_PATH" ] && command -v jq &>/dev/null; then
-    if ! jq -e 'has("_managed_by")' "$MCP_DEST_PATH" &>/dev/null; then
-        MCP_IS_OURS=0
-    fi
-fi
-
-if [ "$MCP_IS_OURS" -eq 1 ]; then
-    cp "$MCP_SRC_PATH" "$MCP_DEST_PATH"
-    ok "mcp.json -> $MCP_DEST_PATH"
-else
-    warn "Skipped mcp.json - exists and isn't managed by base_project. Merge new servers manually if wanted."
-fi
 
 step "Registering MCP servers with Claude Code (if 'claude' CLI is available)..."
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     for name in $(jq -r '.mcpServers | keys[]' "$MCP_SRC_PATH"); do
         # Remove any existing registration first so re-running the installer always applies the
         # latest catalog values instead of erroring on "already exists" for unrelated servers.
-        claude mcp remove "$name" --scope user &>/dev/null
+        # This is expected to "fail" (nothing to remove) on a first install, so it must never
+        # abort under `set -e` - mirrors the try/catch around the equivalent call in install.ps1.
+        claude mcp remove "$name" --scope user &>/dev/null || true
         is_remote="$(jq -r ".mcpServers[\"$name\"].type // empty" "$MCP_SRC_PATH")"
         if [ "$is_remote" = "remote" ]; then
             url="$(jq -r ".mcpServers[\"$name\"].url" "$MCP_SRC_PATH")"
