@@ -82,23 +82,9 @@ The installer also checks for (and installs if missing) the global CLI tools the
 | Command | What it does |
 |---|---|
 | `/bootstrap` | Maps the current project into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
-| `/audit` | Security scan (dependency vulnerabilities, exposed secrets). Uses Strix instead of a static scan if it's installed. |
+| `/audit` | Security scan (dependency vulnerabilities, outdated packages, exposed secrets). Uses Strix instead of a static scan if it's installed. |
 | `/plugins` | Looks at the current project, recommends which optional plugins fit, and installs the ones you pick. |
 | `/council` | Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict, for calls worth more than a single-pass opinion. |
-| `/dashboard` | Opens a local, live dashboard of plugin/MCP usage across all your projects. |
-
-## Usage dashboard
-
-`/dashboard` starts a small local Node server (`http://127.0.0.1:4317`, never leaves your
-machine) and opens it in your browser. It shows, live, which MCP servers and skills are
-being used, broken down by project — a table of every project with the plugins used in
-it, a running activity feed, and stat tiles for totals.
-
-This works via a global PostToolUse hook (Claude Code, merged into `~/.claude/settings.json`)
-and a plugin (opencode, `tool.execute.after`), both writing to a single shared log at
-`~/.base_project/usage.jsonl`. The server watches that file and pushes new events over
-Server-Sent Events — genuinely real-time, not a refresh-to-update snapshot. Nothing about
-this is published or shareable; it only runs on `127.0.0.1`.
 
 ## Optional plugins
 

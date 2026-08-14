@@ -17,9 +17,14 @@ never edit files in this command.
    - Look for a CI pipeline file and what it actually runs.
    - Run the project's own lint/typecheck/test commands if they exist, and read the
      real output — don't infer pass/fail from the file's existence alone.
-   - Grep for obviously dangerous patterns (unsanitized `eval`, shell interpolation,
-     hardcoded credentials) — same high-signal patterns `scan-skill.js` looks for,
-     applied here to the project's own code instead of a third-party skill.
+   - For dangerous code patterns (unsanitized `eval`, remote-exec pipes, obfuscated
+     strings, zero-width Unicode): run `node ~/.claude/base_project/scripts/scan-skill.js .`
+     directly — it implements the same rules and is already tested. If the script is
+     missing, fall back to grepping for `eval(`, `child_process` exec with string
+     interpolation, and `curl | sh` patterns manually.
+   - Note: `/audit` goes deeper on the security axis (gitleaks/trufflehog/strix for
+     secret scanning, outdated packages). §8 here is a quick pass — run `/audit`
+     separately if you want the full picture.
 
 3. Score each checklist item as `ok` / `missing` / `broken`, with severity (`critical` /
    `medium` / `low`) and file/line when applicable — same shape `@reviewer` already uses

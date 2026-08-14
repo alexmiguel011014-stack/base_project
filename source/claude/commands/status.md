@@ -6,12 +6,10 @@ description: Show the base_project version and a plain name-only list of everyth
 Report the base_project version and everything currently active, as a bare list of
 names — no descriptions, no explanations of what each thing does.
 
-1. **Version**: read `~/.claude/base_project/repo-path.txt`-style tracked repo path if
-   available, or fall back to asking `git -C <repo> describe --tags --always` in the
-   base_project repository itself (find it via `~/.base_project/repo-path.txt`). Also
-   read `version` from that repo's `package.json`. Show both, e.g.
-   `base_project v1.0.0 (git: v1.0.0)` — if the git tag and package.json version match,
-   just show one.
+1. **Version**: find the base_project repo path via `~/.base_project/repo-path.txt`,
+   then run `git -C <repo> describe --tags --always` in it, and read `version` from
+   that repo's `package.json`. Show both, e.g. `base_project v1.0.0 (git: v1.0.0)` — if
+   the git tag and package.json version match, just show one.
 
 2. **Active agents**: list the `.md` filenames (without extension) present in
    `~/.claude/agents/` that contain the `base_project:managed` marker.

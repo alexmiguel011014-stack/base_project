@@ -21,5 +21,8 @@ desktop.ini
 # graphify output (generated locally by `graphify update .`, not part of the repo)
 graphify-out/
 
+# repomix output (generated locally by `repomix`, not part of the repo)
+repomix-output.xml
+
 # Claude Code local settings (machine-specific permissions, not shared)
 .claude/settings.local.json
