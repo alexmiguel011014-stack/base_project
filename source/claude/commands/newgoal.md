@@ -9,7 +9,7 @@ job is to produce the input it will consume) could execute against it without re
 anything. This is a research-heavy, front-loaded command — spend real depth now so nothing has
 to be rediscovered later.
 
-**Two ways this runs.** Called directly (`/goals`), it is the user's explicit ask — narrate
+**Two ways this runs.** Called directly (`/newgoal`), it is the user's explicit ask — narrate
 normally. Dispatched from `/newproject` (see that command's own instructions), it must run as
 a background task and stay out of the conversation: no progress narration, no intermediate
 questions — only a short line when it starts and a short line with the file path when it's
@@ -44,6 +44,15 @@ done. The point is depth in the file, not tokens in the chat.
    - **Deployment/infra**: where this runs, how it ships, environment/config strategy.
    - **Testing**: what layers need coverage and with what tooling, given the stack chosen.
    - **Security**: the basics from `project-standards.md` §8, plus anything stack-specific.
+
+4a. **If `/council` was invoked together with this command** (e.g. `/newgoal /council` in the
+    same message — this applies only to the direct, narrated mode above, never to the silent
+    background dispatch from `/newproject`, which cannot pause for the confirmation `/council`
+    requires): for each area in step 4 where the choice is genuinely contested rather than a
+    clear default (a real fork like monolith vs. microservices or SQL vs. NoSQL, not "which
+    test runner" when the stack has one obvious pick), run `/council` on that specific decision
+    — including its own confirmation gate — before writing the choice into `GOALS.md`. Record
+    the President's verdict as the item, not the full 5-advisor transcript.
 
 5. **Write `GOALS.md` in English**, regardless of the conversation's language — this file is
    meant to be read by future tooling (`/buildproject`) as much as by the user, and the user

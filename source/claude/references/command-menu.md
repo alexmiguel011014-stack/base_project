@@ -8,13 +8,13 @@ arquivo, não redigitar a lista de memória.
 
 O que você deseja fazer agora?
 
-- `/newproject` — começar um projeto novo com a estrutura certa desde o início. Já dispara `/goals` em segundo plano.
-- `/goals` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
-- `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
-- `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
-- `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
-- `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
 - `/bootstrap` — mapear o projeto atual (repomix + graphify); abre o mapa visual HTML do graphify no browser se der certo. Se falhar, guia passo a passo para instalar ou configurar a API key.
+- `/newproject` — começar um projeto novo com a estrutura certa desde o início. Já dispara `/newgoal` em segundo plano.
+- `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
+- `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
+- `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
+- `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
+- `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
 - `/plugins` — ver e instalar plugins opcionais (banco de dados, design, testes de UI, etc.) para este projeto.
 - `/council` — pressão-testar uma decisão difícil com várias perspectivas antes de decidir.
 - `/status` — ver a versão do base_project e tudo que está ativo agora.

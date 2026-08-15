@@ -29,7 +29,7 @@ Help the user start a new project on the right footing.
    run scaffolding commands yourself. If the user wants the plan executed, that's a
    separate, explicit follow-up.
 
-6. After presenting the plan, dispatch `/goals`'s research as a background task (do not wait
+6. After presenting the plan, dispatch `/newgoal`'s research as a background task (do not wait
    on it, do not narrate its progress) — pass it what step 1 already established, so it never
    re-asks. It writes `GOALS.md` at the project root: a deep, single-session 0-to-100% build
    plan across backend/frontend/connectivity/database/deployment/etc., meant as input for a

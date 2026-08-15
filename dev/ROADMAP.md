@@ -1131,7 +1131,7 @@ is`). Diretórios de teste removidos depois. `npm test` 34/34, `npx tsc` limpo,
 
 ---
 
-### 24. `/goals`: plano de construção 0-a-100%, disparado em segundo plano pelo `/newproject`
+### 24. `/newgoal`: plano de construção 0-a-100%, disparado em segundo plano pelo `/newproject`
 
 **O que é**: comando novo que produz `GOALS.md` na raiz do projeto-alvo — um plano de
 construção denso, cobrindo backend, frontend, conectividade, banco de dados, auth, deploy,
@@ -1140,12 +1140,12 @@ como a entrada que um `/buildproject` futuro (não construído ainda — é o pr
 combinado, fora do escopo desta entrega) vai consumir para executar o projeto do zero.
 
 **Por que importa**: pedido direto do dono do projeto — hoje o `/newproject` produz um plano
-de alto nível em prosa; `/goals` aprofunda isso até virar itens checáveis por área, prontos
+de alto nível em prosa; `/newgoal` aprofunda isso até virar itens checáveis por área, prontos
 pra automação ler depois, sem precisar redescobrir nada.
 
 **Como o disparo em background funciona**: `/newproject` já reúne o contexto (stack, tipo de
 projeto, estado inicial) no seu próprio passo 1. Depois de apresentar o plano, ele despacha a
-pesquisa do `/goals` como tarefa em segundo plano, repassando esse contexto pra nunca
+pesquisa do `/newgoal` como tarefa em segundo plano, repassando esse contexto pra nunca
 perguntar de novo — e instrui explicitamente a **não narrar o progresso**, só uma linha
 avisando que começou e, ao terminar, o caminho do arquivo. É o pedido explícito de "economizar
 tokens": a pesquisa pesada fica no arquivo, não na conversa.
@@ -1167,13 +1167,74 @@ base das seções de teste/CI/segurança, em vez de redefinir "projeto bem forma
 **Deliberadamente fora desta entrega**: o `/buildproject` que executa contra o `GOALS.md` —
 combinado explicitamente para depois, entrada separada.
 
-**Status**: `feito` (o comando `/goals` e sua conexão com `/newproject`; `/buildproject`
+**Status**: `feito` (o comando `/newgoal` e sua conexão com `/newproject`; `/buildproject`
 continua como item futuro, ainda sem número próprio até ser iniciado).
 
 **Validado**: `npm test` continua verde (nenhum teste novo — comando é só instrução em
 markdown, mesma natureza dos demais comandos, sem lógica própria em JS a testar), `npx tsc`
 limpo, `npm run validate:plugins` ok, `npx biome check .` exit 0. Sincronizado nos dois
 engines via instalador re-rodado de verdade.
+
+---
+
+### 26. `/council` ganha portão de confirmação obrigatório; `/newgoal` aprende a chamá-lo por decisão
+
+**O que é**: duas mudanças pequenas e ligadas. Primeiro, `/council` agora sempre pergunta antes
+de rodar — não importa se foi chamado sozinho, junto com outro comando na mesma mensagem, ou
+disparado de dentro da instrução de outro comando — porque roda ~6x o custo de uma resposta de
+passe único (5 conselheiros + síntese). Segundo, `/newgoal` ganhou o passo 4a: se `/council` foi
+invocado junto na mesma mensagem (`/newgoal /council`), cada decisão genuinamente contestada do
+passo 4 (monolito vs. microserviço, SQL vs. NoSQL — não "qual test runner" quando só existe uma
+escolha óbvia) passa pelo `/council` antes de virar item no `GOALS.md`, em vez de só escrever a
+escolha direto.
+
+**Por que importa**: pergunta direta do dono do projeto sobre se chamar `/newgoal` e `/council`
+juntos seria entendido como "quero uma meta cujas decisões difíceis o conselho resolve" — a
+resposta honesta foi que não, hoje não existe esse mecanismo, comandos aqui são corpos de
+instrução isolados sem semântica combinada. A resposta virou pedido explícito de implementação,
+mais um pedido à parte, independente do primeiro: `/council` sozinho também devia sempre
+perguntar antes de gastar o token extra, com a frase-modelo *"chamar o council vai fazer você
+gastar mais tokens para ter um resultado melhor, deseja realmente usar isso?"* — dita no idioma
+do usuário, não copiada literalmente do inglês do arquivo de instrução.
+
+**Por que o portão de confirmação não se aplica ao disparo em segundo plano do `/newproject`**:
+esse caminho já é definido como silencioso — "no progress narration, no intermediate
+questions" (mesma regra usada pro próprio `/newgoal` quando `/newproject` o dispara). Pausar pra
+perguntar sobre `/council` ali quebraria essa garantia. Por isso o passo 4a do `/newgoal` só se
+aplica ao modo direto/narrado, nunca ao modo em segundo plano — registrado explicitamente no
+próprio arquivo pra não virar uma inconsistência descoberta mais tarde.
+
+**Efeito colateral limpo**: a frase antiga do passo 4 do `council.md` ("Reserve this for
+decisions that are actually worth 5x the thinking...") virou redundante com o novo passo 0 e
+foi removida, não duplicada.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` continua verde (mudança é só instrução em markdown nos dois comandos,
+sem lógica própria em JS), `npx tsc` limpo, `npm run validate:plugins` ok, `npx biome check .`
+exit 0. Aplicado direto nos 4 arquivos (source + cópias instaladas desta máquina em
+`~/.claude/commands/` e `~/.config/opencode/command/`) por já terem o marcador
+`base_project:managed`, sem precisar re-rodar o instalador.
+
+---
+
+### 27. `/goals` renomeado para `/newgoal`
+
+**O que é**: o comando criado no item 24 e ajustado no item 26 trocou de nome — arquivo
+(`goals.md` → `newgoal.md`) e toda referência interna (`/goals` → `/newgoal`) nos 4 comandos
+que o mencionam (`newgoal.md`, `newproject.md`, `council.md`, `status.md`) e nos 4
+`command-menu.md`. `GOALS.md`, o arquivo de saída que o comando produz no projeto-alvo, **não**
+mudou de nome — só o comando que o gera.
+
+**Por que importa**: pedido direto do dono do projeto: *"parece que goals ja existe, mas eu
+quero criar o meu"*. Registrado sem inventar motivo além do que foi dito — o pedido em si já é
+suficiente pra justificar o rename.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` continua verde, `npx tsc` limpo, `npm run validate:plugins` ok.
+Aplicado nos 4 arquivos-fonte + 4 cópias instaladas desta máquina (mesmo padrão dos itens
+anteriores — marcador presente, editado direto, sem esperar reinstalação).
 
 ---
 
