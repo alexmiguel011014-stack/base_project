@@ -27,12 +27,37 @@ Map the current project for token-efficient AI context:
    5. Re-run `/bootstrap`.
    ⚠️ Never paste the API key in this chat — set it only in the terminal yourself.
 
+   **graphify still says "no LLM API key found" after the key was set**: environment variables
+   are read once, when a process starts — a key set after this session began is invisible to it,
+   and re-running `/bootstrap` will never pick it up. Confirm that's the cause without ever
+   printing the key itself (PowerShell — prints only True/False):
+   `[bool][System.Environment]::GetEnvironmentVariable("GEMINI_API_KEY","User"); [bool]$env:GEMINI_API_KEY`
+   First `True` + second `False` means the key is set correctly and only the process is stale:
+   restart opencode, then re-run `/bootstrap`.
+
+   **graphify fails with "the 'openai' package is required for this backend but is not installed"**
+   (surfaces as `all semantic chunks failed for backend 'gemini'`): graphify is installed and the
+   key works, but it was installed without the backend extra. Tell the user to run this in a
+   terminal — it is an install command, so let them run it, do not run it yourself:
+   `uv tool install "graphifyy[gemini]" --force`
+   That is the fix for a `uv tool` install (confirm with `uv tool list`); for a pip/venv install
+   it's `pip install openai` instead. Then re-run `/bootstrap`.
+
    **graphify fails with "fail-closed" warning only (no API key error)**: this is a stale-index
    warning, not a fatal error. Proceed normally — the graph was still updated.
-4. If `graphify .` succeeded and `graphify-out/graph.html` exists, open it in the default browser:
+
+   **Fallback when nothing above unblocks it**: `graphify . --code-only` builds the graph from the
+   code files alone — local AST, no key, no backend package. Offer it, and state the cost plainly:
+   every `.md` stays out of the graph and the communities keep placeholder names. In a docs-heavy
+   repo that can mean losing most of the content, so it's a stopgap, not a substitute.
+4. If `graphify-out/graph.json` exists but `graphify-out/graph.html` does not, run
+   `graphify cluster-only .` — it generates `GRAPH_REPORT.md` and `graph.html` from the graph that
+   already exists. `graphify .` alone does not always write the HTML.
+5. If `graphify-out/graph.html` exists, open it in the default browser:
    - Windows: `Start-Process graphify-out/graph.html`
    - macOS: `open graphify-out/graph.html`
    - Linux: `xdg-open graphify-out/graph.html`
-5. Report only: which artifacts were generated (`repomix-output.xml`, `graphify-out/`) and their status.
+6. Report only: which artifacts were generated (`repomix-output.xml`, `graphify-out/`) and their
+   status — including, when the graph is partial, how many files are actually in it.
 
 $ARGUMENTS

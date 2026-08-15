@@ -19,7 +19,7 @@ names — no descriptions, no explanations of what each thing does.
 
 4. **Active hooks**: read `~/.claude/settings.json`, walk every hook event
    (`PostToolUse`, `SessionStart`, etc.) and list the base filename of each command that
-   points into `base_project/hooks/` or `base_project/dashboard/`.
+   points into `base_project/hooks/`.
 
 5. **Installed plugins** (from the base_project catalog specifically, not everything
    installed on the machine): read `~/.claude/base_project/plugins.json`, and for each
@@ -36,9 +36,9 @@ base_project vX.Y.Z
 
 Agents: architect, coder, reviewer
 
-Commands: newproject, scanproject, cleanproject, fixproject, bootstrap, audit, plugins, council, wpp, status
+Commands: newproject, goals, scanproject, cleanproject, fixproject, bootstrap, audit, plugins, council, wpp, status, reviewusage
 
-Hooks: loop-detect, post-edit-format, session-start-git-context
+Hooks: loop-detect, post-edit-format, session-start-git-context, usage-log
 
 Plugins: <installed ones only>
 ```

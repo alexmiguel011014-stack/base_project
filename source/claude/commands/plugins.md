@@ -96,6 +96,16 @@ Analyze the current project and help the user pick optional plugins from the bas
    (older install), skip this step silently — but say so for step 3b items specifically, since that's the
    one case where skipping the scan is a real gap, not a formality.
 
+8b. Record the install in the usage ledger, once per item that actually installed, right after the
+   scan and before reporting:
+   `node ~/.claude/base_project/hooks/usage-log.js --install <id> --kind <kind> --origin <catalog|discovery>`
+   Use the catalog `id` for catalog entries, and the tool's own name for live-discovery ones. This is
+   what makes "installed and never used" answerable by `/reviewusage`: catalog entries can be
+   cross-checked against `plugins.json`, but a live-discovery item exists in no catalog, so without
+   this line it is invisible exactly when it matters most — pulled from the open web, then never used
+   again. Never record an install that didn't happen (a failed or user-declined one). If the script is
+   missing (older install), skip silently; it is a ledger entry, never a gate on the install itself.
+
 9. Report only: what was installed — split clearly into "from the catalog" and "from live discovery,
    unvalidated" — what was skipped, any scan findings from step 8, and any follow-up the user needs to do
    (e.g. "set SUPABASE_ACCESS_TOKEN — get it from your Supabase dashboard").
