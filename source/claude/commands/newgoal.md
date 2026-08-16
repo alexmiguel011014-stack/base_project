@@ -4,9 +4,8 @@ description: Research and write a single, deeply detailed 0-to-100% build plan f
 ---
 
 Produce `GOALS.md` at the project root: the closest thing this project has to a master plan,
-detailed enough that a future `/buildproject` command (not built yet — this command's whole
-job is to produce the input it will consume) could execute against it without re-researching
-anything. This is a research-heavy, front-loaded command — spend real depth now so nothing has
+detailed enough that `/execgoals` can execute against it without re-researching anything — this
+command's whole job is to produce the input `/execgoals` consumes. This is a research-heavy, front-loaded command — spend real depth now so nothing has
 to be rediscovered later.
 
 **Two ways this runs.** Called directly (`/newgoal`), it is the user's explicit ask — narrate
@@ -55,7 +54,7 @@ done. The point is depth in the file, not tokens in the chat.
     the President's verdict as the item, not the full 5-advisor transcript.
 
 5. **Write `GOALS.md` in English**, regardless of the conversation's language — this file is
-   meant to be read by future tooling (`/buildproject`) as much as by the user, and the user
+   meant to be read by `/execgoals` as much as by the user, and the user
    asked for it explicitly. Structure it as concrete, checkable items grouped by the areas
    above, not prose paragraphs — each item should be something a future execution pass can
    look at and know whether it's done. Order the items: what has to exist before what.

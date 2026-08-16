@@ -1136,8 +1136,7 @@ is`). Diretórios de teste removidos depois. `npm test` 34/34, `npx tsc` limpo,
 **O que é**: comando novo que produz `GOALS.md` na raiz do projeto-alvo — um plano de
 construção denso, cobrindo backend, frontend, conectividade, banco de dados, auth, deploy,
 testes e segurança, pesquisado de verdade (web, não achismo) numa única passada. Pensado
-como a entrada que um `/buildproject` futuro (não construído ainda — é o próximo passo
-combinado, fora do escopo desta entrega) vai consumir para executar o projeto do zero.
+como a entrada que o `/execgoals` (item 29) consome para executar o projeto do zero.
 
 **Por que importa**: pedido direto do dono do projeto — hoje o `/newproject` produz um plano
 de alto nível em prosa; `/newgoal` aprofunda isso até virar itens checáveis por área, prontos
@@ -1164,11 +1163,12 @@ pelo usuário quanto por uma automação futura, e o usuário pediu inglês nomi
 **Reuso, não reinvenção**: o comando lê `project-standards.md` primeiro e usa a checklist como
 base das seções de teste/CI/segurança, em vez de redefinir "projeto bem formado" do zero.
 
-**Deliberadamente fora desta entrega**: o `/buildproject` que executa contra o `GOALS.md` —
-combinado explicitamente para depois, entrada separada.
+**Deliberadamente fora desta entrega**: o comando que executa contra o `GOALS.md` —
+combinado explicitamente para depois, entrada separada. Construído no item 29 como
+`/execgoals` (nome escolhido ali, não `/buildproject` como cogitado aqui).
 
-**Status**: `feito` (o comando `/newgoal` e sua conexão com `/newproject`; `/buildproject`
-continua como item futuro, ainda sem número próprio até ser iniciado).
+**Status**: `feito` (o comando `/newgoal` e sua conexão com `/newproject`; a execução ficou
+pro item 29).
 
 **Validado**: `npm test` continua verde (nenhum teste novo — comando é só instrução em
 markdown, mesma natureza dos demais comandos, sem lógica própria em JS a testar), `npx tsc`
@@ -1235,6 +1235,100 @@ suficiente pra justificar o rename.
 **Validado**: `npm test` continua verde, `npx tsc` limpo, `npm run validate:plugins` ok.
 Aplicado nos 4 arquivos-fonte + 4 cópias instaladas desta máquina (mesmo padrão dos itens
 anteriores — marcador presente, editado direto, sem esperar reinstalação).
+
+---
+
+### 28. `/designreview`: crítica de design com base em pesquisa, dois pontos de entrada
+
+**O que é**: comando novo que critica um design — mockup/screenshot/URL externo, ou algo que o
+próprio Claude acabou de gerar — contra uma rubrica com base em pesquisa real (Nielsen Norman,
+UICrit/UIST 2024, Criticmate/CHI 2026, UXBench 2026), reportando achados acionáveis no mesmo
+formato do `ReportFindings` que o `/code-review` já usa. Camada determinística
+(`dev/scripts/contrast-check.js`, sincronizado para `~/.claude/base_project/scripts/`) calcula
+contraste WCAG e tamanho mínimo de alvo de toque antes de qualquer julgamento por LLM — o resto
+(hierarquia visual, espaçamento, clareza de copy) fica pro julgamento mesmo, por não ter
+resposta objetiva única.
+
+**Por que importa**: pedido direto do dono do projeto — "queria criar uma skill de melhoria de
+design". Antes de escrever qualquer instrução, rodou `/newgoal` de verdade nesta sessão (ver
+`GOALS.md` na raiz do repo), incluindo duas perguntas via `AskUserQuestion` que só o usuário
+podia responder: o que a skill checa (decidiu: as duas coisas — crítica externa e auto-checagem
+do que o Claude gera) e onde ela mora (decidiu: dentro do próprio base_project, distribuída a
+todo mundo, não uma skill pessoal). `GOALS.md` documenta a pesquisa completa e as fontes.
+
+**Duas divergências entre o plano e o que foi construído, registradas no próprio `GOALS.md`**:
+1. "Spacing-scale adherence" saiu da camada determinística — não existe uma escala de
+   espaçamento universalmente "correta" pra checar sem conhecer os tokens de design do projeto
+   específico; virou parte do julgamento na passada local, não código.
+2. Os caminhos de entrada por URL/artifact viva não hardcodeiam `mcp__Claude_Browser__*` — esse
+   nome de ferramenta é específico do Claude Code, e o comando também vai para o opencode, onde
+   esse nome não resolveria. A instrução ficou genérica ("qualquer ferramenta de browser/preview
+   disponível nesta sessão"), no mesmo espírito de como o `bootstrap.md` já abre o `graph.html`
+   sem referenciar uma ferramenta específica.
+
+**Por que a auto-checagem nunca vira hook**: hooks neste repositório (`post-edit-format.js`,
+`usage-log.js`) são scripts determinísticos, não chamadas de LLM. Forçar uma passada de crítica
+completa via hook em toda geração de UI adicionaria latência/custo real na maioria das vezes em
+que não vale a pena — a auto-checagem fica como decisão de julgamento do próprio Claude, mesma
+contenção que `/council` e o passo 4a do `/newgoal` já aplicam.
+
+**Status**: `feito`.
+
+**Validado**: 12 testes novos em `dev/tests/contrast-check.test.js` (contraste preto/branco =
+21:1 exato, ordem fg/bg não importa, limiares AA/AAA normais vs. texto grande, alvo de toque
+44x44 passa e 43x44 falha, parsing de argumentos) — todos verdes, mais os 34 já existentes.
+`npx tsc` limpo, `npm run validate:plugins` ok. Sincronizado nos 2 instaladores (`install.ps1`/
+`install.sh`, seção 8c-2, mesmo padrão do `scan-skill.js`) e aplicado direto nos arquivos já
+instalados nesta máquina (comando + script), sem esperar reinstalação.
+
+---
+
+### 29. `/execgoals`: executa o `GOALS.md` que o `/newgoal` produziu
+
+**O que é**: o contraponto de execução do item 24 — comando que lê `GOALS.md`, exige que ele
+já exista (nunca improvisa um plano), mostra um resumo (quantos itens já `[x]`, quais dos
+abertos são mais pesados/difíceis de reverter — instalar dependência, inicializar banco,
+rodar CLI de scaffolding externa, `git init`) e pede uma única confirmação pra rodar a
+sequência inteira, não confirmação por item. Depois, percorre os itens não marcados na ordem
+em que `/newgoal` já os escreveu ("o que precisa existir antes do quê"), usando o fluxo
+`architect` → `coder` pra mudanças não-triviais e aplicando direto o que é trivial. Cada item
+só é marcado `[x]` depois de verificado de verdade (arquivo existe, teste passa, servidor
+sobe) — mesmo padrão "exists/substantive/wired" que o `reviewer` já aplica em code review,
+não só editar o checkbox porque a edição aconteceu.
+
+**Por que importa**: pedido direto do dono do projeto — "eu tenho um newgoals, mas não tenho
+um comando execgoals para executar as metas que fizemos". O nome `/execgoals` veio dele mesmo
+(diferente de `/buildproject`, que era o nome provisório usado nos itens 19/24 antes deste);
+mantido sem questionar, mesmo padrão do rename do item 27.
+
+**Por que é o primeiro comando deste projeto que de fato constrói coisa do zero, e o que isso
+muda no desenho**: todo comando anterior deste repositório é read-only (`/newproject`,
+`/newgoal`, `/scanproject`, `/audit`) ou edita/critica algo que já existe em escopo pequeno
+(`/fixproject`, `/designreview`). `/execgoals` pode instalar dependências reais, inicializar
+banco, rodar `git init` — superfície de risco maior que qualquer coisa construída nesta sessão
+até aqui. Resposta de desenho: uma confirmação única e informativa no início (não por item, que
+seria lento demais pra um plano 0-a-100%, mas também não zero confirmação, dado o blast radius),
+nunca fabricar credencial/placeholder que pareça real (segredo sempre vai pro `.env` gitignored
+do projeto-alvo, mesma regra de sempre), e nunca perguntar decisão que o comando pode decidir
+sozinho — só pra decisão que é genuinamente do usuário (provedor OAuth, região de cloud).
+
+**Resumível por construção**: como cada item vira `[x]` no próprio `GOALS.md` conforme é
+verificado, rodar `/execgoals` de novo depois de uma sessão interrompida lê o estado atual e
+continua do primeiro item aberto — nunca reconstrói do zero, nunca repete trabalho já
+verificado.
+
+**Referências a `/buildproject` atualizadas**: `newgoal.md`, `newproject.md` e o `GOALS.md`
+desta própria entrega do repositório (a do item 28) citavam o nome provisório `/buildproject`
+— todas trocadas para `/execgoals` nos 8 arquivos-fonte + instalados relevantes, pra não deixar
+um nome morto documentado como se fosse o real.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` continua verde (comando é só instrução em markdown, sem lógica
+própria em JS — mesma natureza de `/council`/`/newgoal`, não testável automaticamente por ser
+julgamento, não cálculo), `npx tsc` limpo, `npm run validate:plugins` ok. Aplicado nos 2
+arquivos-fonte + 2 cópias instaladas desta máquina, e nas 8 referências a `/buildproject`
+corrigidas (4 arquivos-fonte + 4 instalados).
 
 ---
 

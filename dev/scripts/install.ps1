@@ -577,6 +577,15 @@ if (Test-Path $scanSkillSrc) {
 }
 
 # ---------------------------------------------------------------------
+# 8c-2. contrast-check.js - deterministic WCAG contrast/tap-target pre-check used
+# by /designreview before spending an LLM pass on judgment calls. See ROADMAP item 28.
+# ---------------------------------------------------------------------
+$contrastCheckSrc = Join-Path $repoRoot "dev\scripts\contrast-check.js"
+if (Test-Path $contrastCheckSrc) {
+    Sync-Managed -SrcFile $contrastCheckSrc -DestFile (Join-Path $claudeScriptsDir "contrast-check.js")
+}
+
+# ---------------------------------------------------------------------
 # 8d. Reference docs read by commands (project-standards.md, command-menu.md)
 # ---------------------------------------------------------------------
 Write-Step "Syncing reference docs..."

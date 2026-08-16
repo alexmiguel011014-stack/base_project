@@ -466,6 +466,15 @@ if [ -f "$SCAN_SKILL_SRC" ]; then
 fi
 
 # ---------------------------------------------------------------------
+# 8c-2. contrast-check.js - deterministic WCAG contrast/tap-target pre-check used
+# by /designreview before spending an LLM pass on judgment calls. See ROADMAP item 28.
+# ---------------------------------------------------------------------
+CONTRAST_CHECK_SRC="$SCRIPT_DIR/contrast-check.js"
+if [ -f "$CONTRAST_CHECK_SRC" ]; then
+    sync_managed "$CONTRAST_CHECK_SRC" "$CLAUDE_SCRIPTS_DIR/contrast-check.js"
+fi
+
+# ---------------------------------------------------------------------
 # 8d. Reference docs read by commands (project-standards.md, command-menu.md)
 # ---------------------------------------------------------------------
 step "Syncing reference docs..."
