@@ -1,0 +1,73 @@
+base_project — recomendacoes (2026-08-10)
+==========================================
+
+PLUGINS / REPOS PRA ACRESCENTAR
+--------------------------------
+
+1. Semgrep (SAST) — prioridade ALTA
+   Analise estatica antes de rodar Strix, pega padrao inseguro sem executar nada.
+   pip install semgrep, regras gratis, maduro.
+
+2. gitleaks como pre-commit hook de verdade — prioridade ALTA
+   Hoje so existe dentro do /audit (manual). Um hook real bloqueia o commit antes
+   do segredo sair da maquina — reforca a regra que ja esta no CLAUDE.md, mas
+   de forma ativa, nao reativa.
+
+3. codeburn guard — prioridade MEDIA
+   Reparei no --help dele: hooks opcionais de sessao pro Claude Code com budget
+   cap. Casa direto com a filosofia de "economia de tokens" do CLAUDE.md — hoje
+   isso e so regra escrita, nao e aplicada de verdade.
+
+4. /doctor (comando novo) — prioridade MEDIA
+   Toda vez que precisei checar "o hook ta registrado? o MCP ta conectado?
+   falta Python?" fiz isso na mao, com bash improvisado. Merece virar comando
+   formal, reaproveitavel.
+
+5. /base_project-update (comando novo) — prioridade MEDIA
+   Hoje "atualizar" e: git pull + rodar o instalador de novo, manualmente.
+   Um comando unico reduz friccao.
+
+6. Marcar base_project como GitHub Template Repository + CI simples
+   (lint no plugins.json/mcp.json, syntax-check nos .ps1/.sh) — prioridade ALTA
+   Sem CI, a unica coisa que garante que os JSONs/scripts nao quebram sou eu,
+   manualmente, sessao a sessao.
+
+7. Acompanhar de vez em quando (nao instalar agora) — prioridade BAIXA
+   - github.com/anthropics/skills
+   - github.com/modelcontextprotocol/servers
+   Sao as duas fontes canonicas de onde tirar mais plugins no futuro.
+
+
+MINHA FORMA DE FAZER — LICOES DESSA SESSAO
+--------------------------------------------
+
+- Testei coisa errada uma vez (regex de path no texto-fonte bruto em vez do
+  HTML servido de verdade) — perdi um ciclo de debug por isso. Licao: sempre
+  validar o que e ENTREGUE de fato, nao o que parece certo no codigo-fonte.
+
+- Documentacao mentiu, teste ao vivo nao: mcp-server-git, mcp-server-github,
+  opencode-ponytail — todos "documentados" como funcionais, todos quebrados
+  na pratica. Continuar preferindo rodar e ver a rodar e confiar.
+
+- Ambiente sandboxed meu != seu terminal real (processo detached morrendo por
+  Job Object do Windows) — bom lembrar disso pra nao confundir limitacao de
+  teste com bug real.
+
+
+SOBRE MINHA AUTONOMIA
+----------------------
+
+Voce foi ampliando a permissao aos poucos nessa sessao ("pode fazer o que
+precisar" -> autorizou instalar Python, CLI do Claude, consertar MCP). Nao
+vou pedir autonomia geral — proponho onde especificamente faria sentido dar
+sinal verde permanente:
+
+1. Corrigir pacote MCP quebrado quando eu achar (como fiz com git/github/
+   brave-search) — baixo risco, reversivel, sem isso o MCP simplesmente nao
+   funciona mesmo.
+
+2. Rodar /doctor e /audit proativamente depois de mudancas grandes no
+   base_project, sem precisar voce pedir.
+
+3. NUNCA autonomia pra registrar credencial real (Supabase, GitHub token) sem
+   voce confirmar — isso continua exigindo seu ok explicito, sempre.
