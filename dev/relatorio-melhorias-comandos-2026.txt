@@ -1,0 +1,451 @@
+================================================================================
+RELATORIO DE MELHORIAS - COMANDOS base_project
+Pesquisa: agosto/2026
+Escopo: /newproject, /scanproject, /cleanproject, /fixproject, /wpp
+================================================================================
+
+Documento de planejamento. Complementa dev/ROADMAP.md - nao substitui.
+Nada aqui foi implementado ainda; e uma lista priorizada de melhorias
+levantadas em pesquisa do estado da arte em 2026.
+
+
+================================================================================
+1. DIAGNOSTICO DE FUNDO
+================================================================================
+
+Duas fraquezas estruturais atravessam os 4 comandos principais:
+
+(1) Os comandos pedem ao LLM que faca NA MAO (grep, olhometro, inferencia)
+    o que ferramentas deterministicas hoje provam.
+
+    /cleanproject diz literalmente "verify with a real grep for the filename
+    before calling something dead" - isso e exatamente o que o knip faz
+    corretamente, entendendo Jest/Vite/Storybook/ESLint. /scanproject cai em
+    "grep eval(" quando o scan-skill.js falha. Grep nao distingue codigo de
+    comentario; AST distingue.
+
+(2) Os achados vivem na memoria da conversa - que e destruida por /compact.
+
+    /fixproject diz "reuse findings if one of them was a direct continuation
+    of a scan just run in this same conversation". Isso e fragil por design.
+    Um artefato em disco (.base_project/scan.json) sobrevive a compactacao,
+    a reinicio de sessao, e ainda habilita diff entre scans.
+
+Essas duas correcoes sao o salto de patamar. O resto e incremento.
+
+
+================================================================================
+2. MELHORIA TRANSVERSAL #1 - ARTEFATO DE SCAN EM DISCO          [ALTO IMPACTO]
+================================================================================
+
+Afeta: /scanproject, /cleanproject, /fixproject, /wpp
+
+Hoje o handoff scan->fix e conversacional. Proposta: /scanproject e
+/cleanproject gravam .base_project/scan.json (gitignored) com os achados
+estruturados:
+
+    id, categoria, severidade, arquivo:linha,
+    evidencia (comando rodado + saida), confianca
+
+Ganhos em cascata:
+
+    Sobrevive a /compact e a fechar o PC .... esta em disco, nao no contexto
+    /fixproject fica confiavel ............. le IDs, nao "o que lembramos"
+    Delta entre scans ...................... "3 corrigidos, 1 novo, 2 regrediram"
+    /wpp fica contextual ................... destaca /fixproject se ha criticos
+    /fixproject --dry-run vira trivial ..... basta listar o que faria por ID
+
+Custo: baixo. E formato de saida, nao logica nova.
+MAIOR RETORNO POR ESFORCO DE TODA A LISTA.
+
+
+================================================================================
+3. MELHORIA TRANSVERSAL #2 - ORDEM DETERMINISTICO -> CODEMOD -> LLM  [ALTO]
+================================================================================
+
+Afeta principalmente: /fixproject
+
+Hoje o /fixproject manda architect + coder escreverem cada correcao a mao.
+Metade delas sao mecanicas e ja tem autofix deterministico, mais rapido e
+mais seguro:
+
+    1. Autofix nativo:  biome check --write / eslint --fix / ruff check --fix
+                        knip --fix / cargo clippy --fix / npm audit fix
+    2. Codemod (AST):   ast-grep --rewrite (padrao repetitivo em N arquivos)
+    3. LLM:             so o que sobra - decisoes de design, casos unicos
+
+Ruff e Biome ja distinguem SAFE FIX de UNSAFE FIX - o comando deve aplicar
+so os safe automaticamente e mandar os unsafe para revisao. O knip --fix
+remove o minimo necessario deixando o codigo funcional, e aceita --format
+para reformatar depois.
+
+Impacto: correcao mais rapida, mais barata em token, e DETERMINISTICA - a
+mesma entrada gera a mesma saida, o que o LLM nao garante.
+
+
+================================================================================
+4. /newproject
+================================================================================
+
+--- ALTO IMPACTO ---------------------------------------------------------------
+
+4.1 PADRONIZAR EM AGENTS.md, NAO CLAUDE.md
+
+    O project-standards.md secao 1 hoje diz "CLAUDE.md/AGENTS.md" sem
+    escolher. Escolha errada custa portabilidade.
+
+    AGENTS.md saiu da OpenAI (ago/2025), foi transferido para a Linux
+    Foundation (Agentic AI Foundation) no fim de 2025, e em maio/2026
+    passava de 60.000 repositorios. E lido por Claude Code, Codex, Cursor,
+    Copilot, Gemini CLI, Aider, Windsurf, Zed, Devin, Amazon Q e outros.
+
+    Recomendacao: /newproject gera AGENTS.md como fonte unica, e um
+    CLAUDE.md de uma linha com "@AGENTS.md" importando. Projeto fica
+    portatil entre ferramentas sem duplicar instrucao.
+
+4.2 PARTIR DO SCAFFOLDER OFICIAL, NAO DA LISTA MANUAL DE ARQUIVOS
+
+    Hoje o passo 3 planeja "criar README, .gitignore, manifest, entry point"
+    na mao. Todo ecossistema ja tem CLI oficial que faz isso melhor:
+    npm create vite, cargo new, uv init, go mod init, dotnet new.
+
+    O plano deveria ser: "rode `uv init`, depois adicione X, Y, Z que ele
+    nao cobre" - mais curto, mais correto, menos chance de esquecer arquivo.
+
+    Para templates que precisam EVOLUIR junto com o projeto, copier supera
+    cookiecutter (permite re-aplicar o template atualizado depois;
+    cookiecutter e one-shot).
+
+4.3 FECHAR O LOOP COM /scanproject
+
+    /newproject produz um plano e termina. Nao ha verificacao de que o plano
+    foi executado corretamente. Passo final deveria ser: "depois de executar,
+    rode /scanproject para confirmar que ficou tudo de pe."
+
+4.4 PERSISTIR AS RESPOSTAS DA ENTREVISTA
+
+    O passo 1 pergunta stack, tipo de projeto, estado do repo - e essa
+    informacao evapora ao fim do comando. Deveria ir para o AGENTS.md do
+    projeto. Sem isso, a proxima sessao pergunta tudo de novo.
+
+--- MEDIO / OPCIONAL -----------------------------------------------------------
+
+4.5 PIN DE VERSAO DE FERRAMENTA
+    mise.toml com lockfile, ou .tool-versions. O mise e o sucessor do asdf
+    (reescrita em Rust), gerencia versao + variaveis de ambiente + task
+    runner num arquivo so. Reprodutibilidade real - hoje ausente do
+    project-standards.md.
+
+4.6 GIT HOOKS DESDE O DIA 1
+    lefthook - YAML unico, substitui husky+lint-staged, multi-linguagem.
+    Padrao sugerido: pre-commit = lint + format + gitleaks;
+                     pre-push   = typecheck + test.
+
+4.7 RENOVATE OU DEPENDABOT configurado na criacao.
+    Dependencia desatualizada e divida que so cresce.
+
+4.8 CONVENTIONAL COMMITS + COMMITLINT
+    Habilita changelog e versionamento automatico depois via semantic-release.
+
+4.9 .editorconfig - 6 linhas, funciona em todo editor, zero manutencao.
+
+4.10 LICENSE, SECURITY.md, CODEOWNERS
+     Higiene de repo que o checklist atual nao cobre.
+
+
+================================================================================
+5. /scanproject
+================================================================================
+
+--- ALTO IMPACTO ---------------------------------------------------------------
+
+5.1 TROCAR DETECCAO DE PADRAO PERIGOSO POR AST
+
+    O fallback atual (grep eval(, curl | sh) da falso positivo em comentario,
+    string e documentacao. Duas opcoes:
+
+    - semgrep: rulesets gratuitos p/security-audit e p/secrets. Foco em
+      seguranca, cobertura ampla, mais lento.
+    - ast-grep: MIT, Rust, tree-sitter, multi-core; usado por CodeRabbit,
+      Vercel Turbo e o tooling do Vue. Muito mais rapido, e serve tambem
+      para o /fixproject (mesmo padrao, com --rewrite).
+
+    RECOMENDACAO: ast-grep como padrao pela velocidade e por reaproveitar no
+    fix; semgrep como opcao quando o foco for auditoria de seguranca.
+
+5.2 osv-scanner NO LUGAR DE SO npm audit
+
+    O project-standards.md secao 8 diz "npm audit, pip-audit, equivalente" -
+    na pratica sao N ferramentas para N ecossistemas.
+
+    osv-scanner (Google) cobre todos com um binario, consultando OSV.dev com
+    matching por ecossistema em vez de CPE/NVD - resultado: MENOS FALSO
+    POSITIVO. Em teste com 20 projetos Node, uma varredura OSV achou
+    vulnerabilidade que o npm audit perdeu em 8 deles.
+
+    Ganho direto para quem roda varios projetos em stacks diferentes.
+
+5.3 VARREDURA DE SEGREDO NO HISTORICO
+
+    A secao 2 do checklist exige "nenhum segredo real commitado no
+    historico", mas NENHUM COMANDO TEM FERRAMENTA PARA ISSO. E um requisito
+    sem verificacao.
+
+    - gitleaks: rapido, regex, ideal em pre-commit e para varrer historico
+      em segundos.
+    - trufflehog --verified: mais lento, mas TESTA SE A CREDENCIAL AINDA
+      ESTA VIVA. Diferenca pratica: gitleaks diz "isso parece uma chave";
+      trufflehog diz "essa chave funciona agora, rotacione ja".
+
+    RECOMENDACAO: gitleaks no scan, trufflehog quando houver achado.
+
+5.4 ANALISE DE HOTSPOT (CHURN x COMPLEXIDADE)
+
+    Diferencial real. Todo scanner trata arquivos uniformemente; hotspot diz
+    ONDE A DIVIDA REALMENTE DOI. Dados do CodeScene: os hotspots priorizados
+    sao 2-3% do codigo mas concentram 11-16% de todos os commits.
+
+    O churn sai de graca do `git log --numstat`. Cruzado com
+    tamanho/complexidade do arquivo, produz uma lista ordenada por impacto
+    real em vez de por severidade generica. Sem ferramenta paga.
+
+--- MEDIO / OPCIONAL -----------------------------------------------------------
+
+5.5 OpenSSF SCORECARD
+    18 checks automaticos, nota 0-10 (v5.5.0, abr/2026).
+    RESSALVA HONESTA: mede HIGIENE DE PROCESSO (branch protection, pinning,
+    CI), nao qualidade de codigo. Um estudo revisado por pares de 2023 nao
+    achou correlacao negativa limpa entre nota e vulnerabilidades
+    reportadas. Vale como sinal barato, nao como verdade de seguranca.
+
+5.6 QUALIDADE DE TESTE, NAO SO EXISTENCIA
+    A secao 5 checa "existe comando de teste que sai 0/nao-zero". Nao checa
+    se o teste AFIRMA alguma coisa. Teste que roda a funcao e nao verifica a
+    saida conta para cobertura e nao verifica nada.
+    - Versao leve: cobertura do caminho critico.
+    - Versao profunda: mutation testing (Stryker - score >80% excelente;
+      modo incremental roda em 1-5 min por PR).
+    Pesado demais para o scan padrao, otimo como flag opcional.
+
+5.7 DETECCAO DE DUPLICACAO COMO SINAL DE "AI SLOP"
+    GitClear analisou 211 milhoes de linhas (2020-2025): blocos duplicados
+    cresceram 4-8x, e em 2024 codigo copiado passou codigo refatorado pela
+    primeira vez. Codigo gerado por IA introduz 1,7x mais problemas e 1,75x
+    mais erros de logica. Para quem programa com IA, jscpd no scan e sinal
+    direto.
+
+5.8 CAMPO DE CONFIANCA NOS ACHADOS
+    O reviewer ja usa CONFIRMED/PLAUSIBLE. O scan nao. Um achado inferido
+    nao deveria pesar igual a um achado com comando+saida anexados.
+
+
+================================================================================
+6. /cleanproject
+================================================================================
+
+Comando com MAIOR DISTANCIA entre o que promete e as ferramentas que usa.
+Tudo hoje e grep manual.
+
+--- ALTO IMPACTO ---------------------------------------------------------------
+
+6.1 knip PARA CODIGO MORTO (JS/TS)
+
+    Substitui o "grep pelo nome do arquivo" por analise real. Acha, numa
+    passada: arquivos nao usados, exports nao usados, dependencias nao
+    usadas, entradas de config orfas. Entende como Jest, Vitest, Storybook,
+    ESLint, Webpack e dezenas de outros referenciam arquivos - que e
+    exatamente onde o grep erra.
+
+    IMPORTANTE: depcheck e ts-prune FORAM ARQUIVADOS EM 2025. Se o comando
+    ou a documentacao mencionarem eles, esta desatualizado. Knip e o padrao
+    de 2026 e tem --fix.
+
+    Equivalentes por linguagem:
+    - vulture (Python, com score de confianca - a 100% ele tem certeza de
+      que e inalcancavel)
+    - cargo-machete (Rust)
+
+6.2 jscpd PARA DUPLICACAO
+
+    Hoje o comando pede para o LLM NOTAR arquivos quase identicos. O jscpd
+    detecta em 223+ linguagens; a v4.1 ganhou MCP Server e Agent Skill
+    feitos exatamente para agentes rodarem a checagem no proprio fluxo; a
+    v4.2 (mai/2026) detecta duplicacao ENTRE FORMATOS (bloco <script> num
+    .vue casando com um .ts); a v5 e reescrita em Rust, ate 37x mais rapida.
+
+6.3 DEPENDENCIA CIRCULAR E REGRA DE ARQUITETURA
+
+    Ponto cego total hoje. Ciclo de import e o problema estrutural mais
+    comum e e INVISIVEL OLHANDO A ARVORE DE PASTAS.
+
+    - madge: primeira passada rapida, boa visualizacao.
+    - dependency-cruiser: permite CODIFICAR A ARQUITETURA PRETENDIDA COMO
+      REGRA e falhar o CI quando algo cruza a fronteira.
+
+    Conecta direto com o passo 4 atual, que compara ARCHITECTURE.md com a
+    arvore real LENDO PROSA. Com dependency-cruiser, a arquitetura
+    pretendida vira regra executavel em vez de documento que desatualiza
+    sozinho.
+
+6.4 EXPLORAR O graphify-out/ QUE JA EXISTE
+
+    O comando ja sabe que o graphify pode estar presente, mas so o usa para
+    "mapear a arvore". O grafo de dependencias ja contem a resposta:
+    NO ORFAO = ARQUIVO MORTO, de graca, sem grep.
+
+--- MEDIO / OPCIONAL -----------------------------------------------------------
+
+6.5 REDE DE SEGURANCA CONTRA FALSO POSITIVO
+    Antes de declarar algo morto, checar explicitamente: import dinamico,
+    reflexao, autoload de plugin, "bin" do package.json, arquivo
+    referenciado so em YAML de CI, entrypoint de Docker. O knip cobre parte;
+    o comando deveria avisar do resto.
+
+6.6 Severidade por impacto em navegabilidade ja existe e esta boa - manter.
+
+
+================================================================================
+7. /fixproject
+================================================================================
+
+Comando mais bem desenhado dos quatro (o gate de 4 niveis do reviewer e
+solido). As falhas sao de SEGURANCA DE EXECUCAO.
+
+--- ALTO IMPACTO ---------------------------------------------------------------
+
+7.1 BASELINE ANTES DE CORRIGIR - BURACO DE CORRECAO REAL
+
+    O passo 4 re-verifica cada achado individualmente, mas nunca checa se a
+    correcao QUEBROU OUTRA COISA. Pior: sem baseline, "o teste falha depois"
+    e informacao inutil, porque o teste pode ja estar falhando antes.
+
+    CORRECAO: capturar lint/typecheck/test ANTES de qualquer mudanca, e
+    comparar no fim. So assim da para distinguir falha pre-existente de
+    regressao introduzida.
+
+7.2 CHECKPOINT E ROLLBACK
+
+    Hoje aplica correcoes numa arvore possivelmente suja, sem rede. Deveria
+    exigir arvore limpa (ou git stash automatico) e, idealmente, trabalhar
+    num branch. Qualquer correcao ruim vira revert atomico em vez de
+    arqueologia no git diff.
+
+7.3 COMMIT ATOMICO POR ACHADO
+
+    "Nunca commita automaticamente" e seguro mas gera um blob unico de 12
+    correcoes indistinguiveis. Melhor: UM COMMIT POR ACHADO (ainda com
+    confirmacao explicita), para que uma correcao ruim seja git revert
+    individual e nao desmonte as outras 11.
+
+7.4 APLICAR A ORDEM DETERMINISTICO -> CODEMOD -> LLM (ver secao 3).
+
+--- MEDIO / OPCIONAL -----------------------------------------------------------
+
+7.5 --dry-run
+    Listar o que faria, por ID, sem tocar em nada. Trivial de implementar
+    assim que existir o scan.json.
+
+7.6 AGRUPAMENTO POR RISCO
+    Em vez de so por severidade. Mover arquivo (achado de /cleanproject) e
+    ordens de magnitude mais arriscado que adicionar linha ao .gitignore.
+    Tres baldes: mecanico e seguro -> precisa revisao -> precisa decisao
+    do usuario.
+
+
+================================================================================
+8. /wpp
+================================================================================
+
+NAO EXISTE FERRAMENTA NA INTERNET PARA ROUBAR AQUI. E renderizacao de lista.
+Mas ha tres melhorias genuinas, todas de custo quase zero:
+
+8.1 MENU CONTEXTUAL                                             [ALTO IMPACTO]
+    Hoje e estatico. Com o scan.json em disco, o menu pode destacar o
+    proximo passo real:
+      - sem repo git                        -> destaca /newproject
+      - scan.json com criticos pendentes    -> destaca /fixproject
+      - sem graphify-out/                   -> destaca /bootstrap
+    Vira assistente em vez de cardapio.
+
+8.2 MARCAR LEITURA VS. ESCRITA                                        [MEDIO]
+    /scanproject, /cleanproject, /newproject e /audit sao read-only;
+    /fixproject e /uninstall mudam coisas. Um marcador visual remove a
+    hesitacao de "isso vai mexer nos meus arquivos?".
+
+8.3 OPCOES NUMERADAS                                                  [MEDIO]
+    Responder "3" em vez de digitar /audit.
+
+
+================================================================================
+9. PRIORIZACAO - SE FOSSE FAZER EM ORDEM
+================================================================================
+
+  #  MELHORIA                              COMANDO(S)        ESFORCO  IMPACTO
+ --  ------------------------------------  ----------------  -------  -------
+  1  scan.json em disco                    scan/clean/fix/wpp  Baixo   ALTO+++
+  2  Baseline antes de corrigir            fix                 Baixo   ALTO+++
+  3  knip + vulture                        clean               Baixo   ALTO+++
+  4  gitleaks no historico                 scan                Baixo   ALTO++
+  5  osv-scanner                           scan, audit         Baixo   ALTO++
+  6  Autofix deterministico antes do LLM   fix                 Medio   ALTO++
+  7  AGENTS.md como padrao                 new, standards      Baixo   ALTO++
+  8  jscpd duplicacao                      clean, scan         Baixo   ALTO
+  9  Checkpoint/branch + commit atomico    fix                 Medio   ALTO
+ 10  dependency-cruiser / madge            clean               Medio   ALTO
+ 11  Scaffolder oficial primeiro           new                 Baixo   ALTO
+ 12  ast-grep no lugar de grep             scan, fix           Medio   ALTO
+ 13  Hotspot churn x complexidade          scan                Medio   MEDIO
+ 14  Menu contextual                       wpp                 Baixo   MEDIO
+ 15  mise + lefthook + Renovate            new                 Medio   MEDIO
+
+OS 5 PRIMEIROS SAO MEIO DIA DE TRABALHO E MUDAM O PATAMAR DOS COMANDOS -
+saem de "LLM inferindo" para "ferramenta provando", e de "achado que some
+no /compact" para "achado que persiste".
+
+
+================================================================================
+10. FONTES
+================================================================================
+
+Dead code / duplicacao
+  https://www.pistack.xyz/posts/2026-06-19-dead-code-detection-tools-knip-ts-prune-vulture-unimported/
+  https://knip.dev/features/auto-fix
+  https://jscpd.dev/
+  https://dev.to/klement_gunndu/ai-generated-code-is-building-tech-debt-you-cant-see-khn
+
+Dependencias / vulnerabilidade
+  https://www.jit.io/resources/appsec-tools/osv-scanner-vs-npm-audit-a-detailed-comparison-of-sca-tools
+  https://safeguard.sh/resources/blog/best-open-source-sca-tools-in-2026-tested-on-a-real-monorepo
+
+Segredos
+  https://appsecsanta.com/secret-scanning-tools/gitleaks-vs-trufflehog
+
+Higiene de repo
+  https://scorecard.dev/
+  https://github.com/ossf/scorecard/blob/main/docs/checks.md
+
+AST / codemod
+  https://ast-grep.github.io/
+  https://ast-grep.github.io/advanced/tool-comparison.html
+
+Arquitetura / dependencia circular
+  https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md
+
+Instrucoes para agentes
+  https://www.iuriio.com/blog/posts/2026/05/agents-md-field-guide-2026
+  https://www.morphllm.com/agents-md-guide
+
+Divida tecnica / hotspots
+  https://codescene.com/blog/prioritize-technical-debt-by-impact/
+  https://www.secondtalent.com/resources/ai-generated-code-quality-metrics-and-statistics-for-2026/
+
+Testes
+  https://qaskills.sh/blog/mutation-testing-stryker-guide-2026
+
+Ambiente / hooks
+  https://betterstack.com/community/guides/scaling-nodejs/mise-vs-asdf/
+  https://www.pistack.xyz/posts/2026-04-26-pre-commit-vs-lefthook-vs-husky-git-hooks-management-guide-2026/
+
+================================================================================
+FIM
+================================================================================
