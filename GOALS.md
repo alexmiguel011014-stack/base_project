@@ -183,6 +183,22 @@ directly verifying this repo's state (not assuming from the stale reports at its
       after a real install, then re-ran the installer a second time to confirm idempotency
       (no error). Full CI run (which also covers the actual macOS runner) still pending on next
       push — see Area E.
+- [x] **Real, pre-existing bug found and fixed, unrelated to this plan's own additions**: the
+      first real CI run after pushing Areas A-D revealed `install-test (ubuntu-latest)` has been
+      failing since at least the 2026-08-16 commit — `install.sh`'s settings.json section
+      computes `BASE_SETTINGS` correctly for a missing/fresh file, but never writes it to disk
+      before the next block's blind `cat "$SETTINGS_PATH"` — so a genuinely fresh install (no
+      pre-existing `settings.json`, e.g. a brand-new user's first run, or CI's throwaway HOME)
+      crashes with `cat: ... No such file or directory`. `install.ps1` doesn't have this bug —
+      it builds one in-memory object and writes once at the end; `install.sh` round-trips
+      through disk on every block instead. Fix: write `$BASE_SETTINGS` to disk immediately after
+      computing it, before the first re-read. **Caught because `jq` isn't installed in this
+      session's shell, which silently skipped the buggy code path on the first "validated
+      locally" pass above** — re-verified after downloading a real `jq` binary specifically to
+      exercise this path: fresh install now creates a valid `settings.json` with all 3 hook
+      events, and a second run stays idempotent. This is exactly the kind of finding a
+      first-time user would have hit; more consequential than any single item this plan
+      originally listed.
 
 ### Area D — Community & Security Documentation
 

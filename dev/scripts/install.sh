@@ -151,6 +151,10 @@ if command -v jq &>/dev/null; then
         fi
         BASE_SETTINGS='{}'
     fi
+    # Every block below re-reads $SETTINGS_PATH from disk instead of chaining
+    # $BASE_SETTINGS in memory - write it now so a brand-new install (no
+    # pre-existing settings.json) doesn't crash the very first `cat` below.
+    printf '%s' "$BASE_SETTINGS" > "$SETTINGS_PATH"
 
     # Loop-detection and auto-format hooks — real behavior, not just logging
     # (see ROADMAP.md item 2). Synchronous (not async): loop-detect's stderr
