@@ -109,7 +109,7 @@ Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
 | `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
-| `/bootstrap` | Mapeia o projeto atual em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
+| `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
 | `/audit` | Scan de segurança (vulnerabilidade de dependência, segredo exposto). Usa Strix se instalado, senão `npm audit`/`pip-audit` + `gitleaks`/`trufflehog`. |
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
 | `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. |
@@ -245,6 +245,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/scanproject`** | comando | Avalia um projeto existente contra `project-standards.md`, reporta achados. Read-only. |
 | **`/cleanproject`** | comando | Avalia organização de arquivo/pasta (arquivo morto, estrutura, duplicação), propõe reorganização. Read-only. |
 | **`/fixproject`** | comando | Corrige os achados do `/scanproject` e/ou `/cleanproject`, com reverificação real de cada correção. |
+| **`/ship`** | comando | Commita e sobe as mudanças pro remoto (GitHub etc.), com checagem de prontidão e guia passo a passo pra cada bloqueio (repo sem remoto, segredo detectado, lint quebrado, divergência com upstream...). Nunca força push, nunca resolve conflito sozinho. |
 | **`/council`** | comando | Pressão-testa uma decisão difícil com 5 perspectivas de conselheiro independentes + veredito. |
 | **`/status`** | comando | Lista, só por nome, tudo que está ativo agora + versão do base_project. |
 | **Ruflo** (`ruflo`) | plugin (MCP) | Meta-orquestrador multi-agente pesado (~98 agentes especializados, memória vetorial persistente) — infraestrutura, não uma skill única. |
@@ -254,7 +255,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 ### 🗂️ Contexto do projeto / mapeamento
 | Nome | Tipo | O que faz |
 |---|---|---|
-| **`/bootstrap`** | comando | Mapeia o projeto atual em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
+| **`/bootstrap`** | comando | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
 | **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
 | **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão e ao fechar tarefa substancial — lista todos os comandos em linguagem simples. |
 | **context7** | MCP (sempre ativo) | Busca documentação atualizada de biblioteca/framework. |

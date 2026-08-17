@@ -13,7 +13,8 @@ O que você deseja fazer agora?
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
 - `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
-- `/bootstrap` — mapear o projeto atual (repomix + graphify); abre o mapa visual HTML do graphify no browser se der certo. Se falhar, guia passo a passo para instalar ou configurar a API key.
+- `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar.
+- `/bootstrap` — sincroniza com o remoto (pull se estiver atrás) e mapeia o projeto atual (repomix + graphify); abre o mapa visual HTML do graphify no browser se der certo. Se falhar, guia passo a passo para instalar ou configurar a API key.
 - `/plugins` — ver e instalar plugins opcionais (banco de dados, design, testes de UI, etc.) para este projeto.
 - `/council` — pressão-testar uma decisão difícil com várias perspectivas antes de decidir.
 - `/status` — ver a versão do base_project e tudo que está ativo agora.

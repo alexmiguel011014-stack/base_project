@@ -81,10 +81,11 @@ The installer also checks for (and installs if missing) the global CLI tools the
 
 | Command | What it does |
 |---|---|
-| `/bootstrap` | Maps the current project into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
+| `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
 | `/audit` | Security scan (dependency vulnerabilities, outdated packages, exposed secrets). Uses Strix instead of a static scan if it's installed. |
 | `/plugins` | Looks at the current project, recommends which optional plugins fit, and installs the ones you pick. |
 | `/council` | Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict, for calls worth more than a single-pass opinion. |
+| `/ship` | Commits and pushes the current project's changes. Checks readiness first (clean state, no secrets, lint/test passing, remote configured) and guides through whatever's blocking instead of a raw git error. Never force-pushes. |
 
 ## Optional plugins
 
