@@ -2,6 +2,7 @@
 	"name": "base_project",
 	"version": "1.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "Global config installer for Claude Code + opencode — validation/build tooling only, not a published package.",
 	"scripts": {
 		"validate:plugins": "node dev/scripts/validate-plugins.js",

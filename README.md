@@ -88,26 +88,11 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format |
 | `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered via `claude mcp add` | Context7, GitHub, filesystem, git (always on) |
 | `source/plugins.json` | `~/.claude/base_project/plugins.json` | Optional plugin catalog, read by `/plugins` |
-| `source/hooks/*.js` | `~/.claude/base_project/hooks/` | Usage-tracking hook/plugin system |
+| `source/hooks/*.js` | `~/.claude/base_project/hooks/` | Loop detection, auto-format, git-context injection, usage ledger |
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 
-<details>
-<summary><b>View full installation table</b></summary>
-
-| Source | Installed To | Purpose |
-|--------|-------------|---------|
-| `source/CLAUDE.md` | `~/.claude/CLAUDE.md` (delimited block) | Global rules for Claude Code |
-| `source/opencode-instructions.md` | linked from `~/.config/opencode/opencode.jsonc` | Global rules for opencode |
-| `source/claude/agents/*.md` | `~/.claude/agents/` | `architect`, `coder`, `reviewer` subagents |
-| `source/claude/commands/*.md` | `~/.claude/commands/` | `/bootstrap`, `/audit`, `/plugins`, `/council`, `/dashboard` |
-| `source/opencode/agent/*.md` | `~/.config/opencode/agent/` | Same trio, opencode format |
-| `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format |
-| `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered via `claude mcp add` | Context7, GitHub, filesystem, git (always on) |
-| `source/plugins.json` | `~/.claude/base_project/plugins.json` | Optional plugin catalog, read by `/plugins` |
-| `source/dashboard/*.js` | `~/.claude/base_project/dashboard/`, `~/.config/opencode/base_project/dashboard/`, `~/.config/opencode/plugins/` | Usage-tracking hook/plugin, local live server, launcher |
-
-</details>
+17 commands ship in total — see the Commands section below for the complete, current list.
 
 ---
 
@@ -121,13 +106,28 @@ The installer also checks for (and installs if missing) the global CLI tools the
 
 ## 📜 Commands
 
+Roughly the order you'd reach for them in a project's life — start a project, understand
+what's there, fix it, ship it, then the everyday extras:
+
 | Command | What it does |
 |---|---|
 | `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
-| `/audit` | Security scan (dependency vulnerabilities, outdated packages, exposed secrets). Uses Strix instead of a static scan if it's installed. |
-| `/plugins` | Looks at the current project, recommends which optional plugins fit, and installs the ones you pick. |
-| `/council` | Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict, for calls worth more than a single-pass opinion. |
-| `/ship` | Commits and pushes the current project's changes. Checks readiness first (clean state, no secrets, lint/test passing, remote configured) and guides through whatever's blocking instead of a raw git error. Never force-pushes. |
+| `/newproject` | Plans the structure and starting checklist for a brand-new project — read-only, produces a plan, never scaffolds files on its own. Also kicks off `/newgoal` in the background to research a deeper build plan while you review this one. |
+| `/newgoal` | Researches and writes `GOALS.md` at the project root: a deeply detailed 0-to-100% build plan (backend, frontend, connectivity, database, auth, deployment, testing, security) — the input `/execgoals` consumes without re-researching anything. |
+| `/execgoals` | Executes `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done (file exists, test passes, server starts) — resumes safely if interrupted. |
+| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
+| `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
+| `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
+| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
+| `/ship` | Commits and pushes the current project's changes. Checks readiness first (clean state, no secrets, lint/test passing, remote configured) and guides through whatever's blocking instead of a raw git error. Never force-pushes, never resolves conflicts automatically. |
+| `/plugins` | Looks at the current project, recommends which optional plugins fit — from the catalog, the official marketplace, and the open web if nothing else covers the need — and installs the ones you pick. |
+| `/council` | Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict. Always asks for confirmation first — it costs roughly 6x a single-pass answer. |
+| `/designreview` | Critiques a design — an external mockup/screenshot/URL, or a UI Claude just generated — against a research-backed rubric (Nielsen Norman heuristics, UICrit, Criticmate, UXBench). Runs a deterministic WCAG-contrast/tap-target check first, then a global-then-local judgment pass, and reports findings ranked by severity. |
+| `/status` | Shows the base_project version and a plain name-only list of everything currently active on this machine (agents, commands, hooks, plugins). No explanations. |
+| `/reviewusage` | Reads the local usage ledger and reports what's actually being used: installed-but-never-touched tools, what's used and where, what's failing, what's slow. Claude Code only — opencode activity isn't tracked. |
+| `/update` | Checks whether base_project itself has a newer version on GitHub and, on confirmation, pulls it and re-runs the installer. Never touches an unrelated project. |
+| `/uninstall` | Cleanly removes everything base_project installed globally, with tiered confirmation — bigger-blast-radius items (hooks, MCP servers) confirmed separately. Never deletes the base_project repo itself. |
+| `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start and after a substantial task. |
 
 ---
 
@@ -194,7 +194,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ## 🤝 Support
 
 - ⭐ **Star the repo** on GitHub
-- 🐛 **Report bugs** via GitHub Issues
+- 🐛 **Report bugs** via [GitHub Issues](https://github.com/alexmiguel011014-stack/base_project/issues)
+- 🔒 **Report a security vulnerability** — see [SECURITY.md](SECURITY.md), please don't file it as a public issue
+- 🛠️ **Contribute** — see [CONTRIBUTING.md](CONTRIBUTING.md)
 - 💡 **Suggest features** or ask questions in Discussions
 - 📚 **Read the documentation** in `source/` and `dev/` for deep dives
 
@@ -216,19 +218,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 | Pressure-test a decision | `/council` |
 | Map project context | `/bootstrap` |
 | View this menu | `/status` or `/wpp` |
-
----
-
-## 📸 Screenshots
-
-<details>
-<summary><b>View screenshots</b></summary>
-
-*Dashboard view after installation*
-*Plugin catalog selection*
-*Command palette integration*
-
-</details>
 
 ---
 

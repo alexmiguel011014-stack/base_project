@@ -30,7 +30,7 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   ├── commands/*.md       → ~/.claude/commands/     (/newproject /scanproject /fixproject /bootstrap /audit /plugins /council /dashboard)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (17 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/*.md     → ~/.claude/base_project/references/ (project-standards.md, command-menu.md)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
@@ -45,16 +45,24 @@ base_project/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
+│   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
 │   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
 │   ├── schemas/
 │   │   └── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
 │   ├── tests/                  ← node:test, roda com `npm test`
 │   └── ROADMAP.md              ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
 │
+├── assets/                     ← ícone de pasta do Windows Explorer (desktop.ini + icone.ico), aplicado por install.ps1 em source/, dev/, assets/ — puramente cosmético, não distribuído a ninguém
 ├── .github/workflows/ci.yml    ← lint, typecheck, schema, testes, e testa os instaladores de verdade
+├── .github/ISSUE_TEMPLATE/     ← templates de bug report / feature request
 ├── biome.json / tsconfig.json  ← ficam na raiz (motivo: ver nota abaixo), escopo cobre source/hooks + dev/scripts + dev/tests
 ├── package.json                ← fica na raiz (convenção npm/CI), mas seus scripts apontam pra dev/
+├── LICENSE                     ← MIT
+├── SECURITY.md                 ← política de divulgação de vulnerabilidade
+├── CONTRIBUTING.md             ← como contribuir
+├── CODE_OF_CONDUCT.md          ← Contributor Covenant
 ├── README.md                   ← visão de usuário
+├── GOALS.md                    ← planos de feature/iniciativa em formato executável por /execgoals (diferente do ROADMAP.md: aqui é o plano, lá é o histórico)
 └── ARCHITECTURE.md             ← este arquivo
 ```
 

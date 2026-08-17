@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -50,10 +50,14 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run install.sh against a throwaway HOME (Linux)
-        if: runner.os == 'Linux'
+      - name: Run install.sh against a throwaway HOME (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          sudo apt-get update -y && sudo apt-get install -y jq
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update -y && sudo apt-get install -y jq
+          elif ! command -v jq &>/dev/null; then
+            brew install jq
+          fi
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
           bash dev/scripts/install.sh
@@ -63,6 +67,8 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/hooks/loop-detect.js"
           test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
+          test -f "$CLAUDE_HOME/base_project/scripts/contrast-check.js"
+          test -f "$CLAUDE_HOME/base_project/hooks/usage-log.js"
           test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
           test -f "$CLAUDE_HOME/base_project/references/command-menu.md"
           test -f "$CLAUDE_HOME/agents/reviewer.md"
@@ -74,10 +80,35 @@ jobs:
           test -f "$CLAUDE_HOME/commands/status.md"
           test -f "$CLAUDE_HOME/commands/update.md"
           test -f "$CLAUDE_HOME/commands/uninstall.md"
+          test -f "$CLAUDE_HOME/commands/bootstrap.md"
+          test -f "$CLAUDE_HOME/commands/audit.md"
+          test -f "$CLAUDE_HOME/commands/council.md"
+          test -f "$CLAUDE_HOME/commands/plugins.md"
+          test -f "$CLAUDE_HOME/commands/ship.md"
+          test -f "$CLAUDE_HOME/commands/newgoal.md"
+          test -f "$CLAUDE_HOME/commands/execgoals.md"
+          test -f "$CLAUDE_HOME/commands/designreview.md"
+          test -f "$CLAUDE_HOME/commands/reviewusage.md"
           test -f "$OPENCODE_HOME/opencode.jsonc"
           test -f "$OPENCODE_HOME/base_project/plugins.json"
           test -f "$OPENCODE_HOME/base_project/references/project-standards.md"
           test -f "$OPENCODE_HOME/command/newproject.md"
+          test -f "$OPENCODE_HOME/command/scanproject.md"
+          test -f "$OPENCODE_HOME/command/fixproject.md"
+          test -f "$OPENCODE_HOME/command/cleanproject.md"
+          test -f "$OPENCODE_HOME/command/wpp.md"
+          test -f "$OPENCODE_HOME/command/status.md"
+          test -f "$OPENCODE_HOME/command/update.md"
+          test -f "$OPENCODE_HOME/command/uninstall.md"
+          test -f "$OPENCODE_HOME/command/bootstrap.md"
+          test -f "$OPENCODE_HOME/command/audit.md"
+          test -f "$OPENCODE_HOME/command/council.md"
+          test -f "$OPENCODE_HOME/command/plugins.md"
+          test -f "$OPENCODE_HOME/command/ship.md"
+          test -f "$OPENCODE_HOME/command/newgoal.md"
+          test -f "$OPENCODE_HOME/command/execgoals.md"
+          test -f "$OPENCODE_HOME/command/designreview.md"
+          test -f "$OPENCODE_HOME/command/reviewusage.md"
           node -e "JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8'))"
           echo "install.sh: all expected artifacts present and settings.json is valid JSON"
 
@@ -95,6 +126,8 @@ jobs:
             (Join-Path $claudeHome "base_project\hooks\loop-detect.js"),
             (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
+            (Join-Path $claudeHome "base_project\scripts\contrast-check.js"),
+            (Join-Path $claudeHome "base_project\hooks\usage-log.js"),
             (Join-Path $claudeHome "base_project\references\project-standards.md"),
             (Join-Path $claudeHome "base_project\references\command-menu.md"),
             (Join-Path $claudeHome "agents\reviewer.md"),
@@ -106,10 +139,35 @@ jobs:
             (Join-Path $claudeHome "commands\status.md"),
             (Join-Path $claudeHome "commands\update.md"),
             (Join-Path $claudeHome "commands\uninstall.md"),
+            (Join-Path $claudeHome "commands\bootstrap.md"),
+            (Join-Path $claudeHome "commands\audit.md"),
+            (Join-Path $claudeHome "commands\council.md"),
+            (Join-Path $claudeHome "commands\plugins.md"),
+            (Join-Path $claudeHome "commands\ship.md"),
+            (Join-Path $claudeHome "commands\newgoal.md"),
+            (Join-Path $claudeHome "commands\execgoals.md"),
+            (Join-Path $claudeHome "commands\designreview.md"),
+            (Join-Path $claudeHome "commands\reviewusage.md"),
             (Join-Path $opencodeHome "opencode.jsonc"),
             (Join-Path $opencodeHome "base_project\plugins.json"),
             (Join-Path $opencodeHome "base_project\references\project-standards.md"),
-            (Join-Path $opencodeHome "command\newproject.md")
+            (Join-Path $opencodeHome "command\newproject.md"),
+            (Join-Path $opencodeHome "command\scanproject.md"),
+            (Join-Path $opencodeHome "command\fixproject.md"),
+            (Join-Path $opencodeHome "command\cleanproject.md"),
+            (Join-Path $opencodeHome "command\wpp.md"),
+            (Join-Path $opencodeHome "command\status.md"),
+            (Join-Path $opencodeHome "command\update.md"),
+            (Join-Path $opencodeHome "command\uninstall.md"),
+            (Join-Path $opencodeHome "command\bootstrap.md"),
+            (Join-Path $opencodeHome "command\audit.md"),
+            (Join-Path $opencodeHome "command\council.md"),
+            (Join-Path $opencodeHome "command\plugins.md"),
+            (Join-Path $opencodeHome "command\ship.md"),
+            (Join-Path $opencodeHome "command\newgoal.md"),
+            (Join-Path $opencodeHome "command\execgoals.md"),
+            (Join-Path $opencodeHome "command\designreview.md"),
+            (Join-Path $opencodeHome "command\reviewusage.md")
           )
           foreach ($path in $expected) {
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
@@ -117,8 +175,8 @@ jobs:
           Get-Content (Join-Path $claudeHome "settings.json") -Raw | ConvertFrom-Json | Out-Null
           Write-Output "install.ps1: all expected artifacts present and settings.json is valid JSON"
 
-      - name: Re-run installer to confirm it's idempotent (Linux)
-        if: runner.os == 'Linux'
+      - name: Re-run installer to confirm it's idempotent (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
