@@ -219,7 +219,13 @@ o escopo certo aqui: testar a lógica do dashboard/`log-usage.js`, não tentar t
 pego isso muito antes, e teria evitado o acidente do `git checkout --` que apagou
 trabalho não commitado (um teste rodando localmente teria dado segurança pra reverter
 com mais confiança).
-**Status**: `ideia` · **escopo: ativo** (item A do escopo do projeto).
+**Status**: `feito`, mas **não como descrito acima** — o alvo original (a lógica do
+dashboard/`log-usage.js`) deixou de existir junto com o dashboard (item 13). O que a suíte
+cobre hoje é o que sobreviveu: `dev/tests/` com 5 arquivos (`loop-detect`,
+`post-edit-format`, `scan-skill`, `session-start-git-context`, `validate-plugins`), rodando
+por `npm test` (`node --test dev/tests/*.test.js`). O critério de "pronto" da tabela de
+escopo (um comando único, exit 0/não-zero) foi cumprido; o texto de "o que é" acima ficou
+como registro histórico da motivação, não descreve mais o estado atual.
 
 ### 2. Hooks com bloqueio de verdade, não só observação
 
@@ -438,9 +444,14 @@ independente, que precisa refutá-lo com 80%+ de confiança antes dele ser desca
 autocrítica adversarial), mas construído pra pipeline de múltiplos contribuidores —
 pra um mantenedor único, uma passada manual de revisão cobre a mesma necessidade por
 muito menos custo de manutenção.
-**Status**: `ideia`, investigação concluída — decisão de "vale implementar aqui" ainda
-em aberto, mas minha inclinação é que não vale, dado o tamanho do projeto ·
-**escopo: fora** (está na tabela "Pós-conclusão").
+**Status**: `decidido: não fazer`. A investigação já apontava que os 3 revisores paralelos
+não se pagam num projeto de mantenedor único. Chegou a existir um desenho de fatia magra
+(só o agente cético, sem os revisores), descartado por custo: o cético gasta uma chamada de
+modelo **por achado grave**, e isso colide com o princípio de economia de tokens do projeto.
+O problema que se queria resolver — não saber se o que foi adicionado presta — foi atacado
+por outro caminho, sem custo de token nenhum: o livro-caixa de uso do [item 21](#21-livro-caixa-de-uso-saber-o-que-é-usado-de-verdade).
+Não reabrir sem fato novo (ex: o projeto ganhar contribuidores externos, que é a premissa
+para a qual o `orch-review` foi desenhado).
 
 ### 12. Hook `SessionStart` injetando contexto git (evitar cold start)
 
@@ -816,8 +827,29 @@ dependência nova).
   candidato a virar arquivo de referência separado (mesmo padrão que
   `project-standards.md`/`command-menu.md` já usam aqui) se isso acontecer na prática.
 
-**Status**: `fazendo` — só a Fase 1 (descoberta viva), decisão explícita de fatiar em vez
-de implementar as 4 fases de uma vez, mesma razão registrada acima.
+**Status**: `feito` — e o escopo deste item encolheu de propósito. Ele ficou `fazendo` por
+dias carregando as Fases 2–4 como promessa; o [item 21](#21-livro-caixa-de-uso-saber-o-que-é-usado-de-verdade)
+(livro-caixa de uso) resolveu por outro caminho o que elas existiam pra resolver, então
+carregar o desenho antigo aqui só criava dívida imaginária. O que cada fase virou:
+
+- **Fase 1 (descoberta viva)** — feita, ver "Implementação real" abaixo.
+- **Fases 2 e 3 (contar usos, registrar sinal técnico)** — **obsoletas**, não pendentes. O
+  livro-caixa conta uso e grava sinal (erro, duração, projeto) de graça, via hook, sem
+  gastar token. Não há o que implementar aqui além do que já existe.
+- **O bloqueio do "N usos"** — **dissolvido**, não resolvido. Ele só existia porque se queria
+  um veredito automático. Sem veredito automático, não há N a calibrar: o `/reviewusage`
+  relata e o dono decide.
+- **Fase 4 (promover ao catálogo)** — separada em item próprio, o
+  [item 22](#22-promover-ao-catálogo-o-que-o-livro-caixa-mostrar-que-presta), porque é a
+  única parte que continua sendo trabalho real e não tinha por que ficar escondida dentro
+  de um item marcado como concluído.
+
+**Furo fechado junto (15/08)**: o livro-caixa registrava uso mas não registrava **instalação**,
+e o cruzamento "instalado mas nunca usado" do `/reviewusage` só sabia consultar o
+`plugins.json`. Item vindo da descoberta viva não está em catálogo nenhum — então ficava
+invisível exatamente no caso que mais importa (baixado da web aberta e nunca mais usado).
+Corrigido com um modo `--install` no `usage-log.js`, chamado pelo `/plugins` depois de cada
+instalação real, gravando `id`/`kind`/`origin` (`catalog` vs `discovery`).
 
 **Implementação real (Fase 1 apenas)**: `source/claude/commands/plugins.md` +
 `source/opencode/command/plugins.md`. Passo 3 original (avaliar `recommend_if` contra o
@@ -849,6 +881,457 @@ escopo do Biome não muda.
 
 ---
 
+### 20. Guias de erro do `/bootstrap` e limpeza do que o dashboard deixou pra trás
+
+**O que é**: duas entregas que ficaram sem registro aqui e foram fechadas juntas. A
+primeira (commit `f85027c`, 14/08) reposicionou os comandos de diagnóstico —
+`/scanproject` virou o ponto de entrada, `/audit` e `/cleanproject` viraram
+aprofundamentos de uma área cada, acabando com a sobreposição confusa entre os três — e
+deu ao `/bootstrap` um guia por erro conhecido em vez de reportar a falha crua. A
+segunda (esta sessão) é a consequência de rodar isso de verdade: três execuções reais do
+`/bootstrap` neste repositório expuseram dois modos de falha que o guia novo não previa,
+e a investigação de "o que ficou pendente" achou um resto do dashboard ainda em execução.
+
+**Por que importa**: o `/bootstrap` é o primeiro comando que qualquer projeto novo roda —
+é a porta de entrada do base_project. Um guia de erro que cobre só o caso feliz da falha
+("não tem key") transforma a porta de entrada num beco sem saída no primeiro erro fora do
+script. E o resto do dashboard é pior que ruído: um hook registrado no `settings.json`
+global disparando a cada `PostToolUse`, apontando pra um arquivo de uma feature que foi
+deletada do repositório há 3 commits. Nada quebrava visivelmente, e é exatamente por isso
+que sobreviveu tanto tempo.
+
+**Os dois modos de falha novos** (nenhum dos dois estava no guia, ambos aconteceram de
+verdade aqui, em sequência, na mesma sessão):
+
+1. **Key definida depois do processo iniciar é invisível pra ele.** Variável de ambiente
+   é lida uma vez, na criação do processo. A key estava certa no perfil do usuário e o
+   `graphify` continuava dizendo "no LLM API key found" — re-rodar `/bootstrap` nunca ia
+   resolver, só reiniciar. O guia agora ensina a distinguir os dois casos sem nunca
+   imprimir a key (`[bool]` no escopo `User` vs. no processo).
+2. **`graphify` instalado sem o extra `[gemini]`.** A key passa a ser lida, e a falha
+   troca de cara: `all semantic chunks failed for backend 'gemini'`, porque falta o pacote
+   `openai`. `uv tool install "graphifyy[gemini]" --force` resolve. Registrado como comando
+   que o *usuário* roda — o classificador de permissões bloqueia instalação global vinda
+   do agente, e essa é a resposta certa, não um obstáculo a contornar.
+
+Junto veio um terceiro achado menor: **`graphify .` nem sempre escreve o `graph.html`**.
+O passo de abrir o mapa no browser assumia que sim e falhava calado. `graphify cluster-only .`
+gera o HTML a partir do `graph.json` que já existe — virou passo explícito.
+
+**Implementação real**: `source/claude/commands/bootstrap.md` +
+`source/opencode/command/bootstrap.md` (os dois guias novos, o passo do `cluster-only`, e
+o `--code-only` documentado como stopgap com o custo dito na cara — num repo dominado por
+`.md`, como este, ele deixa a maior parte do conteúdo de fora). Limpeza do dashboard em
+`dev/scripts/install.ps1` e `dev/scripts/install.sh`: prune do hook no `settings.json`
+(por marcador `base_project/dashboard/`, nos dois eventos), remoção do diretório
+`base_project/dashboard/` instalado e do `dashboard.md` órfão nos dois engines — este
+último só quando carrega o marcador `base_project:managed`, mesma garantia do
+`Sync-Managed`, pra nunca apagar arquivo escrito à mão. `source/claude/commands/status.md`
+parou de procurar hooks em `base_project/dashboard/`.
+
+**Por que a limpeza mora no instalador, e não foi só um `rm` nesta máquina**: apagar uma
+feature do `source/` só impede que ela seja *instalada de novo* — quem já instalou continua
+com os arquivos em disco e com o hook ativo, e um `git pull` nunca desfaz isso, porque o
+instalador só sabia adicionar. Remoção precisa ser um passo explícito, ou não chega em
+máquina nenhuma. Confirmado na prática: a execução real encontrou e removeu *cinco* restos
+(hook + 2 comandos + 2 diretórios), incluindo um do lado opencode que a inspeção manual
+não tinha achado.
+
+**Status**: `feito`.
+
+**Validado**: `dev\scripts\install.ps1` re-rodado de verdade nesta máquina (não assumido) —
+saída confirmou os 5 restos removidos, e o `settings.json` depois disso não contém mais a
+string `dashboard`, com `model`/`permissions`/demais hooks intactos. `npm test` 25/25,
+`npx tsc` limpo, `npm run validate:plugins` ok, `npx biome check .` exit 0 (as infos de
+`useNodejsImportProtocol` em `dev/scripts/scan-skill.js` são anteriores e ficam de fora
+desta mudança — arquivo não tocado). Nota de ambiente: `node_modules/` não existia neste
+clone e as duas primeiras tentativas de `npm test`/`validate:plugins` falharam por
+`Cannot find module 'ajv'` — `npm ci` resolveu, não era regressão.
+
+---
+
+### 21. Livro-caixa de uso: saber o que é usado de verdade
+
+**O que é**: um hook grava uma linha por chamada de ferramenta (mais a linha do prompt que
+abriu a cadeia) num arquivo JSONL por sessão, e um comando novo `/reviewusage` lê tudo e
+relata o que está instalado e nunca foi usado, o que é usado e em quais projetos, o que dá
+erro e o que é lento. Analogia do dono do projeto, que é o desenho inteiro em uma frase: a
+empresa não escreve no para-brisa do carro — tem uma planilha na portaria, e o carro é uma
+coluna.
+
+**Por que importa**: `plugins.json` só sabe o que foi **instalado**. Nada no projeto sabia se
+alguma coisa instalada continuou sendo usada — que era exatamente a pergunta em aberto das
+Fases 2–4 do [item 19](#19-descoberta-viva--período-de-teste-catálogo-deixa-de-ser-só-estático).
+
+**Como isso destrava o item 19**: a Fase 3 estava parada num ponto registrado como frágil —
+*"N usos não pode ser um número fixo universal"*. Com o livro-caixa, **o N deixa de existir**:
+não há veredito automático a calibrar. O `/reviewusage` relata ("instalado dia tal, 0 usos em
+3 semanas") e o dono decide. O problema era consequência de querer automatizar a decisão;
+tirando a decisão automática, ele evapora.
+
+**Decisão: sem banco de dados.** Foi levantado se um SQLite local evitaria escrita concorrente
+(inclusive de graça — o Node 24 traz `node:sqlite` embutido, então não custaria dependência).
+Descartado: com um arquivo por sessão **não existe escrita concorrente a resolver**. O banco
+resolveria uma disputa que o desenho elimina, e cobraria por isso no pior lugar — o hook roda
+em toda chamada de ferramenta de toda sessão, e com duas sessões simultâneas uma trava vira
+`SQLITE_BUSY`. Quando reabrir: se a **leitura** ficar lenta, nunca a escrita — e aí nada se
+perde, porque o formato de escrita não precisa ser o de leitura (dá pra compactar o JSONL em
+SQLite na hora do relatório sem tocar no hook). Ordem de grandeza: ~500 bytes/linha, dia
+pesado ~2000 chamadas = ~1 MB/dia.
+
+**A regra que vem de um bug real deste projeto: escreve burro, lê esperto.** O hook grava fato
+cru e não classifica nada. O antecessor (`log-usage.js`, morto junto com o dashboard) decidia
+na escrita a qual entrada do catálogo um comando Bash pertencia, e o **erro #1 recorrente**
+documentado em `dev/scripts/NPInstructions.md` era plugin instalado e funcionando que nunca
+aparecia como usado, porque a regra não casava e falhava calada. Toda interpretação agora mora
+no `/reviewusage`, onde um palpite errado é visível em vez de silenciosamente ausente.
+
+**Verificado ao vivo antes de escrever qualquer código** (não assumido da documentação — a
+lição de "documentação mentiu, teste ao vivo não" já custou caro aqui): hook instrumentado
+temporariamente, 28 payloads reais capturados, hook restaurado por hash. O que o teste mostrou:
+
+- `agent_type`/`agent_id` chegam de verdade dentro de subagente (confirmado com `Explore` e
+  `general-purpose`), e **na thread principal vêm ausentes, não nulos** — checar `=== null`
+  teria classificado tudo errado.
+- `prompt_id` presente em 100% dos payloads (exige Claude Code ≥ 2.1.196; a máquina roda 2.1.226).
+- `duration_ms` vem de brinde, e a documentação não mencionava.
+- **O achado que mudou o desenho**: o hook é global e capturou uma **outra sessão do usuário,
+  rodando em outro projeto ao mesmo tempo**, no mesmo arquivo. Daí o arquivo por sessão — e daí
+  a ausência de necessidade de banco.
+
+**Implementação real**: `source/hooks/usage-log.js` (um script, dois eventos — `PostToolUse` e
+`UserPromptSubmit` se distinguem pelo `hook_event_name` do próprio payload, sem flag a manter
+sincronizada; `async: true` porque nada no turno espera a escrita, diferente do `loop-detect`).
+Ledger em `~/.claude/base_project/usage/<dia>-<sessão>.jsonl`. Campos de entrada e resposta
+truncados (300/150 chars) pra um único `Write` grande não transformar o ledger numa segunda
+cópia do transcript. `source/claude/commands/reviewusage.md` + equivalente opencode.
+Registro nos dois instaladores pelo mesmo padrão de merge por marcador dos hooks existentes.
+`dev/tests/usage-log.test.js` (7 testes) usa payloads copiados da captura real, não inventados.
+
+**Limitação declarada, não contornada**: o ledger cobre **só o Claude Code**. O opencode não
+tem arquivo equivalente de registro de hooks (o próprio `/status` já registrava isso), então
+atividade feita lá fica de fora. O `/reviewusage` é obrigado a dizer isso em todo relatório —
+senão um zero vira conclusão errada. Já existiu um `opencode-usage-logger.js` via
+`tool.execute.after`, removido com o dashboard e **nunca testado ao vivo**; se o lado opencode
+importar, é trabalho próprio, não uma linha a mais aqui.
+
+**Atribuição: exata para MCP, busca para CLI.** Ferramenta MCP se identifica sozinha
+(`mcp__<servidor>__<tool>`). Ferramenta CLI chamada via `Bash` só aparece procurando o nome do
+comando no campo `input` — é busca, não fato, e o `/reviewusage` tem instrução explícita de
+dizer isso em vez de apresentar um zero como prova de não-uso.
+
+**Status**: `feito` (Fase 1 do livro-caixa: registrar e relatar). Promoção automática de um
+achado bom a entrada permanente do catálogo continua sendo a Fase 4 do item 19, não entra aqui.
+
+**Validado**: instalador re-rodado de verdade — `usage-log.js` sincronizado e registrado nos
+dois eventos (`async=True`), `model`/`permissions`/demais hooks intactos. Ledger conferido em
+produção: **duas sessões simultâneas geraram dois arquivos separados** (esta em `base_project`,
+outra em `ERP`), com `agent_type` distinguindo thread principal de subagente e `cwd` separando
+os projetos — exatamente o comportamento que dispensa o banco. `npm test` 32/32 (era 25),
+`npx tsc` limpo, `npm run validate:plugins` ok, `npx biome check .` exit 0.
+
+---
+
+### 22. Promover ao catálogo o que o livro-caixa mostrar que presta
+
+**O que é**: a antiga Fase 4 do [item 19](#19-descoberta-viva--período-de-teste-catálogo-deixa-de-ser-só-estático),
+extraída para item próprio. Quando uma ferramenta que entrou pela descoberta viva acumular
+uso real no livro-caixa, ela vira entrada permanente no `plugins.json` (mesmo schema do item
+8) **e** ganha uma seção documentando como invocá-la — fechando o "não basta baixar, precisa
+saber usar", pedido explícito na conversa que originou o item 19.
+
+**Por que importa**: sem isso, uma ferramenta boa achada na web aberta continua sendo
+redescoberta do zero a cada sessão, e o catálogo nunca aprende nada com o uso — que era
+metade do argumento original de por que o base_project se diferencia de um marketplace.
+
+**Por que não entra agora**: só faz sentido depois que existir histórico suficiente pra
+promover algo. O livro-caixa começou a gravar em 15/08/2026 — hoje ele tem minutos de dados.
+Implementar a promoção antes de ter o que promover seria construir contra um caso
+hipotético, exatamente o que o item 19 já tinha errado ao carregar 4 fases de uma vez.
+
+**Onde a decisão fica fácil quando chegar a hora**: o `--origin discovery` das linhas de
+`install` já separa o que veio de fora do catálogo, e o `/reviewusage` já cruza isso com uso
+real. A entrada da decisão está pronta; falta só o ato de escrever no catálogo.
+
+**Ponto em aberto**: onde a documentação de "como usar" mora. O desenho original dizia
+`CLAUDE.md` do projeto-alvo, mas isso conflita com o princípio de zero pegada — e o próprio
+item 19 já previa que ele incharia rápido. Candidato natural: um arquivo de referência no
+escopo global, mesmo padrão de `project-standards.md`/`command-menu.md`.
+
+**Status**: `ideia` · **escopo: fora por enquanto** (bloqueado por dados, não por decisão).
+
+---
+
+### 23. Multi-engine: sair de "só Claude Code" sem fingir paridade
+
+**O que é**: o base_project passa a instalar também no **Codex CLI** e no **Kimi Code CLI**,
+além de Claude Code e opencode. Não como paridade — como **níveis declarados**, porque as
+quatro ferramentas não têm as mesmas capacidades e prometer que têm seria mentira que só
+aparece na hora de usar.
+
+**Por que importa**: a decisão veio do dono do projeto — "tem que funcionar em qualquer IA,
+ou pelo menos nas mais populares". A tensão real que isso expõe: o valor do base_project está
+concentrado justamente no que **não** porta (comandos, hooks, subagentes), e o item 21
+(livro-caixa) tinha acabado de aprofundar ainda mais no que é exclusivo do Claude Code. Vale
+registrar que os dois puxam para lados opostos — não é um detalhe técnico, é escolha de
+produto.
+
+**Portabilidade real, verificada na documentação de cada ferramenta (ago/2026), não presumida**:
+
+| Capacidade | Claude Code | opencode | Codex CLI | Kimi Code CLI |
+| - | - | - | - | - |
+| Arquivo de instruções | `~/.claude/CLAUDE.md` | inline no `opencode.jsonc` | `~/.codex/AGENTS.md` | `~/.kimi/AGENTS.md` |
+| MCP | `claude mcp add` | `mcp.json` | `[mcp_servers.X]` em `~/.codex/config.toml` | `kimi mcp add` / `--mcp-config-file` |
+| Comandos próprios | ✅ `~/.claude/commands/` | ✅ `~/.config/opencode/command/` | ❓ formato não confirmado | ❌ só `/skill:` e `/flow:` |
+| Skills | `~/.claude/skills/` | — | `~/.codex/skills/` | lê os três + `~/.config/agents/skills/` |
+| Hooks | ✅ | plugin API | ⚠️ citado em feature flags, sintaxe não confirmada | ❌ |
+
+**Níveis implementados**:
+
+- **Nível 1 (completo)** — Claude Code, opencode: regras + comandos + agentes + hooks.
+- **Nível 2 (regras + MCP)** — Codex CLI, Kimi Code CLI: recebem o mesmo bloco de regras e o
+  catálogo de MCP. Sem comandos, sem hooks, sem subagentes.
+
+**Implementação real**: a lógica de bloco delimitado do `CLAUDE.md` virou função reusável
+(`Sync-InstructionBlock` / `sync_instruction_block`) chamada três vezes — nada foi duplicado
+para ganhar os dois engines novos. MCP do Codex é emitido como TOML **append-only, com guarda
+de existência**: o instalador não tem parser de TOML, então nunca reescreve um arquivo que não
+consegue entender por inteiro — e tabela anexada no fim de um TOML não altera as de cima, que
+é o que torna append a operação segura aqui. Servidor MCP remoto (`github`, que é `url`) é
+**recusado com aviso** em vez de emitido com sintaxe adivinhada.
+
+**O que foi deliberadamente não feito, e por quê**: o MCP do Kimi **não** é escrito no
+`~/.kimi/config.toml`. O schema de MCP daquele arquivo não foi verificável na documentação, e
+chutar a forma de um config do qual o usuário depende é como se corrompe um. Em vez disso o
+`mcp.json` padrão é escrito e a flag exata (`kimi --mcp-config-file ...`) é impressa — a
+escolha fica com ele.
+
+**Regra de zero surpresa**: nada é escrito se a ferramenta não estiver instalada. Criar um
+`~/.codex/` numa máquina sem Codex seria exatamente o efeito colateral que este projeto evita;
+o instalador avisa e segue.
+
+**A pista para o futuro (não implementada)**: **skills são a unidade que porta de verdade**. A
+documentação do Kimi diz explicitamente que ele lê skills de `~/.claude/skills/` e
+`~/.codex/skills/`, e chama isso de "cross-tool shared capability extensions (compatible with
+Kimi CLI, Claude, Codex, and others)" — com `~/.config/agents/skills/` como local genérico
+recomendado. Distribuir os comandos do base_project **como skills** cobriria as três
+ferramentas de uma vez, sem escrever uma integração por ferramenta. É uma reestruturação
+grande (comandos viram skills) e merece decisão própria, não entra de carona aqui.
+
+**Status**: `feito` (Nível 2 para Codex e Kimi).
+
+**Validado ao vivo, não só no caminho de skip**: nenhuma das duas ferramentas está instalada
+nesta máquina, então o caminho de escrita foi exercitado criando `~/.codex` e `~/.kimi`
+temporariamente, com um `config.toml` pré-existente contendo `model` e `[tui]` do "usuário".
+Resultado: as duas chaves sobreviveram intactas, as 3 tabelas `[mcp_servers.*]` foram anexadas
+com TOML válido, o servidor remoto foi recusado com aviso, `AGENTS.md` saiu com os marcadores
+e em UTF-8 sem BOM, e a **segunda execução foi idempotente** (`already in config.toml - left as
+is`). Diretórios de teste removidos depois. `npm test` 34/34, `npx tsc` limpo,
+`npm run validate:plugins` ok, `npx biome check .` exit 0.
+
+---
+
+### 24. `/newgoal`: plano de construção 0-a-100%, disparado em segundo plano pelo `/newproject`
+
+**O que é**: comando novo que produz `GOALS.md` na raiz do projeto-alvo — um plano de
+construção denso, cobrindo backend, frontend, conectividade, banco de dados, auth, deploy,
+testes e segurança, pesquisado de verdade (web, não achismo) numa única passada. Pensado
+como a entrada que o `/execgoals` (item 29) consome para executar o projeto do zero.
+
+**Por que importa**: pedido direto do dono do projeto — hoje o `/newproject` produz um plano
+de alto nível em prosa; `/newgoal` aprofunda isso até virar itens checáveis por área, prontos
+pra automação ler depois, sem precisar redescobrir nada.
+
+**Como o disparo em background funciona**: `/newproject` já reúne o contexto (stack, tipo de
+projeto, estado inicial) no seu próprio passo 1. Depois de apresentar o plano, ele despacha a
+pesquisa do `/newgoal` como tarefa em segundo plano, repassando esse contexto pra nunca
+perguntar de novo — e instrui explicitamente a **não narrar o progresso**, só uma linha
+avisando que começou e, ao terminar, o caminho do arquivo. É o pedido explícito de "economizar
+tokens": a pesquisa pesada fica no arquivo, não na conversa.
+
+**Onde o arquivo mora, e por quê não é gitignored**: `GOALS.md` na raiz do projeto-alvo,
+rastreado no git como `README.md`/`ARCHITECTURE.md` — é documentação de planejamento que o
+usuário guarda e itera, não artefato regenerável como `graphify-out/`. Diferente do princípio
+de zero pegada que rege o *instalador* (nada do base_project em si é escrito no projeto), aqui
+o comando existe justamente para escrever no projeto-alvo — é o produto do comando, análogo a
+como `/newproject` já produz plano (só que agora persistido em arquivo, não só na conversa).
+
+**Idioma: inglês por pedido explícito**, mesmo sendo conteúdo renderizado ao usuário — exceção
+deliberada à regra geral do projeto (texto pro usuário = idioma dele). `GOALS.md` é lido tanto
+pelo usuário quanto por uma automação futura, e o usuário pediu inglês nominalmente.
+
+**Reuso, não reinvenção**: o comando lê `project-standards.md` primeiro e usa a checklist como
+base das seções de teste/CI/segurança, em vez de redefinir "projeto bem formado" do zero.
+
+**Deliberadamente fora desta entrega**: o comando que executa contra o `GOALS.md` —
+combinado explicitamente para depois, entrada separada. Construído no item 29 como
+`/execgoals` (nome escolhido ali, não `/buildproject` como cogitado aqui).
+
+**Status**: `feito` (o comando `/newgoal` e sua conexão com `/newproject`; a execução ficou
+pro item 29).
+
+**Validado**: `npm test` continua verde (nenhum teste novo — comando é só instrução em
+markdown, mesma natureza dos demais comandos, sem lógica própria em JS a testar), `npx tsc`
+limpo, `npm run validate:plugins` ok, `npx biome check .` exit 0. Sincronizado nos dois
+engines via instalador re-rodado de verdade.
+
+---
+
+### 26. `/council` ganha portão de confirmação obrigatório; `/newgoal` aprende a chamá-lo por decisão
+
+**O que é**: duas mudanças pequenas e ligadas. Primeiro, `/council` agora sempre pergunta antes
+de rodar — não importa se foi chamado sozinho, junto com outro comando na mesma mensagem, ou
+disparado de dentro da instrução de outro comando — porque roda ~6x o custo de uma resposta de
+passe único (5 conselheiros + síntese). Segundo, `/newgoal` ganhou o passo 4a: se `/council` foi
+invocado junto na mesma mensagem (`/newgoal /council`), cada decisão genuinamente contestada do
+passo 4 (monolito vs. microserviço, SQL vs. NoSQL — não "qual test runner" quando só existe uma
+escolha óbvia) passa pelo `/council` antes de virar item no `GOALS.md`, em vez de só escrever a
+escolha direto.
+
+**Por que importa**: pergunta direta do dono do projeto sobre se chamar `/newgoal` e `/council`
+juntos seria entendido como "quero uma meta cujas decisões difíceis o conselho resolve" — a
+resposta honesta foi que não, hoje não existe esse mecanismo, comandos aqui são corpos de
+instrução isolados sem semântica combinada. A resposta virou pedido explícito de implementação,
+mais um pedido à parte, independente do primeiro: `/council` sozinho também devia sempre
+perguntar antes de gastar o token extra, com a frase-modelo *"chamar o council vai fazer você
+gastar mais tokens para ter um resultado melhor, deseja realmente usar isso?"* — dita no idioma
+do usuário, não copiada literalmente do inglês do arquivo de instrução.
+
+**Por que o portão de confirmação não se aplica ao disparo em segundo plano do `/newproject`**:
+esse caminho já é definido como silencioso — "no progress narration, no intermediate
+questions" (mesma regra usada pro próprio `/newgoal` quando `/newproject` o dispara). Pausar pra
+perguntar sobre `/council` ali quebraria essa garantia. Por isso o passo 4a do `/newgoal` só se
+aplica ao modo direto/narrado, nunca ao modo em segundo plano — registrado explicitamente no
+próprio arquivo pra não virar uma inconsistência descoberta mais tarde.
+
+**Efeito colateral limpo**: a frase antiga do passo 4 do `council.md` ("Reserve this for
+decisions that are actually worth 5x the thinking...") virou redundante com o novo passo 0 e
+foi removida, não duplicada.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` continua verde (mudança é só instrução em markdown nos dois comandos,
+sem lógica própria em JS), `npx tsc` limpo, `npm run validate:plugins` ok, `npx biome check .`
+exit 0. Aplicado direto nos 4 arquivos (source + cópias instaladas desta máquina em
+`~/.claude/commands/` e `~/.config/opencode/command/`) por já terem o marcador
+`base_project:managed`, sem precisar re-rodar o instalador.
+
+---
+
+### 27. `/goals` renomeado para `/newgoal`
+
+**O que é**: o comando criado no item 24 e ajustado no item 26 trocou de nome — arquivo
+(`goals.md` → `newgoal.md`) e toda referência interna (`/goals` → `/newgoal`) nos 4 comandos
+que o mencionam (`newgoal.md`, `newproject.md`, `council.md`, `status.md`) e nos 4
+`command-menu.md`. `GOALS.md`, o arquivo de saída que o comando produz no projeto-alvo, **não**
+mudou de nome — só o comando que o gera.
+
+**Por que importa**: pedido direto do dono do projeto: *"parece que goals ja existe, mas eu
+quero criar o meu"*. Registrado sem inventar motivo além do que foi dito — o pedido em si já é
+suficiente pra justificar o rename.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` continua verde, `npx tsc` limpo, `npm run validate:plugins` ok.
+Aplicado nos 4 arquivos-fonte + 4 cópias instaladas desta máquina (mesmo padrão dos itens
+anteriores — marcador presente, editado direto, sem esperar reinstalação).
+
+---
+
+### 28. `/designreview`: crítica de design com base em pesquisa, dois pontos de entrada
+
+**O que é**: comando novo que critica um design — mockup/screenshot/URL externo, ou algo que o
+próprio Claude acabou de gerar — contra uma rubrica com base em pesquisa real (Nielsen Norman,
+UICrit/UIST 2024, Criticmate/CHI 2026, UXBench 2026), reportando achados acionáveis no mesmo
+formato do `ReportFindings` que o `/code-review` já usa. Camada determinística
+(`dev/scripts/contrast-check.js`, sincronizado para `~/.claude/base_project/scripts/`) calcula
+contraste WCAG e tamanho mínimo de alvo de toque antes de qualquer julgamento por LLM — o resto
+(hierarquia visual, espaçamento, clareza de copy) fica pro julgamento mesmo, por não ter
+resposta objetiva única.
+
+**Por que importa**: pedido direto do dono do projeto — "queria criar uma skill de melhoria de
+design". Antes de escrever qualquer instrução, rodou `/newgoal` de verdade nesta sessão (ver
+`GOALS.md` na raiz do repo), incluindo duas perguntas via `AskUserQuestion` que só o usuário
+podia responder: o que a skill checa (decidiu: as duas coisas — crítica externa e auto-checagem
+do que o Claude gera) e onde ela mora (decidiu: dentro do próprio base_project, distribuída a
+todo mundo, não uma skill pessoal). `GOALS.md` documenta a pesquisa completa e as fontes.
+
+**Duas divergências entre o plano e o que foi construído, registradas no próprio `GOALS.md`**:
+1. "Spacing-scale adherence" saiu da camada determinística — não existe uma escala de
+   espaçamento universalmente "correta" pra checar sem conhecer os tokens de design do projeto
+   específico; virou parte do julgamento na passada local, não código.
+2. Os caminhos de entrada por URL/artifact viva não hardcodeiam `mcp__Claude_Browser__*` — esse
+   nome de ferramenta é específico do Claude Code, e o comando também vai para o opencode, onde
+   esse nome não resolveria. A instrução ficou genérica ("qualquer ferramenta de browser/preview
+   disponível nesta sessão"), no mesmo espírito de como o `bootstrap.md` já abre o `graph.html`
+   sem referenciar uma ferramenta específica.
+
+**Por que a auto-checagem nunca vira hook**: hooks neste repositório (`post-edit-format.js`,
+`usage-log.js`) são scripts determinísticos, não chamadas de LLM. Forçar uma passada de crítica
+completa via hook em toda geração de UI adicionaria latência/custo real na maioria das vezes em
+que não vale a pena — a auto-checagem fica como decisão de julgamento do próprio Claude, mesma
+contenção que `/council` e o passo 4a do `/newgoal` já aplicam.
+
+**Status**: `feito`.
+
+**Validado**: 12 testes novos em `dev/tests/contrast-check.test.js` (contraste preto/branco =
+21:1 exato, ordem fg/bg não importa, limiares AA/AAA normais vs. texto grande, alvo de toque
+44x44 passa e 43x44 falha, parsing de argumentos) — todos verdes, mais os 34 já existentes.
+`npx tsc` limpo, `npm run validate:plugins` ok. Sincronizado nos 2 instaladores (`install.ps1`/
+`install.sh`, seção 8c-2, mesmo padrão do `scan-skill.js`) e aplicado direto nos arquivos já
+instalados nesta máquina (comando + script), sem esperar reinstalação.
+
+---
+
+### 29. `/execgoals`: executa o `GOALS.md` que o `/newgoal` produziu
+
+**O que é**: o contraponto de execução do item 24 — comando que lê `GOALS.md`, exige que ele
+já exista (nunca improvisa um plano), mostra um resumo (quantos itens já `[x]`, quais dos
+abertos são mais pesados/difíceis de reverter — instalar dependência, inicializar banco,
+rodar CLI de scaffolding externa, `git init`) e pede uma única confirmação pra rodar a
+sequência inteira, não confirmação por item. Depois, percorre os itens não marcados na ordem
+em que `/newgoal` já os escreveu ("o que precisa existir antes do quê"), usando o fluxo
+`architect` → `coder` pra mudanças não-triviais e aplicando direto o que é trivial. Cada item
+só é marcado `[x]` depois de verificado de verdade (arquivo existe, teste passa, servidor
+sobe) — mesmo padrão "exists/substantive/wired" que o `reviewer` já aplica em code review,
+não só editar o checkbox porque a edição aconteceu.
+
+**Por que importa**: pedido direto do dono do projeto — "eu tenho um newgoals, mas não tenho
+um comando execgoals para executar as metas que fizemos". O nome `/execgoals` veio dele mesmo
+(diferente de `/buildproject`, que era o nome provisório usado nos itens 19/24 antes deste);
+mantido sem questionar, mesmo padrão do rename do item 27.
+
+**Por que é o primeiro comando deste projeto que de fato constrói coisa do zero, e o que isso
+muda no desenho**: todo comando anterior deste repositório é read-only (`/newproject`,
+`/newgoal`, `/scanproject`, `/audit`) ou edita/critica algo que já existe em escopo pequeno
+(`/fixproject`, `/designreview`). `/execgoals` pode instalar dependências reais, inicializar
+banco, rodar `git init` — superfície de risco maior que qualquer coisa construída nesta sessão
+até aqui. Resposta de desenho: uma confirmação única e informativa no início (não por item, que
+seria lento demais pra um plano 0-a-100%, mas também não zero confirmação, dado o blast radius),
+nunca fabricar credencial/placeholder que pareça real (segredo sempre vai pro `.env` gitignored
+do projeto-alvo, mesma regra de sempre), e nunca perguntar decisão que o comando pode decidir
+sozinho — só pra decisão que é genuinamente do usuário (provedor OAuth, região de cloud).
+
+**Resumível por construção**: como cada item vira `[x]` no próprio `GOALS.md` conforme é
+verificado, rodar `/execgoals` de novo depois de uma sessão interrompida lê o estado atual e
+continua do primeiro item aberto — nunca reconstrói do zero, nunca repete trabalho já
+verificado.
+
+**Referências a `/buildproject` atualizadas**: `newgoal.md`, `newproject.md` e o `GOALS.md`
+desta própria entrega do repositório (a do item 28) citavam o nome provisório `/buildproject`
+— todas trocadas para `/execgoals` nos 8 arquivos-fonte + instalados relevantes, pra não deixar
+um nome morto documentado como se fosse o real.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` continua verde (comando é só instrução em markdown, sem lógica
+própria em JS — mesma natureza de `/council`/`/newgoal`, não testável automaticamente por ser
+julgamento, não cálculo), `npx tsc` limpo, `npm run validate:plugins` ok. Aplicado nos 2
+arquivos-fonte + 2 cópias instaladas desta máquina, e nas 8 referências a `/buildproject`
+corrigidas (4 arquivos-fonte + 4 instalados).
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto
@@ -858,8 +1341,14 @@ escopo do Biome não muda.
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.
 - **CodeBurn e Brave Search removidos** — CodeBurn não reduzia custo (só observava);
-  Brave Search exige pagamento. Ver `scripts/NPInstructions.md` para o histórico
+  Brave Search exige pagamento. Ver `dev/scripts/NPInstructions.md` para o histórico
   completo dessas remoções.
+- **`/ramcheck` construído e depois removido na mesma sessão** — diagnóstico ao vivo nesta
+  máquina mostrou que o gargalo real não era falta de RAM sobressalente (pagefile quase
+  parado, 59 MB de 6,75 GB), e o dono do projeto decidiu não seguir por essa via de
+  gerenciamento de processo algum: "vamos ignorar o processo da ram e alem disso, tirar o
+  ramcheck". Comando, entradas de menu/status e o item 25 original deste ROADMAP foram
+  removidos por completo — não é um recurso pausado, é descartado.
 
 ---
 

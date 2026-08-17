@@ -87,6 +87,17 @@ Analyze the current project and help the user pick optional plugins from the bas
    anything. If the script is missing, skip silently — but say so for step 3b items specifically, since
    that's the one case where skipping the scan is a real gap, not a formality.
 
+7b. Record the install in the usage ledger, once per item that actually installed, right after the
+   scan and before reporting:
+   `node ~/.claude/base_project/hooks/usage-log.js --install <id> --kind <kind> --origin <catalog|discovery>`
+   (the ledger lives under `~/.claude/` for both engines — same single ledger, see `/reviewusage`).
+   Use the catalog `id` for catalog entries, and the tool's own name for live-discovery ones. This is
+   what makes "installed and never used" answerable by `/reviewusage`: catalog entries can be
+   cross-checked against `plugins.json`, but a live-discovery item exists in no catalog, so without
+   this line it is invisible exactly when it matters most — pulled from the open web, then never used
+   again. Never record an install that didn't happen (a failed or user-declined one). If the script is
+   missing (older install), skip silently; it is a ledger entry, never a gate on the install itself.
+
 8. Report only: what was installed — split clearly into "from the catalog" (and, for MCP entries, that
    it's now global) and "from live discovery, unvalidated" — what was skipped, any scan findings from step
    7, and any follow-up needed (e.g. setting an access token).

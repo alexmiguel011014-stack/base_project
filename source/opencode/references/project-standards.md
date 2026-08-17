@@ -1,63 +1,66 @@
 # base_project:managed
 
-Checklist de referência compartilhada entre `/newproject`, `/scanproject` e
-`/fixproject` — o que "um projeto bem formado" significa para o base_project.
-Editar só aqui; os 3 comandos apontam pra este arquivo em vez de repetir a
-lista cada um à sua maneira, pra não divergirem com o tempo.
+Shared reference checklist for `/newproject`, `/scanproject` and `/fixproject` — what
+"a well-formed project" means to base_project. Edit only here; the 3 commands point at
+this file instead of each repeating the list its own way, so they can't drift apart.
 
-Cada item tem: **o que checar** e **por que importa**. Nem todo item se
-aplica a todo projeto (ex: um script solteiro não precisa de CI) — julgamento
-de contexto continua sendo necessário, isto não é uma régua rígida.
+Each item has: **what to check** and **why it matters**. Not every item applies to every
+project (a single standalone script needs no CI) — context judgement is still required,
+this is not a rigid ruler.
 
-## 1. Identidade do projeto
-- Existe um `README.md` (ou equivalente) explicando o que o projeto é e como rodar.
-- Existe um arquivo de instruções pro assistente (`CLAUDE.md`/`AGENTS.md`) se o projeto
-  tiver convenções que não são óbvias só lendo o código.
+## 1. Project identity
+- A `README.md` (or equivalent) exists, explaining what the project is and how to run it.
+- An assistant instruction file (`CLAUDE.md`/`AGENTS.md`) exists if the project has
+  conventions that aren't obvious from reading the code alone.
 
-## 2. Controle de versão
-- É um repositório git (`git status` funciona).
-- `.gitignore` cobre artefatos gerados, dependências (`node_modules/`, `.venv/`,
-  `dist/`, `graphify-out/`) e segredos (`.env`).
-- Nenhum segredo real (chave de API, token, senha) commitado no histórico.
+## 2. Version control
+- It's a git repository (`git status` works).
+- `.gitignore` covers generated artifacts, dependencies (`node_modules/`, `.venv/`,
+  `dist/`, `graphify-out/`) and secrets (`.env`).
+- No real secret (API key, token, password) committed in the history.
 
-## 3. Segredos e configuração
-- Runtime secrets vêm de `.env` (gitignored), não hardcoded no código.
-- Existe um `.env.example` (sem valores reais) se o projeto precisa de config pra rodar.
+## 3. Secrets and configuration
+- Runtime secrets come from `.env` (gitignored), not hardcoded in the source.
+- A `.env.example` exists (with no real values) if the project needs config to run.
 
-## 4. Dependências
-- Existe um manifesto real (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) com
-  lockfile — não instalação ad-hoc sem registro.
-- Nenhuma dependência não utilizada óbvia (import morto de peso significativo).
+## 4. Dependencies
+- A real manifest exists (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) with a
+  lockfile — not ad-hoc installs with no record.
+- No obviously unused dependency (a dead import of significant weight).
 
-## 5. Testes
-- Existe pelo menos um comando de teste que roda com um único comando e sai com
-  código 0/não-zero de forma confiável.
-- Cobertura não precisa ser alta — o que importa é que o caminho crítico (a lógica
-  central do projeto, não plumbing trivial) tem alguma prova automatizada.
+## 5. Tests
+- At least one test command exists that runs as a single command and exits 0/non-zero
+  reliably.
+- Coverage doesn't need to be high — what matters is that the critical path (the
+  project's core logic, not trivial plumbing) has some automated proof.
 
-## 6. Qualidade de código
-- Lint/format configurado e rodando limpo (ou os erros existentes são conhecidos e
-  intencionais, não silêncio por falta de configuração).
-- Typecheck (se a linguagem suportar) rodando sem erro.
+## 6. Code quality
+- Lint/format configured and running clean (or the existing errors are known and
+  intentional, not silence caused by missing configuration).
+- Typecheck (where the language supports it) running without errors.
 
 ## 7. CI
-- Existe um pipeline (`.github/workflows/`, `.gitlab-ci.yml`, etc.) rodando pelo menos
-  lint + teste a cada push/PR — não depende só de rodar na máquina do desenvolvedor.
+- A pipeline exists (`.github/workflows/`, `.gitlab-ci.yml`, etc.) running at least lint
+  + tests on every push/PR — not depending solely on running on the developer's machine.
 
-## 8. Segurança básica
-- Sem vulnerabilidade crítica conhecida nas dependências (`npm audit`, `pip-audit`,
-  equivalente) sem tratamento.
-- Sem padrão de código obviamente perigoso (`eval` de input não confiável, comando
-  shell interpolado sem sanitização, credencial em texto puro).
+## 8. Basic security
+- No known critical vulnerability in the dependencies (`npm audit`, `pip-audit`, or the
+  equivalent) left untreated.
+- No obviously dangerous code pattern (`eval` of untrusted input, shell command
+  interpolated without sanitisation, plaintext credentials).
 
-## 9. Estrutura
-- Organização de pastas é consistente com a convenção da linguagem/framework
-  (não uma mistura arbitrária que dificulta navegação).
-- Nenhum arquivo gigante fazendo tudo quando o projeto já cresceu o suficiente pra
-  justificar separação (julgamento de escala, não regra fixa de tamanho).
+## 9. Structure
+- Folder organisation is consistent with the language/framework convention (not an
+  arbitrary mix that makes navigation harder).
+- No giant file doing everything once the project has grown enough to justify splitting
+  it (a judgement of scale, not a fixed size rule).
 
 ---
 
-Ao rodar `/scanproject`, cada item vira um achado com **severidade** (crítico / médio /
-baixo) e **arquivo/linha** quando aplicável — mesmo formato que `@reviewer` já usa
-pra revisão de código, não um formato novo.
+When running `/scanproject`, each item becomes a finding with a **severity** (critical /
+medium / low) and **file/line** where applicable — the same format `reviewer.md` already
+uses for code review, not a new one.
+
+Report findings to the user in the language they are writing in, even though this
+checklist is in English: the checklist is an instruction to be executed, not text to be
+echoed verbatim.

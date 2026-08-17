@@ -81,7 +81,6 @@ mkdir -p "$CLAUDE_AGENTS_DIR" "$CLAUDE_COMMANDS_DIR" "$OPENCODE_AGENT_DIR" "$OPE
 # ---------------------------------------------------------------------
 step "Updating $CLAUDE_HOME/CLAUDE.md..."
 
-CLAUDE_MD_PATH="$CLAUDE_HOME/CLAUDE.md"
 BLOCK_FILE="$(mktemp)"
 {
     echo "$MARK_START"
@@ -89,23 +88,51 @@ BLOCK_FILE="$(mktemp)"
     echo "$MARK_END"
 } > "$BLOCK_FILE"
 
-if [ -f "$CLAUDE_MD_PATH" ] && grep -qF "$MARK_START" "$CLAUDE_MD_PATH" && grep -qF "$MARK_END" "$CLAUDE_MD_PATH"; then
-    UPDATED="$(mktemp)"
-    awk -v start="$MARK_START" -v end="$MARK_END" -v blockfile="$BLOCK_FILE" '
-        $0 == start { print_block=1; while ((getline line < blockfile) > 0) print line; close(blockfile); skip=1; next }
-        skip && $0 == end { skip=0; next }
-        skip { next }
-        { print }
-    ' "$CLAUDE_MD_PATH" > "$UPDATED"
-    mv "$UPDATED" "$CLAUDE_MD_PATH"
-elif [ -f "$CLAUDE_MD_PATH" ] && [ -s "$CLAUDE_MD_PATH" ]; then
-    { cat "$CLAUDE_MD_PATH"; echo ""; cat "$BLOCK_FILE"; } > "${CLAUDE_MD_PATH}.tmp"
-    mv "${CLAUDE_MD_PATH}.tmp" "$CLAUDE_MD_PATH"
+# Same rules block, written into whichever instruction file each engine reads.
+# Everything outside the delimiters is the user's and is never touched - that is what
+# makes the block safe to rewrite on every run.
+sync_instruction_block() {
+    target="$1"
+    label="$2"
+    if [ -f "$target" ] && grep -qF "$MARK_START" "$target" && grep -qF "$MARK_END" "$target"; then
+        updated="$(mktemp)"
+        awk -v start="$MARK_START" -v end="$MARK_END" -v blockfile="$BLOCK_FILE" '
+            $0 == start { while ((getline line < blockfile) > 0) print line; close(blockfile); skip=1; next }
+            skip && $0 == end { skip=0; next }
+            skip { next }
+            { print }
+        ' "$target" > "$updated"
+        mv "$updated" "$target"
+    elif [ -f "$target" ] && [ -s "$target" ]; then
+        { cat "$target"; echo ""; cat "$BLOCK_FILE"; } > "${target}.tmp"
+        mv "${target}.tmp" "$target"
+    else
+        cp "$BLOCK_FILE" "$target"
+    fi
+    ok "$label (your own content outside the base_project block is untouched)"
+}
+
+sync_instruction_block "$CLAUDE_HOME/CLAUDE.md" "CLAUDE.md"
+
+# ---------------------------------------------------------------------
+# 3a. Same block for the other engines that read an AGENTS.md.
+#     Codex CLI reads ~/.codex/AGENTS.md, Kimi Code CLI reads ~/.kimi/AGENTS.md
+#     (both verified against their docs, Aug/2026). Only written when the tool's
+#     home directory already exists: creating ~/.codex on a machine with no Codex
+#     would be exactly the kind of surprise side effect this project avoids.
+# ---------------------------------------------------------------------
+if [ -d "$HOME/.codex" ]; then
+    sync_instruction_block "$HOME/.codex/AGENTS.md" "Codex CLI AGENTS.md"
 else
-    cp "$BLOCK_FILE" "$CLAUDE_MD_PATH"
+    warn "Codex CLI not detected ($HOME/.codex missing) - skipped its AGENTS.md. Install it and re-run this script."
 fi
+if [ -d "$HOME/.kimi" ]; then
+    sync_instruction_block "$HOME/.kimi/AGENTS.md" "Kimi Code CLI AGENTS.md"
+else
+    warn "Kimi Code CLI not detected ($HOME/.kimi missing) - skipped its AGENTS.md. Install it and re-run this script."
+fi
+
 rm -f "$BLOCK_FILE"
-ok "CLAUDE.md (your own content outside the base_project block is untouched)"
 
 # ---------------------------------------------------------------------
 # 3b. settings.json — merge base_project's hooks, preserve the rest
@@ -134,15 +161,40 @@ if command -v jq &>/dev/null; then
     POST_EDIT_FORMAT_PATH="$CLAUDE_HOOKS_DIR/post-edit-format.js"
     POST_EDIT_FORMAT_MARKER="base_project/hooks/post-edit-format.js"
     BASE_SETTINGS="$(cat "$SETTINGS_PATH")"
+    # The first two filters prune hooks left behind by the dashboard (removed in
+    # ROADMAP item 13). Deleting a feature from source/ only stops it being
+    # *installed* - a machine that installed an older base_project keeps running
+    # the old hook against code that no longer exists, so removal has to be an
+    # explicit step here or it never reaches that machine.
+    DASHBOARD_MARKER="base_project/dashboard/"
     echo "$BASE_SETTINGS" | jq \
         --arg loopCmd "node \"$LOOP_DETECT_PATH\"" \
         --arg loopMarker "$LOOP_DETECT_MARKER" \
         --arg formatCmd "node \"$POST_EDIT_FORMAT_PATH\"" \
         --arg formatMarker "$POST_EDIT_FORMAT_MARKER" \
-        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
+        --arg dashMarker "$DASHBOARD_MARKER" \
+        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
+         | .hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
          | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]' \
         > "$SETTINGS_PATH"
-    ok "settings.json (loop-detect + post-edit-format hooks merged)"
+    ok "settings.json (loop-detect + post-edit-format hooks merged, stale dashboard hooks pruned)"
+
+    # Usage ledger — one JSONL line per tool call, plus the prompt that opened the
+    # chain, so /reviewusage can answer whether an installed plugin/MCP/agent is
+    # actually used (see ROADMAP item 21). Same script on two events: the payload's
+    # own hook_event_name tells them apart, so there is no flag to keep in sync.
+    # Async because nothing in the turn waits on the write.
+    USAGE_LOG_PATH="$CLAUDE_HOOKS_DIR/usage-log.js"
+    USAGE_LOG_MARKER="base_project/hooks/usage-log.js"
+    BASE_SETTINGS="$(cat "$SETTINGS_PATH")"
+    echo "$BASE_SETTINGS" | jq \
+        --arg cmd "node \"$USAGE_LOG_PATH\"" \
+        --arg marker "$USAGE_LOG_MARKER" \
+        '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $cmd, "async": true}]}]
+         | .hooks.UserPromptSubmit = ((.hooks.UserPromptSubmit // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"hooks": [{"type": "command", "command": $cmd, "async": true}]}]' \
+        > "$SETTINGS_PATH"
+    ok "settings.json (usage ledger hook merged)"
 
     # SessionStart hook — injects compact git context (branch, uncommitted
     # changes, recent commits) at the start of a session, so Claude doesn't
@@ -170,6 +222,27 @@ if command -v jq &>/dev/null; then
 else
     warn "'jq' not found - skipping settings.json hook merge. Install jq, then re-run this script."
 fi
+
+# ---------------------------------------------------------------------
+# 3c. Delete the dashboard's own files, same reason as the hook prune above.
+#     Only removes what carries the managed marker, mirroring sync_managed - a
+#     file written by hand at the same path is left alone even if the name matches.
+# ---------------------------------------------------------------------
+for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md"; do
+    [ -f "$stale_cmd" ] || continue
+    if grep -q 'base_project:managed' "$stale_cmd"; then
+        rm -f "$stale_cmd"
+        ok "removed stale command: $stale_cmd"
+    else
+        warn "Kept $stale_cmd - not managed by base_project (looks like your own file)"
+    fi
+done
+for stale_dir in "$CLAUDE_HOME/base_project/dashboard" "$OPENCODE_HOME/base_project/dashboard"; do
+    if [ -d "$stale_dir" ]; then
+        rm -rf "$stale_dir"
+        ok "removed stale dashboard files: $stale_dir"
+    fi
+done
 
 # ---------------------------------------------------------------------
 # 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
@@ -288,6 +361,65 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# 6b. MCP servers for Codex CLI - appended as [mcp_servers.NAME] tables to
+#     ~/.codex/config.toml. Append-only and guarded by an existence check: this
+#     script has no TOML parser, so it must never rewrite a file it can't fully
+#     understand. A table appended at the end of a TOML file cannot alter the
+#     tables above it, which is what makes append the safe operation here - and
+#     why an already-present server is skipped rather than "updated".
+# ---------------------------------------------------------------------
+if [ -d "$HOME/.codex" ] && [ -f "$MCP_SRC_PATH" ] && command -v jq &>/dev/null; then
+    step "Registering MCP servers with Codex CLI..."
+    CODEX_CONFIG="$HOME/.codex/config.toml"
+    touch "$CODEX_CONFIG"
+    CODEX_APPENDED=0
+    for name in $(jq -r '.mcpServers | keys[]' "$MCP_SRC_PATH"); do
+        if grep -qF "[mcp_servers.$name]" "$CODEX_CONFIG"; then
+            ok "'$name' already in config.toml - left as is"
+            continue
+        fi
+        cmd="$(jq -r ".mcpServers[\"$name\"].command // empty" "$MCP_SRC_PATH")"
+        if [ -z "$cmd" ]; then
+            warn "'$name' is a remote MCP server - add it to $CODEX_CONFIG manually (url-based syntax not emitted here)."
+            continue
+        fi
+        if [ "$CODEX_APPENDED" -eq 0 ]; then
+            printf '\n# --- base_project managed MCP servers (safe to edit; re-added if removed) ---\n' >> "$CODEX_CONFIG"
+        fi
+        {
+            printf '\n[mcp_servers.%s]\n' "$name"
+            printf 'command = "%s"\n' "$cmd"
+            printf 'args = [%s]\n' "$(jq -r ".mcpServers[\"$name\"].args // [] | map(tojson) | join(\", \")" "$MCP_SRC_PATH")"
+            if [ "$(jq -r ".mcpServers[\"$name\"].env // {} | length" "$MCP_SRC_PATH")" != "0" ]; then
+                printf '[mcp_servers.%s.env]\n' "$name"
+                jq -r ".mcpServers[\"$name\"].env | to_entries[] | \"\(.key) = \(.value|tojson)\"" "$MCP_SRC_PATH"
+            fi
+        } >> "$CODEX_CONFIG"
+        CODEX_APPENDED=$((CODEX_APPENDED + 1))
+        ok "appended '$name' to config.toml"
+    done
+elif [ ! -d "$HOME/.codex" ]; then
+    warn "Codex CLI not detected ($HOME/.codex missing) - skipped its MCP registration."
+fi
+
+# ---------------------------------------------------------------------
+# 6c. MCP servers for Kimi Code CLI. Kimi reads a standard mcpServers JSON via
+#     `--mcp-config-file`, which is exactly the shape base_project already keeps,
+#     so the file is written verbatim. Deliberately NOT wired into ~/.kimi/config.toml:
+#     that file's MCP schema was not verifiable from the docs, and guessing at the
+#     shape of a config the user depends on is how you corrupt it. The flag is
+#     printed instead so the choice stays with them.
+# ---------------------------------------------------------------------
+if [ -d "$HOME/.kimi" ] && [ -f "$MCP_SRC_PATH" ]; then
+    step "Writing MCP config for Kimi Code CLI..."
+    cp "$MCP_SRC_PATH" "$HOME/.kimi/mcp.json"
+    ok "mcp.json -> $HOME/.kimi/mcp.json"
+    warn "Kimi: start it with \`kimi --mcp-config-file \"$HOME/.kimi/mcp.json\"\` (or run \`kimi mcp add\` yourself) - not auto-registered."
+elif [ ! -d "$HOME/.kimi" ]; then
+    warn "Kimi Code CLI not detected ($HOME/.kimi missing) - skipped its MCP config."
+fi
+
+# ---------------------------------------------------------------------
 # 7. Plugin catalog - read by the /plugins command in either engine
 # ---------------------------------------------------------------------
 step "Syncing plugin catalog..."
@@ -331,6 +463,15 @@ fi
 SCAN_SKILL_SRC="$SCRIPT_DIR/scan-skill.js"
 if [ -f "$SCAN_SKILL_SRC" ]; then
     sync_managed "$SCAN_SKILL_SRC" "$CLAUDE_SCRIPTS_DIR/scan-skill.js"
+fi
+
+# ---------------------------------------------------------------------
+# 8c-2. contrast-check.js - deterministic WCAG contrast/tap-target pre-check used
+# by /designreview before spending an LLM pass on judgment calls. See ROADMAP item 28.
+# ---------------------------------------------------------------------
+CONTRAST_CHECK_SRC="$SCRIPT_DIR/contrast-check.js"
+if [ -f "$CONTRAST_CHECK_SRC" ]; then
+    sync_managed "$CONTRAST_CHECK_SRC" "$CLAUDE_SCRIPTS_DIR/contrast-check.js"
 fi
 
 # ---------------------------------------------------------------------

@@ -12,6 +12,25 @@ Tem um `package.json` na raiz (desde o item 8 do ROADMAP — validação de `plu
 `ajv`), mas é só tooling de dev/CI (lint, typecheck, validação de schema) — não é pensado para
 `npm publish`. Não confundir com `.opencode/package.json` (config interna do opencode).
 
+## Idioma: inglês para o modelo, português para o usuário
+
+Regra que decide o idioma de qualquer arquivo novo em `source/`:
+
+- **Texto que o modelo executa → inglês.** Comandos (`source/*/commands/*.md`), agentes,
+  `source/CLAUDE.md`, `source/opencode-instructions.md`, comentários de hook, e referências
+  lidas como instrução (`project-standards.md`). O modelo segue instrução em inglês com menos
+  ambiguidade, e esses arquivos nunca chegam ao usuário como texto.
+- **Texto renderizado literalmente ao usuário → idioma do usuário.** Hoje só
+  `references/command-menu.md`, que a instrução manda imprimir palavra por palavra —
+  traduzir esse arquivo pioraria o produto, não é dívida a pagar.
+
+Um arquivo em inglês que produz resposta ao usuário deve dizer explicitamente para responder
+no idioma do usuário (o `project-standards.md` faz isso no rodapé) — senão o inglês do arquivo
+vaza para a resposta.
+
+Verificação rápida de drift: procurar `\b(não|para|você|projeto|arquivo)\b` em `source/**/*.md`
+deve casar só nos `command-menu.md`.
+
 ## Sincronização fonte → instalado
 
 `source/hooks/*.js`, `source/plugins.json`, `source/claude/`, `source/opencode/` têm cópias

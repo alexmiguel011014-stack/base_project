@@ -123,33 +123,57 @@ foreach ($dir in @($ClaudeHome, $claudeAgentsDir, $claudeCommandsDir, $OpencodeH
 # ---------------------------------------------------------------------
 Write-Step "Updating $ClaudeHome\CLAUDE.md..."
 
-$claudeMdPath   = Join-Path $ClaudeHome "CLAUDE.md"
 $blockContent   = (Read-Utf8NoBom (Join-Path $sourceDir "CLAUDE.md")).TrimEnd()
 $block          = "$MARK_START`n$blockContent`n$MARK_END"
 
-if (Test-Path $claudeMdPath) {
-    $existing = Read-Utf8NoBom $claudeMdPath
-} else {
-    $existing = ""
-}
-
-$startIdx = $existing.IndexOf($MARK_START)
-if ($startIdx -ge 0) {
-    $endIdx = $existing.IndexOf($MARK_END, $startIdx)
-    if ($endIdx -ge 0) {
-        $endIdx += $MARK_END.Length
-        $updated = $existing.Substring(0, $startIdx) + $block + $existing.Substring($endIdx)
+# Same rules block, written into whichever instruction file each engine reads. Everything
+# outside the delimiters is the user's and is never touched - that is what makes the block
+# safe to rewrite on every run.
+function Sync-InstructionBlock([string]$Path, [string]$Label) {
+    if (Test-Path $Path) {
+        $existing = Read-Utf8NoBom $Path
     } else {
-        $updated = $existing.TrimEnd() + "`n`n" + $block + "`n"
+        $existing = ""
     }
-} elseif ($existing.Trim().Length -gt 0) {
-    $updated = $existing.TrimEnd() + "`n`n" + $block + "`n"
-} else {
-    $updated = $block + "`n"
+
+    $startIdx = $existing.IndexOf($MARK_START)
+    if ($startIdx -ge 0) {
+        $endIdx = $existing.IndexOf($MARK_END, $startIdx)
+        if ($endIdx -ge 0) {
+            $endIdx += $MARK_END.Length
+            $updated = $existing.Substring(0, $startIdx) + $block + $existing.Substring($endIdx)
+        } else {
+            $updated = $existing.TrimEnd() + "`n`n" + $block + "`n"
+        }
+    } elseif ($existing.Trim().Length -gt 0) {
+        $updated = $existing.TrimEnd() + "`n`n" + $block + "`n"
+    } else {
+        $updated = $block + "`n"
+    }
+
+    Write-Utf8NoBom -Path $Path -Content $updated
+    Write-Ok "$Label (your own content outside the base_project block is untouched)"
 }
 
-Write-Utf8NoBom -Path $claudeMdPath -Content $updated
-Write-Ok "CLAUDE.md (your own content outside the base_project block is untouched)"
+Sync-InstructionBlock -Path (Join-Path $ClaudeHome "CLAUDE.md") -Label "CLAUDE.md"
+
+# ---------------------------------------------------------------------
+# 3a. Same block for the other engines that read an AGENTS.md.
+#     Codex CLI reads ~/.codex/AGENTS.md, Kimi Code CLI reads ~/.kimi/AGENTS.md
+#     (both verified against their docs, Aug/2026). Only written when the tool's
+#     home directory already exists: creating ~/.codex on a machine with no Codex
+#     would be exactly the kind of surprise side effect this project avoids.
+# ---------------------------------------------------------------------
+foreach ($engine in @(
+    @{ Home = (Join-Path $HOME ".codex"); Name = "Codex CLI" },
+    @{ Home = (Join-Path $HOME ".kimi");  Name = "Kimi Code CLI" }
+)) {
+    if (Test-Path $engine.Home) {
+        Sync-InstructionBlock -Path (Join-Path $engine.Home "AGENTS.md") -Label "$($engine.Name) AGENTS.md"
+    } else {
+        Write-Warn "$($engine.Name) not detected ($($engine.Home) missing) - skipped its AGENTS.md. Install it and re-run this script."
+    }
+}
 
 # ---------------------------------------------------------------------
 # 3b. settings.json — merge base_project's hooks, preserve the rest
@@ -178,6 +202,51 @@ if (-not $settingsObj.hooks.PSObject.Properties['PostToolUse']) {
 }
 if (-not $settingsObj.hooks.PSObject.Properties['SessionStart']) {
     $settingsObj.hooks | Add-Member -NotePropertyName SessionStart -NotePropertyValue @() -Force
+}
+if (-not $settingsObj.hooks.PSObject.Properties['UserPromptSubmit']) {
+    $settingsObj.hooks | Add-Member -NotePropertyName UserPromptSubmit -NotePropertyValue @() -Force
+}
+
+# ---------------------------------------------------------------------
+# 3c. Prune artifacts of features removed from the project (the dashboard,
+#     ROADMAP item 13). Deleting a feature from source/ only stops it being
+#     *installed* - a machine that installed an older base_project keeps the
+#     old files on disk and keeps running the old hook against code that no
+#     longer exists in the repo. Removal has to be an explicit step here, or
+#     it never reaches a machine that already has it.
+# ---------------------------------------------------------------------
+$dashboardMarker = "base_project/dashboard/"
+$prunedHookCount = 0
+foreach ($hookEvent in @("PostToolUse", "SessionStart")) {
+    if (-not $settingsObj.hooks.PSObject.Properties[$hookEvent]) { continue }
+    $beforeCount = @($settingsObj.hooks.$hookEvent).Count
+    $keptGroups = @($settingsObj.hooks.$hookEvent | Where-Object {
+        -not ($_.hooks | Where-Object { $_.command -like "*$dashboardMarker*" })
+    })
+    $settingsObj.hooks.$hookEvent = $keptGroups
+    $prunedHookCount += ($beforeCount - $keptGroups.Count)
+}
+if ($prunedHookCount -gt 0) {
+    Write-Ok "removed $prunedHookCount stale dashboard hook(s) from settings.json"
+}
+
+# Same for the files themselves. Only deletes what carries the managed marker,
+# mirroring Sync-Managed - a file the user wrote by hand at the same path is
+# left alone even if the name matches.
+foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"))) {
+    if (-not (Test-Path $staleCmd)) { continue }
+    if ((Read-Utf8NoBom $staleCmd) -match 'base_project:managed') {
+        Remove-Item $staleCmd -Force
+        Write-Ok "removed stale command: $staleCmd"
+    } else {
+        Write-Warn "Kept $staleCmd - not managed by base_project (looks like your own file)"
+    }
+}
+foreach ($staleDir in @((Join-Path $ClaudeHome "base_project\dashboard"), (Join-Path $OpencodeHome "base_project\dashboard"))) {
+    if (Test-Path $staleDir) {
+        Remove-Item $staleDir -Recurse -Force
+        Write-Ok "removed stale dashboard files: $staleDir"
+    }
 }
 
 # Loop-detection and auto-format hooks — real behavior, not just logging (see
@@ -209,6 +278,27 @@ $existingFormatGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
     -not ($_.hooks | Where-Object { $_.command -like "*$postEditFormatMarker*" })
 })
 $settingsObj.hooks.PostToolUse = @($existingFormatGroups) + @($ourFormatEntry)
+
+# Usage ledger — one JSONL line per tool call, plus the prompt that opened the chain,
+# so /reviewusage can answer whether an installed plugin/MCP/agent is actually used
+# (see ROADMAP item 21). Registered on two events with the same script: the payload's
+# own hook_event_name tells them apart, so there's no flag to keep in sync. Async
+# because nothing in the turn waits on the write - unlike loop-detect, whose warning
+# has to land before the next call.
+$usageLogPath   = (Join-Path $claudeHooksDir "usage-log.js") -replace '\\', '/'
+$usageLogMarker = "base_project/hooks/usage-log.js"
+$usageLogCommand = "node `"$usageLogPath`""
+foreach ($hookEvent in @("PostToolUse", "UserPromptSubmit")) {
+    $ourUsageEntry = [PSCustomObject]@{
+        hooks = @(
+            [PSCustomObject]@{ type = "command"; command = $usageLogCommand; async = $true }
+        )
+    }
+    $existingUsageGroups = @($settingsObj.hooks.$hookEvent | Where-Object {
+        -not ($_.hooks | Where-Object { $_.command -like "*$usageLogMarker*" })
+    })
+    $settingsObj.hooks.$hookEvent = @($existingUsageGroups) + @($ourUsageEntry)
+}
 
 # SessionStart hook — injects compact git context (branch, uncommitted changes,
 # recent commits) at the start of a session, so Claude doesn't spend tool calls
@@ -377,6 +467,72 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
 }
 
 # ---------------------------------------------------------------------
+# 6b. MCP servers for Codex CLI - appended as [mcp_servers.NAME] tables to
+#     ~/.codex/config.toml. Append-only and guarded by an existence check: this
+#     script has no TOML parser, so it must never rewrite a file it can't fully
+#     understand. A table appended at the end of a TOML file cannot alter the
+#     tables above it, which is what makes append the safe operation here - and
+#     why an already-present server is skipped rather than "updated".
+# ---------------------------------------------------------------------
+$codexHome = Join-Path $HOME ".codex"
+if ((Test-Path $codexHome) -and (Test-Path $mcpSrcPath)) {
+    Write-Step "Registering MCP servers with Codex CLI..."
+    $codexConfig = Join-Path $codexHome "config.toml"
+    $codexExisting = if (Test-Path $codexConfig) { Read-Utf8NoBom $codexConfig } else { "" }
+    $mcpForCodex = Read-Utf8NoBom $mcpSrcPath | ConvertFrom-Json
+    $appended = @()
+    foreach ($name in $mcpForCodex.mcpServers.PSObject.Properties.Name) {
+        $server = $mcpForCodex.mcpServers.$name
+        if ($codexExisting -match [regex]::Escape("[mcp_servers.$name]")) {
+            Write-Ok "'$name' already in config.toml - left as is"
+            continue
+        }
+        # Remote (url-based) servers use a different key set; only stdio servers are
+        # emitted here, since that is the shape verified against Codex's docs.
+        if (-not $server.command) {
+            Write-Warn "'$name' is a remote MCP server - add it to $codexConfig manually (url-based syntax not emitted here)."
+            continue
+        }
+        $argsToml = ($server.args | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ", "
+        $block = "`n[mcp_servers.$name]`ncommand = `"$($server.command)`"`nargs = [$argsToml]`n"
+        if ($server.env) {
+            $block += "[mcp_servers.$name.env]`n"
+            foreach ($envName in $server.env.PSObject.Properties.Name) {
+                $block += "$envName = `"$($server.env.$envName)`"`n"
+            }
+        }
+        $appended += $block
+        Write-Ok "queued '$name' for config.toml"
+    }
+    if ($appended.Count -gt 0) {
+        $header = "`n# --- base_project managed MCP servers (safe to edit; re-added if removed) ---"
+        Write-Utf8NoBom -Path $codexConfig -Content ($codexExisting.TrimEnd() + $header + ($appended -join ""))
+        Write-Ok "config.toml ($($appended.Count) server(s) appended, existing keys untouched)"
+    }
+} elseif (-not (Test-Path $codexHome)) {
+    Write-Warn "Codex CLI not detected ($codexHome missing) - skipped its MCP registration."
+}
+
+# ---------------------------------------------------------------------
+# 6c. MCP servers for Kimi Code CLI. Kimi reads a standard mcpServers JSON via
+#     `--mcp-config-file`, which is exactly the shape base_project already keeps,
+#     so the file is written verbatim. Deliberately NOT wired into ~/.kimi/config.toml:
+#     that file's MCP schema was not verifiable from the docs, and guessing at the
+#     shape of a config the user depends on is how you corrupt it. The flag is
+#     printed instead so the choice stays with them.
+# ---------------------------------------------------------------------
+$kimiHome = Join-Path $HOME ".kimi"
+if ((Test-Path $kimiHome) -and (Test-Path $mcpSrcPath)) {
+    Write-Step "Writing MCP config for Kimi Code CLI..."
+    $kimiMcpPath = Join-Path $kimiHome "mcp.json"
+    Copy-Item $mcpSrcPath $kimiMcpPath -Force
+    Write-Ok "mcp.json -> $kimiMcpPath"
+    Write-Warn "Kimi: start it with ``kimi --mcp-config-file `"$kimiMcpPath`"`` (or run ``kimi mcp add`` yourself) - not auto-registered."
+} elseif (-not (Test-Path $kimiHome)) {
+    Write-Warn "Kimi Code CLI not detected ($kimiHome missing) - skipped its MCP config."
+}
+
+# ---------------------------------------------------------------------
 # 7. Plugin catalog - read by the /plugins command in either engine
 # ---------------------------------------------------------------------
 Write-Step "Syncing plugin catalog..."
@@ -418,6 +574,15 @@ if (Test-Path $hooksSrcDir) {
 $scanSkillSrc = Join-Path $repoRoot "dev\scripts\scan-skill.js"
 if (Test-Path $scanSkillSrc) {
     Sync-Managed -SrcFile $scanSkillSrc -DestFile (Join-Path $claudeScriptsDir "scan-skill.js")
+}
+
+# ---------------------------------------------------------------------
+# 8c-2. contrast-check.js - deterministic WCAG contrast/tap-target pre-check used
+# by /designreview before spending an LLM pass on judgment calls. See ROADMAP item 28.
+# ---------------------------------------------------------------------
+$contrastCheckSrc = Join-Path $repoRoot "dev\scripts\contrast-check.js"
+if (Test-Path $contrastCheckSrc) {
+    Sync-Managed -SrcFile $contrastCheckSrc -DestFile (Join-Path $claudeScriptsDir "contrast-check.js")
 }
 
 # ---------------------------------------------------------------------
