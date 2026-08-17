@@ -233,10 +233,8 @@ directly verifying this repo's state (not assuming from the stale reports at its
       before running, 2026-08-17) — description + topics `claude-code`, `opencode`, `cli`,
       `developer-tools`, `mcp`. Verified after with `gh repo view --json description,
       repositoryTopics`, not assumed from the command's exit code.
-- [ ] Once Area G's verification pass is green, tag `v1.1.0` and push it (confirm with the user
-      first — pushing a tag is visible/shared state, same discipline `/ship` already applies).
-      `v1.0.0` was verified live on the remote on 2026-08-17 — corrects ROADMAP item 16's own
-      note that it was "created locally, not pushed."
+- [x] Tagged `v1.1.0` and pushed (confirmed by the user first, 2026-08-17) — verified live on
+      `origin` via `git ls-remote --tags`, not assumed from the push command's exit code.
 
 ### Area G — Final Verification Pass
 
