@@ -220,11 +220,12 @@ directly verifying this repo's state (not assuming from the stale reports at its
 
 ### Area E — Cross-Platform Verification
 
-- [ ] Actually run `install.sh` on a real or CI macOS runner at least once. The script is
-      shared between Linux and macOS, but as of this plan macOS has never been exercised in CI
-      (matrix is `ubuntu-latest`/`windows-latest` only) — "should work" isn't verified, and this
-      project's own standard (`project-standards.md` §5, and every ROADMAP entry) is "validated
-      for real, not assumed."
+- [x] Ran for real on `macos-latest` via CI (run
+      [32071701135](https://github.com/alexmiguel011014-stack/base_project/actions/runs/32071701135),
+      2026-08-17) — `install-test (macos-latest)` passed in 30s, same run also confirmed
+      `ubuntu-latest`/`windows-latest` green after the settings.json fix above. Also bumped
+      `node-version: 20 → 22` in `ci.yml` (both jobs) — cleared a deprecation warning that was
+      showing on every run (Node 20 setup being force-upgraded to 24 by the runner).
 
 ### Area F — GitHub Repository Presentation
 
