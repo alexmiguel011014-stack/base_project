@@ -1332,6 +1332,61 @@ corrigidas (4 arquivos-fonte + 4 instalados).
 
 ---
 
+### 30. `/newgoal` ganha tipos de meta (`build`/`fix`/`feature`/`process`/`research`), classificação por fluxograma e grafo de dependência no `GOALS.md`
+
+**O que é**: `/newgoal` sempre forçou todo plano pelo mesmo template — áreas de stack
+(Backend/Frontend/Database/Auth/Deploy/Testing/Security), pensado pra construir um projeto do
+zero. Isso já tinha mostrado rachadura real: a seção "Public Release Readiness" (item G deste
+mesmo `GOALS.md`, produzida por este projeto sobre si mesmo) não é um plano de stack — é
+licenciamento, CI, governança — e teve que forçar o template de Build, marcando a maioria das
+áreas "não se aplica" e inventando uma estrutura A-G ad hoc por fora do que o comando sabia
+gerar. A mudança: um passo novo (3) classifica o tipo da meta por um fluxograma Mermaid
+(código/config vs. documento; comportamento quebrado vs. capacidade nova vs. plano de stack
+inteiro vs. mudança organizacional) antes de pesquisar ou escrever qualquer coisa, e lê o
+módulo correspondente em `references/goal-types/<tipo>.md` — cada um define dono padrão
+(`coder`/`architect`/`(manual)`), as áreas daquele tipo, a convenção de "done-when", e a regra
+de ordenação. Pedidos puramente de pesquisa sem nada pra executar depois pulam `GOALS.md`
+inteiramente (viram o documento direto) em vez de virar um checklist de um item só. O passo 5
+(escrever `GOALS.md`) também ganhou instrução pra gerar um `flowchart` Mermaid logo abaixo de
+cada cabeçalho `GOALS N`, mostrando a ordem de dependência entre áreas/itens principais daquela
+seção — GitHub renderiza nativo, e erro de ordenação fica mais fácil de ver num grafo do que
+numa lista.
+
+**Por que importa**: pedido direto do dono do projeto — "quero melhorar o newgoals 100%,
+tornar ele com o escopo mais profissional da área" — seguido de uma pergunta específica sobre
+se `"pense como um engenheiro sênior..."` funciona como técnica. Resposta discutida em
+conversa (não implementada como código, é só contexto de design): role-prompting sozinho tem
+evidência fraca — o que muda resultado é estrutura explícita (critério de pronto, quem
+executa, o que bloqueia o quê), não invocar uma persona. Por isso os módulos codificam um
+schema 5W1H (what/why/who/where/how + done-when) como disciplina de quem escreve o plano, em
+vez de uma instrução de personagem. A modularização em si (arquivo por tipo em vez de tudo
+dentro de `newgoal.md`) replica um padrão que já existe no repo — `project-standards.md` como
+referência única lida por vários comandos — em vez de inventar um mecanismo novo.
+
+**Achado colateral real, não hipotético**: os dois scripts do instalador (`install.sh` linha
+~488, `install.ps1` linha ~595) sincronizavam `references/*.md` sem recursão — um glob de
+nível único. A nova subpasta `goal-types/` teria sido silenciosamente ignorada em qualquer
+instalação real, inclusive as asserções de CI que este item também adiciona. Corrigido nos
+dois scripts pra recursar preservando a subpasta relativa (`find ... -name "*.md"` +
+`dirname`/`mkdir -p` no bash; `-Recurse` + `Substring`/`Split-Path` no PowerShell), e validado
+de verdade: instalação limpa contra `$HOME` de teste em ambos os scripts (bash e PowerShell),
+confirmando os 5 arquivos de `goal-types/` presentes nos dois engines depois — não assumido
+só pela ausência de erro.
+
+**Status**: `feito`.
+
+**Validado**: `npm test` 46/46, `npx tsc --noEmit` limpo, `npx biome check .` (1 warning + 12
+infos pré-existentes, nenhum nos arquivos tocados aqui), `npm run validate:plugins` ok.
+Instalação real testada contra `$HOME` de teste isolado (bash: instalação limpa + segunda
+rodada idempotente; PowerShell: instalação limpa), confirmando os 5 módulos presentes em
+`references/goal-types/` nos dois engines depois de rodar. Instalador também rodado contra
+esta própria máquina (`~/.claude`, `~/.config/opencode`) pra sincronizar de verdade, não só
+editar `source/`. CI (`.github/workflows/ci.yml`) ganhou as mesmas 5 asserções por engine, nos
+dois runners (Linux/macOS via bash, Windows via PowerShell) — ainda não confirmado num run
+real do GitHub Actions, só localmente; próximo push cobre isso.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

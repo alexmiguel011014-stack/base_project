@@ -592,13 +592,19 @@ Write-Step "Syncing reference docs..."
 $claudeReferencesSrcDir   = Join-Path $sourceDir "claude\references"
 $opencodeReferencesSrcDir = Join-Path $sourceDir "opencode\references"
 if (Test-Path $claudeReferencesSrcDir) {
-    Get-ChildItem $claudeReferencesSrcDir -Filter *.md | ForEach-Object {
-        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $claudeReferencesDir $_.Name)
+    Get-ChildItem $claudeReferencesSrcDir -Filter *.md -Recurse | ForEach-Object {
+        $rel = $_.FullName.Substring($claudeReferencesSrcDir.Length + 1)
+        $destFile = Join-Path $claudeReferencesDir $rel
+        New-Item -ItemType Directory -Force -Path (Split-Path $destFile -Parent) | Out-Null
+        Sync-Managed -SrcFile $_.FullName -DestFile $destFile
     }
 }
 if (Test-Path $opencodeReferencesSrcDir) {
-    Get-ChildItem $opencodeReferencesSrcDir -Filter *.md | ForEach-Object {
-        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeReferencesDir $_.Name)
+    Get-ChildItem $opencodeReferencesSrcDir -Filter *.md -Recurse | ForEach-Object {
+        $rel = $_.FullName.Substring($opencodeReferencesSrcDir.Length + 1)
+        $destFile = Join-Path $opencodeReferencesDir $rel
+        New-Item -ItemType Directory -Force -Path (Split-Path $destFile -Parent) | Out-Null
+        Sync-Managed -SrcFile $_.FullName -DestFile $destFile
     }
 }
 

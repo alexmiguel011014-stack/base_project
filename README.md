@@ -113,7 +113,7 @@ what's there, fix it, ship it, then the everyday extras:
 |---|---|
 | `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
 | `/newproject` | Plans the structure and starting checklist for a brand-new project — read-only, produces a plan, never scaffolds files on its own. Also kicks off `/newgoal` in the background to research a deeper build plan while you review this one. |
-| `/newgoal` | Researches and writes `GOALS.md` at the project root: a deeply detailed 0-to-100% build plan (backend, frontend, connectivity, database, auth, deployment, testing, security) — the input `/execgoals` consumes without re-researching anything. |
+| `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. |
 | `/execgoals` | Executes `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done (file exists, test passes, server starts) — resumes safely if interrupted. |
 | `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
 | `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |

@@ -485,14 +485,18 @@ step "Syncing reference docs..."
 CLAUDE_REFERENCES_SRC_DIR="$SOURCE_DIR/claude/references"
 OPENCODE_REFERENCES_SRC_DIR="$SOURCE_DIR/opencode/references"
 if [ -d "$CLAUDE_REFERENCES_SRC_DIR" ]; then
-    for f in "$CLAUDE_REFERENCES_SRC_DIR"/*.md; do
-        sync_managed "$f" "$CLAUDE_REFERENCES_DIR/$(basename "$f")"
-    done
+    while IFS= read -r f; do
+        rel="${f#"$CLAUDE_REFERENCES_SRC_DIR"/}"
+        mkdir -p "$CLAUDE_REFERENCES_DIR/$(dirname "$rel")"
+        sync_managed "$f" "$CLAUDE_REFERENCES_DIR/$rel"
+    done < <(find "$CLAUDE_REFERENCES_SRC_DIR" -name "*.md" -type f)
 fi
 if [ -d "$OPENCODE_REFERENCES_SRC_DIR" ]; then
-    for f in "$OPENCODE_REFERENCES_SRC_DIR"/*.md; do
-        sync_managed "$f" "$OPENCODE_REFERENCES_DIR/$(basename "$f")"
-    done
+    while IFS= read -r f; do
+        rel="${f#"$OPENCODE_REFERENCES_SRC_DIR"/}"
+        mkdir -p "$OPENCODE_REFERENCES_DIR/$(dirname "$rel")"
+        sync_managed "$f" "$OPENCODE_REFERENCES_DIR/$rel"
+    done < <(find "$OPENCODE_REFERENCES_SRC_DIR" -name "*.md" -type f)
 fi
 
 # ---------------------------------------------------------------------

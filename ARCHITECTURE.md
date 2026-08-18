@@ -31,11 +31,14 @@ base_project/
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
 │   │   ├── commands/*.md       → ~/.claude/commands/     (17 comandos — ver README.md § Commands pra lista completa)
-│   │   └── references/*.md     → ~/.claude/base_project/references/ (project-standards.md, command-menu.md)
+│   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
+│   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
+│   │                            research, lidos por /newgoal pra classificar cada meta)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
 │   │   ├── command/*.md        → ~/.config/opencode/command/   (mesmos comandos, formato opencode)
-│   │   ├── references/*.md     → ~/.config/opencode/base_project/references/ (mesmo par, formato opencode)
+│   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
+│   │                            formato opencode)
 │   │   └── mcp.json            → ~/.config/opencode/mcp.json + registrado via `claude mcp add`
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
 │   └── hooks/*.js              → ~/.claude/base_project/hooks/

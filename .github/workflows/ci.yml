@@ -71,6 +71,11 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/hooks/usage-log.js"
           test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
           test -f "$CLAUDE_HOME/base_project/references/command-menu.md"
+          test -f "$CLAUDE_HOME/base_project/references/goal-types/build.md"
+          test -f "$CLAUDE_HOME/base_project/references/goal-types/fix.md"
+          test -f "$CLAUDE_HOME/base_project/references/goal-types/feature.md"
+          test -f "$CLAUDE_HOME/base_project/references/goal-types/process.md"
+          test -f "$CLAUDE_HOME/base_project/references/goal-types/research.md"
           test -f "$CLAUDE_HOME/agents/reviewer.md"
           test -f "$CLAUDE_HOME/commands/newproject.md"
           test -f "$CLAUDE_HOME/commands/scanproject.md"
@@ -92,6 +97,11 @@ jobs:
           test -f "$OPENCODE_HOME/opencode.jsonc"
           test -f "$OPENCODE_HOME/base_project/plugins.json"
           test -f "$OPENCODE_HOME/base_project/references/project-standards.md"
+          test -f "$OPENCODE_HOME/base_project/references/goal-types/build.md"
+          test -f "$OPENCODE_HOME/base_project/references/goal-types/fix.md"
+          test -f "$OPENCODE_HOME/base_project/references/goal-types/feature.md"
+          test -f "$OPENCODE_HOME/base_project/references/goal-types/process.md"
+          test -f "$OPENCODE_HOME/base_project/references/goal-types/research.md"
           test -f "$OPENCODE_HOME/command/newproject.md"
           test -f "$OPENCODE_HOME/command/scanproject.md"
           test -f "$OPENCODE_HOME/command/fixproject.md"
@@ -130,6 +140,11 @@ jobs:
             (Join-Path $claudeHome "base_project\hooks\usage-log.js"),
             (Join-Path $claudeHome "base_project\references\project-standards.md"),
             (Join-Path $claudeHome "base_project\references\command-menu.md"),
+            (Join-Path $claudeHome "base_project\references\goal-types\build.md"),
+            (Join-Path $claudeHome "base_project\references\goal-types\fix.md"),
+            (Join-Path $claudeHome "base_project\references\goal-types\feature.md"),
+            (Join-Path $claudeHome "base_project\references\goal-types\process.md"),
+            (Join-Path $claudeHome "base_project\references\goal-types\research.md"),
             (Join-Path $claudeHome "agents\reviewer.md"),
             (Join-Path $claudeHome "commands\newproject.md"),
             (Join-Path $claudeHome "commands\scanproject.md"),
@@ -151,6 +166,11 @@ jobs:
             (Join-Path $opencodeHome "opencode.jsonc"),
             (Join-Path $opencodeHome "base_project\plugins.json"),
             (Join-Path $opencodeHome "base_project\references\project-standards.md"),
+            (Join-Path $opencodeHome "base_project\references\goal-types\build.md"),
+            (Join-Path $opencodeHome "base_project\references\goal-types\fix.md"),
+            (Join-Path $opencodeHome "base_project\references\goal-types\feature.md"),
+            (Join-Path $opencodeHome "base_project\references\goal-types\process.md"),
+            (Join-Path $opencodeHome "base_project\references\goal-types\research.md"),
             (Join-Path $opencodeHome "command\newproject.md"),
             (Join-Path $opencodeHome "command\scanproject.md"),
             (Join-Path $opencodeHome "command\fixproject.md"),
