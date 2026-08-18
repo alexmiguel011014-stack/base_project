@@ -48,6 +48,13 @@ guiding through any blocker instead of failing silently or working around it.
      but present anyway. Exclude flagged files from staging and tell the user exactly
      which ones and why — never stage them silently, even if `$ARGUMENTS` implies
      "everything".
+   - Filename matching only catches known secret-shaped files — it misses a credential
+     hardcoded inside an ordinary `.js`/`.py`/`.ts` file. Also scan the actual content of
+     what's about to be staged: run `gitleaks protect --staged --no-banner` if `gitleaks`
+     is installed (`gitleaks version` succeeds); otherwise grep the diff content for
+     high-signal patterns (`AKIA[0-9A-Z]{16}`, `sk-[a-zA-Z0-9]{20,}`, `ghp_[A-Za-z0-9]{36}`,
+     a `-----BEGIN...PRIVATE KEY-----` header). Treat a hit the same as a filename match —
+     exclude it from staging, name the file and line, never stage it "just this once."
    - Flag any file over ~50MB (GitHub's soft limit) before staging — ask whether it
      belongs in git at all, needs Git LFS, or should be added to `.gitignore` instead.
    - Stage by explicit name (`git add <file> <file> ...`) — never a blanket `git add -A`

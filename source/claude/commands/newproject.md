@@ -30,13 +30,16 @@ Help the user start a new project on the right footing.
    separate, explicit follow-up (they can ask directly, or say so and you proceed as a
    normal implementation task — just don't do it silently as part of this command).
 
-6. After presenting the plan, dispatch `/newgoal`'s research as a background task (do not wait
-   on it, do not narrate its progress) — pass it what step 1 already established, so it never
-   re-asks. It writes `GOALS.md` at the project root: a deep, single-session 0-to-100% build
-   plan across backend/frontend/connectivity/database/deployment/etc., meant as input for a
-   future `/execgoals` run. Backgrounding this exists specifically to save the tokens a
-   fully-narrated research pass would cost here — say one short line that it's running, then
-   nothing more about it until it finishes, at which point report only the file path.
+6. After presenting the plan, dispatch `/newgoal`'s research as a real background task — the
+   Agent tool, with `run_in_background: true`, carrying `/newgoal`'s own instructions (steps
+   1-7) as the prompt, with what step 1 here already established (stack, kind of project,
+   starting state) substituted in so it never re-asks. Do not run `/newgoal`'s steps inline in
+   this same turn — that narrates every step into the conversation and defeats the point below.
+   It writes `GOALS.md` at the project root: a deep, single-session 0-to-100% build plan across
+   backend/frontend/connectivity/database/deployment/etc., meant as input for a future
+   `/execgoals` run. Backgrounding this exists specifically to save the tokens a fully-narrated
+   research pass would cost here — say one short line that it's running, then nothing more about
+   it until the agent completes, at which point report only the file path.
 
 7. Report only: the plan (ordered, concrete), which plugins (if any) were mentioned and why,
    and the one-line note that `GOALS.md` research started in the background.

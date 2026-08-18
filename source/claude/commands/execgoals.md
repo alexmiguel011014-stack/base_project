@@ -7,9 +7,13 @@ Execute `GOALS.md` at the project root: turn the plan `/newgoal` researched into
 project, one ordered item at a time — with the same before/after verification discipline as
 `/fixproject`, not "apply a patch and assume it worked."
 
-1. **Require a plan.** If `GOALS.md` doesn't exist at the project root, stop and say so — run
-   `/newgoal` first. This command executes a plan, it doesn't improvise one; building without
-   the research pass defeats the reason `/newgoal` exists.
+1. **Require a plan.** If `GOALS.md` doesn't exist at the project root, check first whether
+   `/newgoal` already ran for a `research`-type ask in this conversation — that path deliberately
+   skips `GOALS.md` and produces a standalone deliverable document instead (see `newgoal.md`'s
+   research-type exception). If so, say that plainly: there's nothing to execute because the goal
+   was research-only and already delivered, not because a step was missed. Otherwise, stop and
+   say so — run `/newgoal` first. This command executes a plan, it doesn't improvise one;
+   building without the research pass defeats the reason `/newgoal` exists.
 
 2. **Read the whole file first**, then present a short summary before touching anything: which
    areas apply (backend/frontend/database/etc. — whichever `/newgoal` actually wrote for this

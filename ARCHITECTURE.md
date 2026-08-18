@@ -14,7 +14,7 @@ Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `
 para `~/.claude/` e `~/.config/opencode/` — nada mais. Não é um servidor rodando o
 tempo todo, não é um pacote npm publicado, não escreve nada dentro de projetos que o
 usam. O "produto" real são os arquivos que acabam instalados: regras globais, 3
-subagentes, 13 comandos, um catálogo de plugins opcionais, e 3 hooks com comportamento
+subagentes, 19 comandos, um catálogo de plugins opcionais, e 4 hooks com comportamento
 real. (O dashboard web existiu até o ROADMAP item 13 — removido por completo, ver
 histórico lá.) Versão rastreada via `package.json` (`version`) + git tag — sem nenhum
 fluxo de release/publicação.
@@ -30,7 +30,7 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   ├── commands/*.md       → ~/.claude/commands/     (17 comandos — ver README.md § Commands pra lista completa)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (19 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
 │   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
 │   │                            research, lidos por /newgoal pra classificar cada meta)
@@ -110,22 +110,29 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ---
 
-## 4. Os 13 comandos
+## 4. Os 19 comandos
 
 Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 
 | Comando | O que faz |
 |---|---|
-| `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. |
+| `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. Dispara `/newgoal` em segundo plano ao final. |
+| `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
+| `/execgoals` | Executa `GOALS.md` item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade. |
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
 | `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
+| `/undo` | Reverte o último lote de mudança — não commitada, arquivo novo não rastreado, ou o último commit — com confirmação em tiers separados por risco. Nunca `git reset --hard`/force-push sem um gate explícito à parte; commit já enviado é desfeito com `git revert`, nunca reescrito. |
+| `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
+| `/pr` | Abre um pull request pra branch atual — rascunha título/corpo a partir do range de commits real contra a branch base, confirma antes de criar. O passo que o próprio `/ship` (passo 9) já menciona mas nunca executa. |
 | `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
 | `/audit` | Scan de segurança (vulnerabilidade de dependência, segredo exposto). Usa Strix se instalado, senão `npm audit`/`pip-audit` + `gitleaks`/`trufflehog`. |
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
-| `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. |
+| `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. Sempre pede confirmação antes — custa ~6x uma resposta de passada única. |
+| `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
 | `/wpp` | Mostra o menu "o que você deseja fazer agora?" sob demanda (mesmo conteúdo que aparece automaticamente no início de sessão / fim de tarefa). |
 | `/status` | Mostra a versão do base_project e uma lista simples (só nomes) de tudo que está ativo agora — agentes, comandos, hooks, plugins instalados. |
+| `/reviewusage` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando. Só cobre Claude Code — atividade do opencode não é rastreada. |
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
 | `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
 
@@ -225,6 +232,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **Emil Kowalski — Design Engineering** (`emil-design-eng`) | plugin (skill, 10 sub-skills) | Animação/polish de componente: easing customizado, transições <300ms, critério de revisão de design engineer sênior. |
 | **Impeccable** (`impeccable`) | plugin (skill) | Sistema anti-"design genérico de IA" — 23 comandos, dezenas de regras determinísticas (gradiente roxo, cartão aninhado, etc.). |
 | **Taste Skill** (`taste-skill`) | plugin (skill) | Define direção de design a partir do briefing antes de tocar em código — evita hero centralizado, gradiente roxo, emoji em excesso. |
+| **`/designreview`** | comando | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda `contrast-check.js` (WCAG/alvo de toque) primeiro, depois julgamento global-antes-local. |
 
 ### 🗄️ Banco de dados / infraestrutura
 | Nome | Tipo | O que faz |
@@ -256,7 +264,11 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/scanproject`** | comando | Avalia um projeto existente contra `project-standards.md`, reporta achados. Read-only. |
 | **`/cleanproject`** | comando | Avalia organização de arquivo/pasta (arquivo morto, estrutura, duplicação), propõe reorganização. Read-only. |
 | **`/fixproject`** | comando | Corrige os achados do `/scanproject` e/ou `/cleanproject`, com reverificação real de cada correção. |
+| **`/undo`** | comando | Reverte o último lote de mudança (não commitada ou o último commit), confirmação em tiers por risco. Nunca `reset --hard`/force-push sem gate separado. |
+| **`/newgoal`** | comando | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research`) e pesquisa + escreve `GOALS.md`, o plano que `/execgoals` consome. |
+| **`/execgoals`** | comando | Executa `GOALS.md` item por item na ordem escrita, verificando cada um antes de marcar como feito. |
 | **`/ship`** | comando | Commita e sobe as mudanças pro remoto (GitHub etc.), com checagem de prontidão e guia passo a passo pra cada bloqueio (repo sem remoto, segredo detectado, lint quebrado, divergência com upstream...). Nunca força push, nunca resolve conflito sozinho. |
+| **`/pr`** | comando | Abre PR pra branch atual, título/corpo a partir do range de commits real, confirma antes de criar. |
 | **`/council`** | comando | Pressão-testa uma decisão difícil com 5 perspectivas de conselheiro independentes + veredito. |
 | **`/status`** | comando | Lista, só por nome, tudo que está ativo agora + versão do base_project. |
 | **Ruflo** (`ruflo`) | plugin (MCP) | Meta-orquestrador multi-agente pesado (~98 agentes especializados, memória vetorial persistente) — infraestrutura, não uma skill única. |
@@ -286,12 +298,13 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/plugins`** | comando | Recomenda e instala plugins do catálogo pro projeto atual, ou instala um perfil pronto. |
 | **`/update`** | comando | Confere e aplica atualização do base_project (`git pull` + reroda o installer), com confirmação. |
 | **`/uninstall`** | comando | Remove o que o base_project instalou globalmente, em 3 níveis de confirmação. |
+| **`/reviewusage`** | comando | Lê o ledger de uso (hook `usage-log`) e reporta instalado-mas-nunca-usado, uso real por projeto, falhas. Só Claude Code — opencode não é rastreado. |
 | **`install.ps1` / `install.sh`** | script | O instalador de verdade — copia tudo isso pra `~/.claude/`/`~/.config/opencode/`. Também sugere (nunca aplica sozinho) configurar `fallbackModel`. |
 | **`validate-plugins.js`** | script | Valida `plugins.json` contra o schema antes de aceitar. |
 
 ---
 
-## 6. Os 3 hooks com comportamento real
+## 6. Os 4 hooks com comportamento real
 
 Todos com efeito de verdade, não só observação. Nenhum **falha** o tool call/sessão que
 os disparou (tudo dentro de `try/catch` que engole erro).
@@ -321,6 +334,20 @@ sincronizada com o upstream** — decisão deliberada de economia de token: a ma
 aberturas de sessão não tem nada de novo pra reportar. Deliberadamente não registrado
 pros matchers `compact`/`fork` (não são cold start de verdade).
 
+### `source/hooks/usage-log.js` (`PostToolUse` + `UserPromptSubmit`, síncrono)
+Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em
+`~/.claude/base_project/usage/`, uma linha por chamada de tool (`ts`, `session`,
+`prompt_id`, `agent_type`, `agent_id`, `cwd`, `tool`, `input`, `response`, `ms`) e uma
+linha por prompt de usuário (mesmo cabeçalho + `prompt`), mais uma linha `install` quando
+`/plugins` instala algo (`--install <id> --kind <kind> --origin <catalog|discovery>`).
+**Não classifica nada** — toda interpretação (o que está sendo usado, o que nunca foi
+tocado) acontece só na leitura, dentro de `/reviewusage`; a decisão deliberada de manter
+o hook burro existe porque uma versão anterior classificava no momento da escrita e
+sub-reportava plugins que na verdade estavam em uso (ver `dev/scripts/NPInstructions.md`).
+Input grande é truncado pra um `Write` não inflar o ledger; sobrevive a input circular sem
+lançar exceção; cada entrada é uma linha só, então uma escrita corrompida não contamina as
+vizinhas.
+
 **Importante**: editar esses arquivos em `source/hooks/` não muda o comportamento da sua
 sessão atual — o `settings.json` real só é atualizado rodando o installer de novo (ele
 faz merge idempotente na lista de hooks, preservando qualquer hook seu que não seja do
@@ -349,14 +376,16 @@ Sincronizado pelo installer pra `~/.claude/base_project/scripts/scan-skill.js`.
 ## 8. Testes (`dev/tests/`, `node:test`)
 
 `npm test` = `node --test dev/tests/*.test.js`. Sem framework externo (Jest/Vitest) —
-`node:test` nativo, zero dependência nova. 25 testes cobrindo:
+`node:test` nativo, zero dependência nova. 46 testes cobrindo:
 
 - `loop-detect.test.js` / `post-edit-format.test.js` / `session-start-git-context.test.js`
-  — os 3 hooks
+  / `usage-log.test.js` — os 4 hooks
 - `scan-skill.test.js` — as 6 regras do scanner + falsos-positivos (binário,
   `node_modules`)
 - `validate-plugins.test.js` — o validador de schema, incluindo casos malformados de
   propósito
+- `contrast-check.test.js` — as regras de contraste WCAG e tamanho mínimo de alvo de
+  toque usadas por `/designreview`
 
 Escopo deliberado: testa lógica de instalador/hook/script, não "qualidade" de skill —
 mesmo princípio que a pesquisa achou no próprio ECC (maior projeto do gênero, só testa 2

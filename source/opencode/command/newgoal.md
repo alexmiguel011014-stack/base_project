@@ -9,8 +9,10 @@ command's whole job is to produce the input `/execgoals` consumes. This is a res
 to be rediscovered later.
 
 **Two ways this runs.** Called directly (`/newgoal`), it is the user's explicit ask — narrate
-normally. Dispatched from `/newproject` (see that command's own instructions), it must run as
-a background task and stay out of the conversation: no progress narration, no intermediate
+normally. Dispatched from `/newproject` (see that command's own step 6: whichever
+asynchronous/backgrounded subagent mechanism the session exposes, carrying these instructions
+as the prompt — or an explicit "no backgrounding available" if it doesn't), it must run as a
+real background agent and stay out of the conversation: no progress narration, no intermediate
 questions — only a short line when it starts and a short line with the file path when it's
 done. The point is depth in the file, not tokens in the chat.
 

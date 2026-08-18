@@ -1387,6 +1387,202 @@ real do GitHub Actions, só localmente; próximo push cobre isso.
 
 ---
 
+### 31. `/newgoal`: "feeding" de contexto melhorado antes de classificar/pesquisar
+
+**O que é**: ideia levantada pelo dono do projeto, ainda crua — "`/newgoal` fazer um
+feeding para contexto melhorado". Ainda não especificado com precisão; melhor palpite
+antes de decidir junto: hoje o passo 1 do `/newgoal` só pergunta stack/tipo/estado ao
+usuário quando nada foi estabelecido na sessão, e o passo 2 lê só
+`project-standards.md` — nunca lê o estado real do projeto em si (código existente,
+`graphify-out/` se já existe, `GOALS.md` de sessões anteriores além do merge do passo 6).
+Um "feeding" poderia significar: antes de classificar o tipo (passo 3) ou pesquisar
+(passo 4), ingerir contexto real do projeto — reaproveitando o artefato que `/bootstrap`
+já produz (`repomix-output.xml`/`graphify-out/`, mesmo mecanismo citado no
+`CLAUDE.md` global: "antes de escanear um projeto desconhecido, checar `graphify-out/`;
+se faltando, rodar `/bootstrap` primeiro") — em vez de decidir o tipo/áreas só com base
+no que o usuário descreveu em texto.
+**Por que pode importar**: um plano gerado sem olhar o projeto real corre o risco de
+reinventar o que já existe, ou classificar errado (ex: tratar como `feature` algo que já
+está parcialmente implementado, ou como `build` um projeto que já tem stack decidida no
+código). Contexto melhor no `/newgoal` reduz isso.
+
+**Decisão de forma (2026-08-17, dono do projeto)**: não deve virar mais um passo interno
+do `/newgoal` — deve ser um **comando externo próprio**, que se mescla ao `/newgoal`
+quando chamado junto na mesma mensagem, exatamente o mecanismo que já existe pro
+`/council` (passo 4a de `newgoal.md`: `/newgoal /council` roda `/council` por decisão
+contestada antes de escrever o item). Ou seja: `/newgoal` sozinho continua como está hoje
+(passo 1/2 normais); `/newgoal /<nome-do-comando>` na mesma mensagem dispara essa
+ingestão de contexto primeiro, e `/newgoal` usa o resultado ao classificar (passo 3) e
+pesquisar (passo 4). Vantagem sobre embutir direto: fica opcional/composável, e outros
+comandos poderiam invocar o mesmo mecanismo depois sem duplicar lógica.
+
+**Status**: `não implementado` — registrado aqui só pra não perder a ideia entre sessões,
+como o próprio ROADMAP pede ("registra, depois decide junto"). Falta confirmar com o
+dono do projeto: (1) nome do comando, (2) o que exatamente ele ingere — reaproveitar o
+artefato que `/bootstrap` já produz (`repomix-output.xml`/`graphify-out/`), rodar
+`/bootstrap` como pré-requisito se não existir, ingerir outra fonte (docs externos,
+histórico de `GOALS.md` de sessões passadas, algo mais) — ou alguma combinação, e (3) se
+o comando também deveria funcionar sozinho (sem `/newgoal`) ou só faz sentido combinado.
+
+---
+
+### 32. `/newproject` + `/newgoal`: mecanismo de disparo em segundo plano nunca foi nomeado nem validado ao vivo
+
+**O que é**: achado de uma auditoria pedida pelo dono do projeto sobre todos os 17
+comandos. `/newproject` (passo 6) e `/newgoal` (introdução, "Dispatched from
+`/newproject`... it must run as a background task") instruem rodar a pesquisa do
+`/newgoal` "em segundo plano, sem narrar", mas nenhum dos dois arquivos nomeia a
+primitiva real que faria isso — Claude Code não tem um "rodar slash command em
+background" nativo; isso só existe hoje via a tool `Agent`/`Task` com
+`run_in_background: true`. Conferido no próprio item 24 deste ROADMAP: a seção
+"Validado" registra só testes/`tsc`/lint/sync — nenhuma execução real observando se o
+comportamento (zero narração, só o path no fim) de fato acontece.
+
+**Por que pode importar**: sem a primitiva nomeada explicitamente no texto do comando, o
+risco real é o modelo simplesmente executar os passos do `/newgoal` inline dentro da
+mesma resposta, narrando tudo — exatamente o oposto do que foi desenhado ("economizar
+tokens: a pesquisa pesada fica no arquivo, não na conversa").
+
+**Status**: `feito` (só o lado Claude Code). `newproject.md` passo 6 e a introdução de
+`newgoal.md` agora nomeiam explicitamente a tool `Agent` com `run_in_background: true`
+carregando as instruções do `/newgoal` como prompt, e instruem não rodar os passos
+inline. Lado opencode: **não nomeei uma primitiva específica** — não achei evidência no
+próprio repositório (`opencode-instructions.md`, `source/opencode/agent/*.md`) de que
+opencode tenha um mecanismo de subagente assíncrono/backgrounded equivalente ao `Agent`
+tool do Claude Code (o que existe documentado é `@agent-name`, que parece síncrono). Os
+dois arquivos opencode foram ajustados pra dizer "use o que a sessão expuser pra isso, ou
+diga explicitamente que não há tal mecanismo" em vez de inventar um nome de tool não
+verificado — mais honesto que uma afirmação errada, mas ainda deixa em aberto se opencode
+de fato consegue background real aqui.
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46. **Não
+validado ao vivo** — não rodei `/newproject` de verdade observando o comportamento, meu
+fix ainda descreve o *mecanismo pretendido*, não confirma que a tool `Agent` se comporta
+exatamente como descrito quando chamada de dentro da execução de um comando (versus
+sendo chamada diretamente por mim, como fiz nesta mesma sessão pra outras tarefas). Se
+quiser essa confirmação de verdade, precisaria rodar `/newproject` numa sessão nova e
+observar se a conversa fica livre de narração até o path final do `GOALS.md` aparecer.
+
+---
+
+### 33. `/ship`: scan de segredo antes de commitar é só por nome de arquivo, não por conteúdo
+
+**O que é**: achado da mesma auditoria. O passo 4 de `ship.md` flagra `.env`, `*.pem`,
+`*_rsa`/`*_ed25519`, `credentials.json`, `*.key` — tudo por **nome** do arquivo. Uma API
+key hardcoded dentro de um `.js`/`.ts`/`.py` comum (nome normal) passa direto pro commit
+sem ser pega.
+
+**Por que pode importar**: o `CLAUDE.md` global do próprio base_project proíbe
+explicitamente "commit or hardcode real API keys, tokens, or credentials" — mas `/ship`,
+o comando que efetivamente commita, não tem nenhuma checagem que pegue esse caso comum.
+`/audit` já sabe usar `gitleaks`/`trufflehog`, mas só como scan pós-fato (rodado sob
+pedido), nunca reaproveitado no pré-commit do `/ship`.
+
+**Status**: `feito`. Passo 4 do `ship.md` (nos dois engines) agora roda
+`gitleaks protect --staged --no-banner` se `gitleaks` estiver instalado, senão faz grep
+do conteúdo do que vai ser staged por padrões de alto sinal (`AKIA[0-9A-Z]{16}`,
+`sk-[a-zA-Z0-9]{20,}`, `ghp_[A-Za-z0-9]{36}`, cabeçalho `-----BEGIN...PRIVATE KEY-----`) —
+tratado com a mesma severidade que um match por nome de arquivo (exclui do staging, nunca
+"só dessa vez").
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46. **Não
+validado ao vivo** — é instrução em markdown (mesma natureza dos demais comandos, sem
+lógica própria em JS a testar); não rodei `/ship` de verdade contra um arquivo com um
+segredo hardcoded pra confirmar que o grep pega o caso.
+
+---
+
+### 34. `/audit`: fallback de vulnerabilidade de dependência só cobre JS e Python
+
+**O que é**: achado da mesma auditoria. Sem Strix instalado, `audit.md` cai para
+`npm audit`/`pip-audit` — nada previsto pra Go (`govulncheck`), Rust (`cargo audit`),
+Ruby (`bundle audit`), ou outro ecossistema.
+
+**Por que pode importar**: inconsistente com o resto do projeto, que é deliberadamente
+agnóstico de stack (`CLAUDE.md`: "detect... do not assume a specific stack or
+toolchain", regra que `/scanproject`, `/ship`, `reviewer` já seguem).
+
+**Status**: `feito`. Passo 1 do `audit.md` (nos dois engines) agora detecta o manifesto
+presente (`go.mod` → `govulncheck`, `Cargo.toml` → `cargo audit`, `Gemfile` → `bundle
+audit`, além dos fallbacks JS/Python já existentes), roda todos os aplicáveis se houver
+mais de um manifesto no repo, e avisa em vez de pular silenciosamente se a ferramenta
+certa não estiver instalada.
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46. Não testado
+ao vivo contra um repo Go/Rust/Ruby real (não há nenhum neste projeto pra testar contra).
+
+---
+
+### 35. `/pr`: comando novo pra abrir PR depois do `/ship`
+
+**O que é**: ideia levantada na mesma auditoria. `/ship` (passo 9) já menciona que
+"`gh pr create` está disponível como próximo passo" quando a branch atual não é
+`main`/`master`, mas explicitamente não roda — "esse comando faz o shipping da branch,
+não abrir o PR". Hoje ninguém fecha esse loop: o usuário tem que lembrar de rodar
+`gh pr create` manualmente.
+
+**Por que pode importar**: mesmo padrão que o resto do projeto já usa em todo lugar
+(`/ship`, `/update`, `/uninstall`) — confirma antes, nunca força, guia passo a passo em
+vez de deixar cru. Um `/pr` rascunharia o título/corpo a partir do commit range (mesma
+lógica que `/ship` já usa pra Conventional Commits) e pediria confirmação antes de abrir.
+
+**Status**: `feito` — pedido diretamente pelo dono do projeto depois de registrado. Comando
+novo `source/claude/commands/pr.md` (+ espelho opencode): inventário read-only (`gh`
+instalado/autenticado, branch não é a base, nada não commitado/não enviado pendente, sem
+PR já existente pra essa branch), descobre a branch base de verdade (`gh repo view`),
+rascunha título/corpo do range de commits real (`git log`/`git diff --stat` contra a
+base, convenção Conventional Commits igual `/ship`), mostra e confirma antes de
+`gh pr create`. Nunca commita/sobe nada sozinho (aponta pro `/ship` se houver pendência),
+nunca merge.
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46 (comando é só
+instrução em markdown, sem lógica própria em JS a testar — mesma natureza dos demais
+comandos), `npm run validate:plugins` ok. Wired em `command-menu.md`, README.md (tabela +
+contagem 17→19), `ARCHITECTURE.md` (§1/§4/§5.2), `status.md` (exemplo, os dois engines), e
+nas asserções do CI (`install-test`, bash + PowerShell, os dois engines). Instalador
+rerodado de verdade nesta máquina — `pr.md` confirmado presente em
+`~/.claude/commands/` e `~/.config/opencode/command/`. **Não testado invocando `/pr` de
+verdade** (precisaria de uma sessão nova pro comando recém-instalado ficar disponível, e
+um repo com PR real pra abrir — não fiz isso).
+
+---
+
+### 36. `/undo`: comando novo pra reverter o último lote de mudança automatizada
+
+**O que é**: ideia levantada na mesma auditoria. `/execgoals` e `/fixproject` fazem
+mudanças reais (arquivos, dependências, em alguns casos estado de serviço) sem commitar
+automaticamente — mas se o resultado não agradar, hoje o usuário precisa saber git puro
+(`git diff`, `git restore`, `git reset`) pra reverter, sem nenhum comando deste projeto
+guiando isso.
+
+**Por que pode importar**: é o único ponto cego na filosofia "guiar, nunca cru" que
+`/ship`/`/update`/`/uninstall` já aplicam em toda outra operação sensível deste projeto.
+
+**Status**: `feito` — pedido diretamente pelo dono do projeto depois de registrado.
+Comando novo `source/claude/commands/undo.md` (+ espelho opencode), com o escopo que
+ficou em aberto na primeira versão deste item resolvido via tiers de risco separados:
+inventário read-only primeiro (mudança não commitada? último commit já foi enviado pro
+upstream?), decide o alvo por prioridade (mudança não commitada > commit local não
+enviado > commit já enviado) a menos que `$ARGUMENTS` nomeie um alvo específico. 4 tiers
+com confirmação **separada** cada um: 1 (arquivo rastreado modificado → `git restore`),
+1b (arquivo novo não rastreado → `git clean` só nos paths listados, nunca `-fd` cego), 2
+(commit local não enviado → `git reset --soft` como padrão, `--hard` só com segunda
+confirmação nomeando o que se perde), 3 (commit já enviado → nunca `reset`, só
+`git revert HEAD`, já que reescrever história aqui exigiria force-push — coisa que este
+projeto nunca faz em comando nenhum). Nunca encadeia tiers automaticamente mesmo se
+`$ARGUMENTS` parecer confiante ("desfaz tudo").
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46, `npm run
+validate:plugins` ok. Wired em `command-menu.md`, README.md (tabela + contagem 17→19),
+`ARCHITECTURE.md` (§1/§4/§5.2), `status.md` (exemplo, os dois engines), e nas asserções
+do CI (`install-test`, bash + PowerShell, os dois engines). Instalador rerodado de
+verdade nesta máquina — `undo.md` confirmado presente em `~/.claude/commands/` e
+`~/.config/opencode/command/`. **Não testado invocando `/undo` de verdade** contra um
+repo com mudança real em cada um dos 4 tiers — a régua acima é a especificação, não uma
+execução observada.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

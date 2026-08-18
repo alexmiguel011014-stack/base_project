@@ -16,7 +16,9 @@ O que você deseja fazer agora?
 - `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
 - `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
+- `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.
 - `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar.
+- `/pr` — abre um pull request pra branch atual, com título/corpo rascunhados a partir dos commits reais. Sempre confirma antes de criar.
 - `/plugins` — ver e instalar plugins opcionais (banco de dados, design, testes de UI, etc.) para este projeto.
 - `/council` — pressão-testar uma decisão difícil com várias perspectivas antes de decidir.
 - `/designreview` — criticar um design (mockup, screenshot, URL, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa, com achados acionáveis.

@@ -90,6 +90,8 @@ jobs:
           test -f "$CLAUDE_HOME/commands/council.md"
           test -f "$CLAUDE_HOME/commands/plugins.md"
           test -f "$CLAUDE_HOME/commands/ship.md"
+          test -f "$CLAUDE_HOME/commands/pr.md"
+          test -f "$CLAUDE_HOME/commands/undo.md"
           test -f "$CLAUDE_HOME/commands/newgoal.md"
           test -f "$CLAUDE_HOME/commands/execgoals.md"
           test -f "$CLAUDE_HOME/commands/designreview.md"
@@ -115,6 +117,8 @@ jobs:
           test -f "$OPENCODE_HOME/command/council.md"
           test -f "$OPENCODE_HOME/command/plugins.md"
           test -f "$OPENCODE_HOME/command/ship.md"
+          test -f "$OPENCODE_HOME/command/pr.md"
+          test -f "$OPENCODE_HOME/command/undo.md"
           test -f "$OPENCODE_HOME/command/newgoal.md"
           test -f "$OPENCODE_HOME/command/execgoals.md"
           test -f "$OPENCODE_HOME/command/designreview.md"
@@ -159,6 +163,8 @@ jobs:
             (Join-Path $claudeHome "commands\council.md"),
             (Join-Path $claudeHome "commands\plugins.md"),
             (Join-Path $claudeHome "commands\ship.md"),
+            (Join-Path $claudeHome "commands\pr.md"),
+            (Join-Path $claudeHome "commands\undo.md"),
             (Join-Path $claudeHome "commands\newgoal.md"),
             (Join-Path $claudeHome "commands\execgoals.md"),
             (Join-Path $claudeHome "commands\designreview.md"),
@@ -184,6 +190,8 @@ jobs:
             (Join-Path $opencodeHome "command\council.md"),
             (Join-Path $opencodeHome "command\plugins.md"),
             (Join-Path $opencodeHome "command\ship.md"),
+            (Join-Path $opencodeHome "command\pr.md"),
+            (Join-Path $opencodeHome "command\undo.md"),
             (Join-Path $opencodeHome "command\newgoal.md"),
             (Join-Path $opencodeHome "command\execgoals.md"),
             (Join-Path $opencodeHome "command\designreview.md"),

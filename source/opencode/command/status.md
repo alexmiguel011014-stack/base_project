@@ -37,12 +37,17 @@ base_project vX.Y.Z
 
 Agents: architect, coder, reviewer
 
-Commands: newproject, newgoal, execgoals, scanproject, cleanproject, fixproject, bootstrap, audit, plugins, council, designreview, wpp, status, reviewusage
+Commands: newproject, newgoal, execgoals, scanproject, cleanproject, fixproject, undo, ship, pr, bootstrap, audit, plugins, council, designreview, wpp, status, reviewusage, update, uninstall
 
 Hooks: loop-detect, post-edit-format, session-start-git-context, usage-log
 
 Plugins: <installed ones only>
 ```
+
+The command list above is illustrative, not a fixed set to reproduce from memory — it
+was accurate when this file was last edited, but a command added afterward must still
+show up. Always list exactly what step 3's real directory scan found, even if that means
+more (or fewer) names than this example.
 
 7. If a category is empty, still show its label with nothing after it (e.g.
    `Plugins: (none detected)`) rather than omitting the line — the point is a complete
