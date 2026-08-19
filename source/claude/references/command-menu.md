@@ -11,6 +11,7 @@ O que você deseja fazer agora?
 - `/bootstrap` — sincroniza com o remoto (pull se estiver atrás) e mapeia o projeto atual (repomix + graphify); abre o mapa visual HTML do graphify no browser se der certo. Se falhar, guia passo a passo para instalar ou configurar a API key.
 - `/newproject` — começar um projeto novo com a estrutura certa desde o início. Já dispara `/newgoal` em segundo plano.
 - `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
+- `/repertoire` — pesquisa o domínio do projeto (base científica, regulatória, cultural, midiática) antes do `/newgoal` planejar. Sempre confirma antes de rodar. Combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho.
 - `/execgoals` — executa o `GOALS.md` gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade.
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
 - `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.

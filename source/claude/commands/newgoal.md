@@ -82,6 +82,13 @@ done. The point is depth in the file, not tokens in the chat.
     including its own confirmation gate — before writing the choice into `GOALS.md`. Record
     the President's verdict as the item, not the full 5-advisor transcript.
 
+4b. **If `/repertoire` was invoked together with this command** (e.g. `/newgoal /repertoire` in
+    the same message — same direct-mode-only restriction as 4a): let `/repertoire` finish first
+    — it researches the project's actual subject matter (scientific/regulatory/cultural/media),
+    not tech choices — and read the `REPERTOIRE.md` it produces before running this step's own
+    research. `/repertoire` researches *what the project is about*; this step researches *how to
+    build it*; don't let the two blur into one pass or skip reading the briefing once it exists.
+
 5. **Write `GOALS.md` in English**, regardless of the conversation's language — this file is
    meant to be read by `/execgoals` as much as by the user, and the user
    asked for it explicitly. Structure it as concrete, checkable items grouped by the chosen

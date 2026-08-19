@@ -14,7 +14,7 @@ Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `
 para `~/.claude/` e `~/.config/opencode/` — nada mais. Não é um servidor rodando o
 tempo todo, não é um pacote npm publicado, não escreve nada dentro de projetos que o
 usam. O "produto" real são os arquivos que acabam instalados: regras globais, 3
-subagentes, 19 comandos, um catálogo de plugins opcionais, e 4 hooks com comportamento
+subagentes, 20 comandos, um catálogo de plugins opcionais, e 4 hooks com comportamento
 real. (O dashboard web existiu até o ROADMAP item 13 — removido por completo, ver
 histórico lá.) Versão rastreada via `package.json` (`version`) + git tag — sem nenhum
 fluxo de release/publicação.
@@ -30,7 +30,7 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   ├── commands/*.md       → ~/.claude/commands/     (19 comandos — ver README.md § Commands pra lista completa)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (20 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
 │   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
 │   │                            research, lidos por /newgoal pra classificar cada meta)
@@ -110,7 +110,7 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ---
 
-## 4. Os 19 comandos
+## 4. Os 20 comandos
 
 Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 
@@ -118,6 +118,7 @@ Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 |---|---|
 | `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. Dispara `/newgoal` em segundo plano ao final. |
 | `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
+| `/repertoire` | Pesquisa o domínio real do projeto-alvo — base científica, regulatória/legal, cultural, mídia — não a stack técnica. Sempre confirma antes de rodar; combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho. |
 | `/execgoals` | Executa `GOALS.md` item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade. |
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
@@ -267,6 +268,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/undo`** | comando | Reverte o último lote de mudança (não commitada ou o último commit), confirmação em tiers por risco. Nunca `reset --hard`/force-push sem gate separado. |
 | **`/newgoal`** | comando | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research`) e pesquisa + escreve `GOALS.md`, o plano que `/execgoals` consome. |
 | **`/execgoals`** | comando | Executa `GOALS.md` item por item na ordem escrita, verificando cada um antes de marcar como feito. |
+| **`/repertoire`** | comando | Pesquisa domínio real (científico/regulatório/cultural/mídia) do projeto-alvo antes do `/newgoal` planejar. Confirma antes de rodar; combina ou roda sozinho. |
 | **`/ship`** | comando | Commita e sobe as mudanças pro remoto (GitHub etc.), com checagem de prontidão e guia passo a passo pra cada bloqueio (repo sem remoto, segredo detectado, lint quebrado, divergência com upstream...). Nunca força push, nunca resolve conflito sozinho. |
 | **`/pr`** | comando | Abre PR pra branch atual, título/corpo a partir do range de commits real, confirma antes de criar. |
 | **`/council`** | comando | Pressão-testa uma decisão difícil com 5 perspectivas de conselheiro independentes + veredito. |

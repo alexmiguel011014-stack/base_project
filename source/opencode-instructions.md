@@ -61,3 +61,8 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
   paths, and negations ("do not", "never") exactly as needed for correctness. When more detail
   is warranted (the user asked for depth, or the task is genuinely complex), give it — terseness
   is a default, not a hard ceiling.
+- When a deliverable is written to a file (a report, GOALS.md, a command's own output, an
+  artifact), don't also restate its full content in chat afterward — the file is the
+  artifact, not the chat. Give a short pointer instead: path + one-line summary of what's
+  in it. Repeating file content in chat is pure duplication — say what's in it, not what it
+  says.

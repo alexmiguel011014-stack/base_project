@@ -37,7 +37,7 @@ base_project vX.Y.Z
 
 Agents: architect, coder, reviewer
 
-Commands: newproject, newgoal, execgoals, scanproject, cleanproject, fixproject, undo, ship, pr, bootstrap, audit, plugins, council, designreview, wpp, status, reviewusage, update, uninstall
+Commands: newproject, newgoal, repertoire, execgoals, scanproject, cleanproject, fixproject, undo, ship, pr, bootstrap, audit, plugins, council, designreview, wpp, status, reviewusage, update, uninstall
 
 Hooks: loop-detect, post-edit-format, session-start-git-context, usage-log
 

@@ -1416,13 +1416,33 @@ ingestão de contexto primeiro, e `/newgoal` usa o resultado ao classificar (pas
 pesquisar (passo 4). Vantagem sobre embutir direto: fica opcional/composável, e outros
 comandos poderiam invocar o mesmo mecanismo depois sem duplicar lógica.
 
-**Status**: `não implementado` — registrado aqui só pra não perder a ideia entre sessões,
-como o próprio ROADMAP pede ("registra, depois decide junto"). Falta confirmar com o
-dono do projeto: (1) nome do comando, (2) o que exatamente ele ingere — reaproveitar o
-artefato que `/bootstrap` já produz (`repomix-output.xml`/`graphify-out/`), rodar
-`/bootstrap` como pré-requisito se não existir, ingerir outra fonte (docs externos,
-histórico de `GOALS.md` de sessões passadas, algo mais) — ou alguma combinação, e (3) se
-o comando também deveria funcionar sozinho (sem `/newgoal`) ou só faz sentido combinado.
+**Status**: `feito` — o dono do projeto refinou o conteúdo em 2026-08-18: não é sobre
+reaproveitar artefato de código (`repomix`/`graphify`), é sobre pesquisar o *domínio* do
+projeto (base científica, cultural, regulatória, midiática) pra dar mais repertório antes
+de planejar — algo que `/newgoal`'s próprio passo 4 nunca cobriu (ele pesquisa *como
+construir*, não *sobre o que é o projeto*). Nome final: `/repertoire`. Planejado via
+`/newgoal` (GOALS 3 — feature-type) e construído via `/execgoals`, não implementado
+ad-hoc como `/pr`/`/undo` foram — decisão do próprio dono do projeto de rotear essa pela
+disciplina de planejamento normal.
+
+Mecanismo: decompõe em até 5 "lentes" de referência (científica, regulatória, cultural,
+mídia, mercado) — não todas obrigatórias por projeto, julgadas caso a caso, nunca uma
+tabela fixa por indústria (mesmo erro que forçar `build.md` num goal não-Build já causou
+nesta própria história, ver GOALS 2). Mostra o plano de lentes e confirma antes de gastar
+orçamento de pesquisa (mesma disciplina do `/council`, e a estratégia que a pesquisa real
+de agentes de deep-research mostrou ser a mais robusta — "unified intent-planning").
+Produz `REPERTOIRE.md` na raiz do projeto-alvo. Combina só via invocação junto
+(`/newgoal /repertoire`), nunca embutido como passo obrigatório do `/newgoal` — exatamente
+a "Decisão de forma" já travada acima, agora implementada como tal.
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46, `npm run
+validate:plugins` ok. Wired em `command-menu.md`, README.md (tabela + contagem 19→20),
+`ARCHITECTURE.md` (§1/§4/§5.2), `status.md` (exemplo, os dois engines), CI
+(`install-test`, bash + PowerShell, os dois engines), `newgoal.md` passo 4b (os dois
+engines). Instalador ainda não rerodado nesta entrada — ver validação final da sessão.
+**Não testado invocando `/repertoire` de verdade** contra um projeto real com domínio
+próprio (científico/cultural/etc.) — a régua acima é a especificação escrita e pesquisada
+via `/newgoal` (`GOALS.md` GOALS 3), não uma execução observada.
 
 ---
 
