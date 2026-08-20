@@ -1603,6 +1603,47 @@ execução observada.
 
 ---
 
+### 37. `/designreview`: calibração contra exemplares reais nomeados + 2 entradas novas no catálogo
+
+**O que é**: pedido direto do dono do projeto — `/designreview` julgava sem nenhum ponto de
+referência concreto (impressão do modelo, sem âncora). Planejado via `/newgoal` (GOALS 4,
+feature-type) e construído via `/execgoals`.
+
+**Pesquisa real**: o próprio dataset UICrit (já citado no GOALS 1) mostrou que exemplares
+few-shot/visuais elevam a qualidade do feedback de LLM em crítica de design; pesquisa geral
+de LLM-as-judge confirma que 2-4 exemplos nomeados ancoram a escala do julgador melhor que
+critério abstrato sozinho. Achei também o **StyleSeed** (`bitjaru/styleseed` — engine de
+julgamento de design open-source, MIT, 100+ estrelas, feito pra Claude Code/Cursor, com
+skins de referência compiladas de Stripe/Linear/Vercel/Notion/Toss — a escolha das 4 marcas
+nomeadas no `/designreview` vem dessa curadoria independente) e o **UX/UI Agent Skills**
+(`plugin87` — 138 design systems de referência, tokens DTCG, WCAG 2.2, geração de código
+pra qualquer framework).
+
+**O que mudou**:
+- `designreview.md` (os dois engines) ganhou o passo 2b: nomeia 1-2 exemplares reais
+  (Stripe/Linear/Vercel/Notion) antes de julgar, e opcionalmente abre uma galeria de
+  referência ao vivo (Mobbin/Awwwards/Godly/Land-book) se já houver tooling de browser
+  disponível na sessão — nunca obrigatório, só um aprofundamento quando sai de graça.
+  Passo 6 (relatório) ganhou uma linha mencionando o `/plugins` quando o achado pedir
+  reconstrução de verdade, não só ajuste.
+- `plugins.json`: 2 entradas novas (`styleseed`, `ux-ui-agent-skills`), `claude_only: true`
+  nas duas — os READMEs reais de ambas não mencionam opencode em lugar nenhum, então não
+  inventei suporte (mesma regra que `/plugins` step 5b já aplica pra descoberta ao vivo).
+  Comando de instalação confirmado direto do README de cada repo via `gh api .../readme`,
+  não inventado: `npx skills add bitjaru/styleseed` e `npx ux-ui-agent-skills init`.
+  Adicionadas aos perfis `design` e `full`.
+
+**Status**: `feito`.
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 46/46, `npm run
+validate:plugins` ok (as 2 entradas novas passam no schema). Wired em `README.md` (tabela
+`/designreview` + lista "Currently cataloged"), `ARCHITECTURE.md` §5.2. **Não testado
+invocando `/designreview` de verdade** com o passo 2b novo, nem instalando StyleSeed/
+UX-UI-Agent-Skills de verdade — a régua é a especificação escrita e pesquisada via
+`/newgoal` (`GOALS.md` GOALS 4), não uma execução observada.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

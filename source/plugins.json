@@ -3,7 +3,7 @@
   "_note": "Optional catalog read by the /plugins command. Add entries here to extend the catalog — no code changes needed elsewhere. Re-run the installer after editing to sync.",
   "profiles": {
     "minimal": ["headroom", "ponytail"],
-    "design": ["skill-ui", "emil-design-eng", "impeccable", "taste-skill"],
+    "design": ["skill-ui", "emil-design-eng", "impeccable", "taste-skill", "styleseed", "ux-ui-agent-skills"],
     "full": [
       "playwright",
       "supabase",
@@ -14,6 +14,8 @@
       "emil-design-eng",
       "impeccable",
       "taste-skill",
+      "styleseed",
+      "ux-ui-agent-skills",
       "example-skills",
       "headroom",
       "ruflo",
@@ -109,6 +111,26 @@
       "recommend_if": "The project has a UI and you want the agent to commit to a specific design direction up front instead of defaulting to generic template output.",
       "source": "https://github.com/leonxlnx/taste-skill",
       "claude": { "command": "npx", "args": ["skills", "add", "https://github.com/Leonxlnx/taste-skill", "--skill", "design-taste-frontend"] }
+    },
+    {
+      "id": "styleseed",
+      "name": "StyleSeed",
+      "kind": "skill",
+      "summary": "Design-judgment engine — 74 rules plus a 0-100 scored render/score/revise gate (not just a rule dump), with reference-compiled brand skins for Stripe/Linear/Vercel/Notion/Toss. Built specifically for Claude Code/Cursor. The generation-side counterpart to /designreview's critique: this is what actually fixes a flagged design well.",
+      "recommend_if": "The project has a UI and /designreview (or the user) found design problems worth fixing, not just critiquing — or an AI-generated screen looks generic and needs to stop.",
+      "source": "https://github.com/bitjaru/styleseed",
+      "claude_only": true,
+      "claude": { "command": "npx", "args": ["-y", "skills", "add", "bitjaru/styleseed"] }
+    },
+    {
+      "id": "ux-ui-agent-skills",
+      "name": "UX/UI Agent Skills",
+      "kind": "skill",
+      "summary": "138-design-system reference library plus DTCG design tokens, component specs, WCAG 2.2 audit, and code generation across any framework (React, Vue, SwiftUI, and more). Broader and more code-generation-focused than StyleSeed — pick this when the fix targets a framework StyleSeed doesn't, or the real need is a full design-token pipeline.",
+      "recommend_if": "The project has a UI and /designreview (or the user) found design problems worth fixing in a framework StyleSeed doesn't target, or needs a real DTCG token pipeline rather than just visual polish.",
+      "source": "https://github.com/plugin87/ux-ui-agent-skills",
+      "claude_only": true,
+      "claude": { "command": "npx", "args": ["-y", "ux-ui-agent-skills", "init"] }
     },
     {
       "id": "example-skills",

@@ -233,7 +233,9 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **Emil Kowalski — Design Engineering** (`emil-design-eng`) | plugin (skill, 10 sub-skills) | Animação/polish de componente: easing customizado, transições <300ms, critério de revisão de design engineer sênior. |
 | **Impeccable** (`impeccable`) | plugin (skill) | Sistema anti-"design genérico de IA" — 23 comandos, dezenas de regras determinísticas (gradiente roxo, cartão aninhado, etc.). |
 | **Taste Skill** (`taste-skill`) | plugin (skill) | Define direção de design a partir do briefing antes de tocar em código — evita hero centralizado, gradiente roxo, emoji em excesso. |
-| **`/designreview`** | comando | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda `contrast-check.js` (WCAG/alvo de toque) primeiro, depois julgamento global-antes-local. |
+| **StyleSeed** (`styleseed`) | plugin (skill) | Engine de julgamento de design — 74 regras + gate pontuado (0-100) de render/score/revise, com skins de referência compiladas de Stripe/Linear/Vercel/Notion/Toss. Contraparte de geração do `/designreview`: corrige de verdade o que foi criticado. |
+| **UX/UI Agent Skills** (`ux-ui-agent-skills`) | plugin (skill) | Biblioteca de 138 design systems + tokens DTCG, specs de componente, auditoria WCAG 2.2, geração de código pra qualquer framework. Mais abrangente e focado em geração de código que o StyleSeed. |
+| **`/designreview`** | comando | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda `contrast-check.js` (WCAG/alvo de toque), depois calibra contra exemplares reais nomeados (Stripe/Linear/Vercel/Notion) antes do julgamento global-antes-local. |
 
 ### 🗄️ Banco de dados / infraestrutura
 | Nome | Tipo | O que faz |

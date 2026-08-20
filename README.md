@@ -125,7 +125,7 @@ what's there, fix it, ship it, then the everyday extras:
 | `/pr` | Opens a pull request for the current branch — drafts the title/body from the real commit range against the base branch, confirms before creating anything. The step `/ship`'s own step 9 points at but never runs itself. |
 | `/plugins` | Looks at the current project, recommends which optional plugins fit — from the catalog, the official marketplace, and the open web if nothing else covers the need — and installs the ones you pick. |
 | `/council` | Pressure-tests a hard decision through 5 independent advisor perspectives + a synthesized verdict. Always asks for confirmation first — it costs roughly 6x a single-pass answer. |
-| `/designreview` | Critiques a design — an external mockup/screenshot/URL, or a UI Claude just generated — against a research-backed rubric (Nielsen Norman heuristics, UICrit, Criticmate, UXBench). Runs a deterministic WCAG-contrast/tap-target check first, then a global-then-local judgment pass, and reports findings ranked by severity. |
+| `/designreview` | Critiques a design — an external mockup/screenshot/URL, or a UI Claude just generated — against a research-backed rubric (Nielsen Norman heuristics, UICrit, Criticmate, UXBench). Runs a deterministic WCAG-contrast/tap-target check, then calibrates against named real-world exemplars (Stripe, Linear, Vercel, Notion — optionally with a live gallery lookup) before a global-then-local judgment pass, and reports findings ranked by severity. |
 | `/status` | Shows the base_project version and a plain name-only list of everything currently active on this machine (agents, commands, hooks, plugins). No explanations. |
 | `/reviewusage` | Reads the local usage ledger and reports what's actually being used: installed-but-never-touched tools, what's used and where, what's failing, what's slow. Claude Code only — opencode activity isn't tracked. |
 | `/update` | Checks whether base_project itself has a newer version on GitHub and, on confirmation, pulls it and re-runs the installer. Never touches an unrelated project. |
@@ -146,7 +146,7 @@ ai > This looks like a Next.js + Supabase project.
      Install the recommended two, more, or none?
 ```
 
-**Currently cataloged:** Playwright MCP, Supabase MCP, Postgres MCP, SQLite MCP, Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), Headroom (context compression), Ponytail (anti-overengineering discipline).
+**Currently cataloged:** Playwright MCP, Supabase MCP, Postgres MCP, SQLite MCP, Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline).
 
 ### Claude Code vs. opencode
 
