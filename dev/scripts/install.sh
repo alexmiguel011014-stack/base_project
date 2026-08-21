@@ -479,6 +479,15 @@ if [ -f "$CONTRAST_CHECK_SRC" ]; then
 fi
 
 # ---------------------------------------------------------------------
+# 8c-3. diary-source.js - deterministic ledger/git extractor behind /diario.
+# See ROADMAP item 38.
+# ---------------------------------------------------------------------
+DIARY_SOURCE_SRC="$SCRIPT_DIR/diary-source.js"
+if [ -f "$DIARY_SOURCE_SRC" ]; then
+    sync_managed "$DIARY_SOURCE_SRC" "$CLAUDE_SCRIPTS_DIR/diary-source.js"
+fi
+
+# ---------------------------------------------------------------------
 # 8d. Reference docs read by commands (project-standards.md, command-menu.md)
 # ---------------------------------------------------------------------
 step "Syncing reference docs..."

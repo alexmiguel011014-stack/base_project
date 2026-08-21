@@ -18,6 +18,7 @@ O que você deseja fazer agora?
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
 - `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
 - `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.
+- `/diario` — registra o que foi feito no diário de contribuições deste projeto (entradas datadas + tabela de horas), a partir do que já foi gravado automaticamente. Os diários ficam numa pasta fora de todos os repositórios — nunca vão pro GitHub.
 - `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar.
 - `/pr` — abre um pull request pra branch atual, com título/corpo rascunhados a partir dos commits reais. Sempre confirma antes de criar.
 - `/plugins` — ver e instalar plugins opcionais (banco de dados, design, testes de UI, etc.) para este projeto.

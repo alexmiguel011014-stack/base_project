@@ -14,7 +14,7 @@ Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `
 para `~/.claude/` e `~/.config/opencode/` — nada mais. Não é um servidor rodando o
 tempo todo, não é um pacote npm publicado, não escreve nada dentro de projetos que o
 usam. O "produto" real são os arquivos que acabam instalados: regras globais, 3
-subagentes, 20 comandos, um catálogo de plugins opcionais, e 4 hooks com comportamento
+subagentes, 21 comandos, um catálogo de plugins opcionais, e 4 hooks com comportamento
 real. (O dashboard web existiu até o ROADMAP item 13 — removido por completo, ver
 histórico lá.) Versão rastreada via `package.json` (`version`) + git tag — sem nenhum
 fluxo de release/publicação.
@@ -30,7 +30,7 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   ├── commands/*.md       → ~/.claude/commands/     (20 comandos — ver README.md § Commands pra lista completa)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (21 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
 │   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
 │   │                            research, lidos por /newgoal pra classificar cada meta)
@@ -49,6 +49,7 @@ base_project/
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
+│   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
 │   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
 │   ├── schemas/
 │   │   └── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
@@ -110,7 +111,7 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ---
 
-## 4. Os 20 comandos
+## 4. Os 21 comandos
 
 Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 
@@ -124,6 +125,7 @@ Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
 | `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
 | `/undo` | Reverte o último lote de mudança — não commitada, arquivo novo não rastreado, ou o último commit — com confirmação em tiers separados por risco. Nunca `git reset --hard`/force-push sem um gate explícito à parte; commit já enviado é desfeito com `git revert`, nunca reescrito. |
+| `/diario` | Registra o que foi feito no diário de contribuições do projeto (entradas datadas + tabela de horas), sintetizado do ledger de uso + histórico git. Os diários ficam num diretório central **fora de todos os repositórios** — garantia arquitetural de que nunca chegam ao GitHub. |
 | `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
 | `/pr` | Abre um pull request pra branch atual — rascunha título/corpo a partir do range de commits real contra a branch base, confirma antes de criar. O passo que o próprio `/ship` (passo 9) já menciona mas nunca executa. |
 | `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
@@ -268,6 +270,8 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/cleanproject`** | comando | Avalia organização de arquivo/pasta (arquivo morto, estrutura, duplicação), propõe reorganização. Read-only. |
 | **`/fixproject`** | comando | Corrige os achados do `/scanproject` e/ou `/cleanproject`, com reverificação real de cada correção. |
 | **`/undo`** | comando | Reverte o último lote de mudança (não commitada ou o último commit), confirmação em tiers por risco. Nunca `reset --hard`/force-push sem gate separado. |
+| **`/diario`** | comando | Escreve o diário de contribuições do projeto a partir do ledger + git, num diretório fora de todo repositório. Nunca escreve dentro de um projeto. |
+| **`diary-source.js`** | script interno | Extração determinística por projeto/dia (duração com corte de ociosidade >30min, arquivos tocados, commits). Roda dentro do `/diario`. |
 | **`/newgoal`** | comando | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research`) e pesquisa + escreve `GOALS.md`, o plano que `/execgoals` consome. |
 | **`/execgoals`** | comando | Executa `GOALS.md` item por item na ordem escrita, verificando cada um antes de marcar como feito. |
 | **`/repertoire`** | comando | Pesquisa domínio real (científico/regulatório/cultural/mídia) do projeto-alvo antes do `/newgoal` planejar. Confirma antes de rodar; combina ou roda sozinho. |

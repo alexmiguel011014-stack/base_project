@@ -586,6 +586,15 @@ if (Test-Path $contrastCheckSrc) {
 }
 
 # ---------------------------------------------------------------------
+# 8c-3. diary-source.js - deterministic ledger/git extractor behind /diario.
+# See ROADMAP item 38.
+# ---------------------------------------------------------------------
+$diarySourceSrc = Join-Path $repoRoot "dev\scripts\diary-source.js"
+if (Test-Path $diarySourceSrc) {
+    Sync-Managed -SrcFile $diarySourceSrc -DestFile (Join-Path $claudeScriptsDir "diary-source.js")
+}
+
+# ---------------------------------------------------------------------
 # 8d. Reference docs read by commands (project-standards.md, command-menu.md)
 # ---------------------------------------------------------------------
 Write-Step "Syncing reference docs..."

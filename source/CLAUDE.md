@@ -42,6 +42,18 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
 - If the user's next message is already a direct request, skip the menu that turn — it
   exists to lower friction for someone unsure what to do next, not to gate every turn.
 
+### Contribution diary (suggest only, never write unasked)
+- After closing a substantial task (the same threshold the menu rule below uses: multiple
+  file edits, subagents, or TodoWrite involved), mention once — briefly, without derailing —
+  that `/diario` can record it in this project's contribution diary. Then drop it.
+- Never write or update a diary without being asked. The recording that happens automatically
+  is the `usage-log` hook's raw ledger, not narrative entries; nothing is lost by the user
+  saying no, since `/diario` can synthesize any past date range later from that same ledger.
+- Diaries live in one central directory outside every repository, resolved from
+  `~/.base_project/diary-root.txt`. Never create one inside a project repo, and never suggest
+  committing one anywhere — that content is deliberately kept out of version control.
+- Don't repeat the suggestion again in the same session once mentioned or declined.
+
 ### Self-Correction
 - After any code change, detect and run the project's own test/typecheck/lint commands from its manifest
   (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) — do not assume a specific stack or toolchain.

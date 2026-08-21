@@ -1644,6 +1644,135 @@ UX-UI-Agent-Skills de verdade — a régua é a especificação escrita e pesqui
 
 ---
 
+### 38. `/diario`: diário de contribuições por projeto, fora de todo repositório
+
+**O que é**: pedido direto do dono do projeto — manter um diário de contribuições por projeto
+(no formato do template de projeto de extensão que ele precisa preencher), centralizado em
+`D:\ProjetosPessoais\Diarios_contribuicao`, acumulando conforme o trabalho acontece. Com um
+requisito absoluto: *"coloque de um jeito que isso não apareça quando subir para o github, não
+pode aparecer isso lá de jeito nenhum."* Planejado via `/newgoal` (GOALS 5, feature-type) e
+construído via `/execgoals`.
+
+**A garantia de segurança é arquitetural, não uma promessa de `.gitignore`** — e foi verificada,
+não assumida: `D:\ProjetosPessoais` **não é repositório git** (`git rev-parse
+--is-inside-work-tree` → fatal), enquanto os 6 projetos abaixo dele **são**, com remotes ativos
+no GitHub. Os diários ficam numa pasta irmã de todos os repos, dentro de nenhum, então o git
+não os enxerga nem em princípio. Por cima disso, mais duas travas independentes: `.gitignore`
+com `*` dentro da pasta (caso alguém rode `git init` ali um dia) e um guard no próprio comando,
+que se recusa a escrever se o destino resolvido estiver dentro de uma work tree. Verificado ao
+vivo depois de escrever os 5 diários: `git status` de cada um dos 5 repos não enxerga nenhum
+arquivo de diário.
+
+**Reuso em vez de mecanismo novo**: o hook `usage-log.js` já vinha gravando tudo desde
+17/08/2026 — 2826 eventos com `cwd`, `ts`, `tool` e prompt. A captura já existia; faltava só a
+síntese. É isso que torna "vai acrescentando automaticamente" verdade no sentido honesto: os
+fatos são capturados continuamente, e `/diario` sintetiza qualquer período depois, mesmo sem
+rodar o comando naquele dia.
+
+**Comando, não hook** — precedente já fixado neste repo pelo `designreview.md`: hook aqui é
+script determinístico, nunca chamada de LLM. Redação narrativa precisa de LLM, então é comando.
+A regra em `source/CLAUDE.md`/`opencode-instructions.md` apenas *sugere* rodar `/diario` ao
+fechar tarefa substancial, no mesmo formato da sugestão de plugin ("suggest only, never
+auto-install") — sugere, nunca escreve sozinho.
+
+**Split determinístico/narrativo**, terceiro uso do mesmo padrão (`contrast-check.js` +
+`/designreview`, `scan-skill.js` + `/plugins`): `dev/scripts/diary-source.js` extrai fatos
+(agrupamento por projeto/dia, duração com corte de ociosidade acima de 30min, arquivos tocados,
+commits) e tem 26 testes reais; o comando só redige.
+
+**Dois achados reais durante a execução, nenhum previsto no plano**:
+1. **Nome de projeto ≠ nome de pasta.** A pasta é `ERP_HK`, mas o projeto é `ERP` (nome do
+   remote, e como o dono se refere a ele) — apontado pelo próprio dono do projeto durante o
+   `/execgoals`. `diary-source.js` passou a resolver identidade pelo remote, com fallback pro
+   nome da pasta.
+2. **O ledger guarda `input` como string JSON truncada, não objeto.** Meu código lia como
+   objeto e extraía **zero** arquivos — defeito silencioso que os fixtures não pegavam, só
+   apareceu ao rodar contra o ledger real. Corrigido com parse + fallback por regex (a
+   truncagem quebra o JSON justamente nos eventos maiores), com casos de regressão adicionados.
+
+**Exceção de idioma registrada**: os dois `diario.md` passam a casar na verificação de drift de
+português documentada no `CLAUDE.md`, porque contêm um *bloco de exemplo* do formato de saída,
+que é português por design (o diário é lido por pessoas). A verificação no `CLAUDE.md` foi
+atualizada pra nomear essa exceção — português fora do bloco de exemplo continua sendo drift.
+
+**Status**: `feito`.
+
+**Validado**: `npx tsc` limpo, `npx biome check` exit 0, `npm test` 72/72 (46 → 72, +26 novos),
+`npm run validate:plugins` ok. 5 diários escritos de verdade (base_project, ERP, TunelSSH,
+Personal_app, MGGP_Vmatlab) a partir de evidência real — ledger desde 17/08 e histórico git
+desde 29/07. Guard de segurança exercitado ao vivo (recusa/permite), e ausência dos diários
+confirmada no `git status` dos 5 repos. **Não testado**: invocar `/diario` como comando de
+verdade numa sessão nova (os diários desta entrega foram escritos executando o plano, com o
+mesmo script e formato que o comando usa), nem o caminho de *append* incremental — o primeiro
+append real só acontece na próxima vez que o comando rodar.
+
+**Fora de escopo, deliberado**: versionar os diários num repositório privado (reintroduziria
+exatamente o risco que o pedido eliminou); exportar pro PDF da universidade com assinaturas; e
+retenção do ledger — se aqueles `.jsonl` forem apagados, história não sintetizada se perde, e a
+mitigação é rodar `/diario` com alguma regularidade.
+
+**Decisão do dono do projeto**: diários criados para 5 projetos — `Personal APP`, `TunelSSH`,
+`MGGP_Vmatlab`, `base_project` e `ERP`. `IC` foi excluído explicitamente; `ponto_csh` não foi
+selecionado.
+
+---
+
+### 39. `/diario`: entregável vira `.docx`, `.md` some pra dentro de `_source/`
+
+**O que é**: pedido direto do dono do projeto, depois de ver o item 38 pronto — o entregável
+devia ser `.docx`, "igual eu te entreguei" (referência ao template PDF de diário de contribuição
+que ele mostrou originalmente, assinado via gov.br — claramente autorado em Word). Mudança de
+formato de saída, não de mecanismo: `diary-source.js` (extração determinística) continua
+igual, intocado.
+
+**Decisão de arquitetura: sem dependência nova nem script permanente pra gerar `.docx`.**
+Cogitei manter um `dev/scripts/diary-render.js` no repositório, mas isso exigiria a dependência
+`docx` (npm) no `package.json` do base_project — que hoje é só tooling de dev/CI
+(`ajv`+`ajv-formats`, `biome`, `typescript`), e quebraria a portabilidade que
+`scan-skill.js`/`contrast-check.js`/`diary-source.js` têm hoje (só Node built-in, funcionam
+soltos depois de copiados pra `~/.claude/base_project/scripts/`, sem `node_modules` por perto).
+O skill `docx` já resolve isso do jeito certo: é pensado pra escrever um script docx-js
+descartável na hora, não pra instalar uma ferramenta permanente. `diario.md` passou a instruir
+isso como passo 10, em vez de apontar pra um script commitado.
+
+**Dois arquivos por projeto, papéis diferentes**: `_source/<projeto>.md` (cópia de trabalho
+interna, é nela que `/diario` acrescenta) e `<projeto>.docx` na raiz da pasta de diários (o
+entregável, regenerado do zero a cada execução a partir do `.md` completo). Regenerar do zero
+em vez de tentar corrigir o XML de um `.docx` existente incrementalmente — editar XML de Word
+é frágil (`unzip`/editar/`zip`, precisa de `merge_runs.py` porque o Word fragmenta texto em
+vários `<w:r>`); regenerar é determinístico e mais simples pro tamanho de documento envolvido.
+A prosa das entradas já escritas nunca muda de verdade — só é lida de volta do `.md` fonte, não
+reconstruída a cada vez.
+
+**Bug real encontrado ao verificar, não ao rodar sem erro**: o primeiro conversor tratava cada
+*linha* do markdown como um parágrafo — mas os diários deste projeto quebram parágrafo em
+várias linhas (convenção de ~88-90 caracteres já usada em todo o resto do repositório). Um
+`**negrito**` que começa numa linha e termina na próxima nunca casava com o regex por-linha,
+deixando os `**` literais no texto final. **O script rodou sem exceção nas 5 conversões** — só
+foi pego abrindo o `.docx` como ZIP e fazendo grep por `**` residual no `document.xml`. Corrigido
+juntando linhas consecutivas não-vazias num parágrafo antes de interpretar o inline; `diario.md`
+passou a instruir essa mesma checagem pós-render como passo 11, obrigatório mesmo sem
+LibreOffice disponível pra render visual.
+
+**Limite real desta máquina, registrado por transparência**: nem `pandoc` nem `soffice`
+(LibreOffice) estão instalados aqui — o passo de "converter pra PDF e olhar a página" que o
+skill `docx` recomenda como verificação final não pôde rodar. A verificação que rodou de fato:
+XML bem-formado (`xml.dom.minidom`), contagem de "Dia N" no XML batendo com o número de entradas
+da fonte, e zero `**` residual — real, mas mais fraca que inspeção visual.
+
+**Status**: `feito`.
+
+**Validado**: os 5 diários já escritos no item 38 foram movidos pra `_source/*.md` e
+re-renderizados como `.docx` na raiz — `base_project` (13 dias), `ERP` (13), `TunelSSH` (11),
+`Personal_app` (6), `MGGP_Vmatlab` (3), todos com a contagem de dias no XML batendo com a fonte
+e zero `**` residual depois do fix. `npx tsc`/`npx biome check`/`npm test` (72/72, sem mudança —
+nenhum código de `dev/` foi tocado) continuam verdes. **Não validado**: renderização visual real
+(sem LibreOffice nesta máquina) e o caminho de *append* — regenerar um `.docx` que já tinha um
+`.docx` anterior de uma execução de verdade do comando (o que aconteceu aqui foi conversão do
+formato antigo, não um segundo `/diario` incremental).
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

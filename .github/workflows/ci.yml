@@ -68,6 +68,7 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
           test -f "$CLAUDE_HOME/base_project/scripts/contrast-check.js"
+          test -f "$CLAUDE_HOME/base_project/scripts/diary-source.js"
           test -f "$CLAUDE_HOME/base_project/hooks/usage-log.js"
           test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
           test -f "$CLAUDE_HOME/base_project/references/command-menu.md"
@@ -92,6 +93,7 @@ jobs:
           test -f "$CLAUDE_HOME/commands/ship.md"
           test -f "$CLAUDE_HOME/commands/pr.md"
           test -f "$CLAUDE_HOME/commands/undo.md"
+          test -f "$CLAUDE_HOME/commands/diario.md"
           test -f "$CLAUDE_HOME/commands/newgoal.md"
           test -f "$CLAUDE_HOME/commands/repertoire.md"
           test -f "$CLAUDE_HOME/commands/execgoals.md"
@@ -120,6 +122,7 @@ jobs:
           test -f "$OPENCODE_HOME/command/ship.md"
           test -f "$OPENCODE_HOME/command/pr.md"
           test -f "$OPENCODE_HOME/command/undo.md"
+          test -f "$OPENCODE_HOME/command/diario.md"
           test -f "$OPENCODE_HOME/command/newgoal.md"
           test -f "$OPENCODE_HOME/command/repertoire.md"
           test -f "$OPENCODE_HOME/command/execgoals.md"
@@ -143,6 +146,7 @@ jobs:
             (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
             (Join-Path $claudeHome "base_project\scripts\contrast-check.js"),
+            (Join-Path $claudeHome "base_project\scripts\diary-source.js"),
             (Join-Path $claudeHome "base_project\hooks\usage-log.js"),
             (Join-Path $claudeHome "base_project\references\project-standards.md"),
             (Join-Path $claudeHome "base_project\references\command-menu.md"),
@@ -167,6 +171,7 @@ jobs:
             (Join-Path $claudeHome "commands\ship.md"),
             (Join-Path $claudeHome "commands\pr.md"),
             (Join-Path $claudeHome "commands\undo.md"),
+            (Join-Path $claudeHome "commands\diario.md"),
             (Join-Path $claudeHome "commands\newgoal.md"),
             (Join-Path $claudeHome "commands\repertoire.md"),
             (Join-Path $claudeHome "commands\execgoals.md"),
@@ -195,6 +200,7 @@ jobs:
             (Join-Path $opencodeHome "command\ship.md"),
             (Join-Path $opencodeHome "command\pr.md"),
             (Join-Path $opencodeHome "command\undo.md"),
+            (Join-Path $opencodeHome "command\diario.md"),
             (Join-Path $opencodeHome "command\newgoal.md"),
             (Join-Path $opencodeHome "command\repertoire.md"),
             (Join-Path $opencodeHome "command\execgoals.md"),

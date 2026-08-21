@@ -29,7 +29,12 @@ no idioma do usuário (o `project-standards.md` faz isso no rodapé) — senão 
 vaza para a resposta.
 
 Verificação rápida de drift: procurar `\b(não|para|você|projeto|arquivo)\b` em `source/**/*.md`
-deve casar só nos `command-menu.md`.
+deve casar só nos `command-menu.md` **e nos dois `diario.md`**. Os `diario.md` são exceção
+legítima e delimitada: o arquivo de comando em si é inglês como todos os outros, mas ele
+contém um *bloco de exemplo* do formato de entrada do diário, que é português porque a saída
+é português (o diário é lido por pessoas, possivelmente entregue a uma universidade). O
+português ali está dentro do bloco de código de exemplo — se aparecer fora dele, aí é drift
+de verdade.
 
 ## Sincronização fonte → instalado
 
