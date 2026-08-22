@@ -111,12 +111,22 @@ guiding through any blocker instead of failing silently or working around it.
    against the remote tip (`git ls-remote` or `git log origin/<branch> -1` after a fetch)
    rather than trusting a zero exit code alone.
 
-9. If `gh` is available and the current branch isn't `main`/`master`, mention that
-   `gh pr create` is available as a next step — do not run it unless asked; this
-   command's scope is shipping the branch, not opening the PR.
+9. **Determine the repo's actual default branch** — `gh repo view --json defaultBranchRef`
+   if `gh` is available (same check `/pr` already does), otherwise `git remote show origin`.
+   Never assume it's literally named `main`/`master` and never skip this check just because
+   it usually is. If the branch just pushed **is not** the default branch, that is not a
+   minor detail worth a passing mention: GitHub's repository homepage renders the default
+   branch, so this push **will not appear there** until the branch is merged — to anyone
+   just browsing github.com (including the user, the next day) the repo can look stale or
+   "not updated" even though the push genuinely succeeded and the code is really on the
+   remote. This exact confusion has happened for real — flag it explicitly, every time,
+   don't rely on the user already knowing how GitHub's default-branch view works. Mention
+   `/pr` as the concrete next step to open the merge — do not run it unless asked; this
+   command's scope is shipping the branch, not merging it.
 
 10. Report: what was committed (message + file count), what was pushed (branch → remote,
-    commit range), and anything skipped with the reason (secrets excluded, lint failures,
-    files left for manual review).
+    commit range), **whether the pushed branch is the repo's default branch — and if not,
+    the explicit warning from step 9, not just a footnote**, and anything skipped with the
+    reason (secrets excluded, lint failures, files left for manual review).
 
 $ARGUMENTS

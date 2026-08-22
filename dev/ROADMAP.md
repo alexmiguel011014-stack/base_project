@@ -1773,6 +1773,47 @@ formato antigo, não um segundo `/diario` incremental).
 
 ---
 
+### 40. `/ship`: avisar explicitamente quando o push não vai aparecer na página inicial do repo
+
+**O que é**: incidente real reportado pelo dono do projeto, ocorrido no `Personal_app_android`
+(21-22/08/2026). Trabalho de KMP/iOS inteiro foi commitado e enviado só pra
+`feature/kmp-ios` — `git push` funcionou, mas o GitHub continuava mostrando `main` (branch
+padrão) 4 commits atrás, e o repositório parecia "não atualizado" mesmo com o push real
+confirmado. O banner amarelo "Compare & pull request" do GitHub não era um PR de verdade
+(`gh pr list` retornava `[]`) — só sugestão automática de branch à frente, facilmente
+confundida com "já tem PR aberto".
+
+**Correção aplicada pelo usuário, real**: `gh pr create --base main --head feature/kmp-ios`
+→ PR #1, `gh pr merge 1 --merge` → `main` avançou, `git pull` local sincronizou.
+
+**Causa raiz do lado do `/ship`**: o passo 9 já existia e mencionava `gh pr create` quando a
+branch não era `main`/`master`, mas (a) o texto era uma menção genérica, não uma explicação
+de *por que* isso importa — não dizia que a página inicial do GitHub renderiza especificamente
+a branch padrão e simplesmente não mostra push numa branch diferente até merge; (b)
+`main`/`master` estava hardcoded em vez de checar a branch padrão real do repositório; (c) o
+relatório final (passo 10) não repetia esse aviso, então ficava fácil de passar batido.
+
+**O que mudou**: `ship.md` (os dois engines) passo 9 agora detecta a branch padrão de verdade
+(`gh repo view --json defaultBranchRef`, mesma checagem que o `/pr` já faz — reuso, não
+reinvenção), e se a branch enviada não for a padrão, avisa explicitamente que a página inicial
+do GitHub não vai refletir esse push até merge — nomeando esse exato tipo de confusão como já
+tendo acontecido de verdade, não um "pode acontecer" hipotético. Passo 10 agora exige repetir
+esse aviso no relatório final, não deixar só no passo 9. Os dois passos apontam pro `/pr`
+(criado no item 35 deste ROADMAP) como próximo passo concreto, em vez do genérico
+`gh pr create`.
+
+**Status**: `feito`.
+
+**Validado**: mudança é só texto de instrução (mesma natureza de todo comando deste projeto,
+sem lógica própria em JS a testar) — `npx tsc`/`npx biome check`/`npm test` não são afetados
+por edição em `.md`, mas rodados mesmo assim por hábito antes do commit. **Não testado
+rodando `/ship` de verdade** numa branch não-padrão pra confirmar que o aviso aparece como
+esperado — o incidente original já foi resolvido manualmente pelo usuário antes desta correção
+existir; a régua acima é a especificação, a próxima vez que `/ship` rodar numa feature branch
+é o teste real.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto
