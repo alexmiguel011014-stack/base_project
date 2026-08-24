@@ -92,7 +92,26 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 
-21 commands ship in total — see the Commands section below for the complete, current list.
+21 commands ship in total — see the Commands section below for the complete, current list (unified layer adds no new top-level command — `doctor` lives inside `/scanproject`, `sync` inside `/bootstrap`, `audit --agent`/`context` via `/audit`).
+
+### 🌐 Multi-Agent Support (Unified Layer — GOALS 6)
+
+One canonical source `~/.agents/` (with `~/.base_project/` kept for bookkeeping) projected into **31 agents** via per-agent adapters — 9 deep (verified transforms) + 22 generic (memory/MCP/`SKILL.md`). No new menu entry — inspect with `/audit --agent <id> --json` (config), check health via `/scanproject` (doctor), `bootstrap` já faz `sync` do `~/.agents/` se for repo git, e `context` é só `audit --json`.
+
+| Agent | Status | Config Files | Link Type |
+|---|---|---|---|
+| **Claude Code** | deep | `CLAUDE.md`, `.claude.json`, `.claude/skills/` | symlink |
+| **OpenCode** | deep | `AGENTS.md`, `opencode.json` | symlink |
+| **Codex CLI** | deep | `AGENTS.md`, `.codex/config.toml` (TOML) | symlink |
+| **Cursor** | deep | `.cursor/rules/*.mdc`, `.cursor/mcp.json` | **hardlink** (Cursor doesn't follow symlinks) |
+| **Gemini CLI** | deep | `GEMINI.md`, `.gemini/settings.json` | symlink |
+| **Continue** | deep | `.continue/rules/`, `.continue/mcpServers/*.yaml` | symlink |
+| **Windsurf** | deep | `.windsurf/rules/`, `~/.codeium/windsurf/mcp_config.json` (global) | symlink |
+| **Roo Code** | deep | `.roo/rules/`, `.roo/mcp.json` | symlink |
+| **Cline** | deep | `.clinerules`, `~/.cline/mcp.json` | symlink |
+| *+ 22 generic* | generic | `AGENTS.md` (+ `mcpServers` JSON + `SKILL.md` where supported) | symlink |
+
+See `source/claude/references/config-model.md` for the `global→agent→project` layer model.
 
 ---
 
@@ -116,8 +135,8 @@ what's there, fix it, ship it, then the everyday extras:
 | `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. |
 | `/repertoire` | Researches the target project's actual subject matter — scientific evidence, regulatory/legal context, cultural context, media discourse — not the tech stack. Confirms before running; combine with `/newgoal /repertoire` in the same message, or run standalone. |
 | `/execgoals` | Executes `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done (file exists, test passes, server starts) — resumes safely if interrupted. |
-| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
-| `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
+| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure) **plus** unified-layer health (broken links, missing `~/.agents/` dirs) — the `doctor` checks now live here. Read-only — reports findings, never edits. **Start here.** |
+| `/audit` | Two modes: (1) security (vuln scan) como antes; (2) **config** (`audit --agent cursor`) — qual camada `global→agent→project` vale para um projeto+agent. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
 | `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
 | `/undo` | Reverts the most recent batch of change — uncommitted edits, untracked new files, or the last commit — with confirmation tiered by risk. Never `git reset --hard` or force-push without a separate explicit gate; a pushed commit is undone with `git revert`, never rewritten. |

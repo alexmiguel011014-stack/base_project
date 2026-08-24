@@ -11,13 +11,15 @@ Para lições aprendidas com bugs reais, veja `CLAUDE.md` (regras deste repo) e
 ## 1. O que este projeto é, em uma frase
 
 Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `source/`
-para `~/.claude/` e `~/.config/opencode/` — nada mais. Não é um servidor rodando o
-tempo todo, não é um pacote npm publicado, não escreve nada dentro de projetos que o
-usam. O "produto" real são os arquivos que acabam instalados: regras globais, 3
-subagentes, 21 comandos, um catálogo de plugins opcionais, e 4 hooks com comportamento
-real. (O dashboard web existiu até o ROADMAP item 13 — removido por completo, ver
-histórico lá.) Versão rastreada via `package.json` (`version`) + git tag — sem nenhum
-fluxo de release/publicação.
+para `~/.claude/` e `~/.config/opencode/` e projeta `~/.agents/` (unified layer) em 31
+agents — nada mais. Não é um servidor rodando o tempo todo, não é um pacote npm
+publicado, não escreve nada dentro de projetos que o usam. O "produto" real são os
+arquivos que acabam instalados: regras globais, 3 subagentes, **21 comandos**, um catálogo
+de plugins opcionais, 4 hooks com comportamento real, e o **unified config layer**
+(`~/.agents/` → 9 deep adapters + 22 generic, `global→agent→project`, ver
+`source/claude/references/config-model.md`). (O dashboard web existiu até o ROADMAP item
+13 — removido por completo, ver histórico lá.) Versão rastreada via `package.json`
+(`version`) + git tag — sem nenhum fluxo de release/publicação.
 
 ---
 
@@ -50,9 +52,16 @@ base_project/
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
+│   │   ├── paths.js                  ← resolve CANONICAL_HOME (~/.agents) + TARGET_ROOT (GOALS 6)
+│   │   ├── config-store.js           ← CRUD de ~/.agents/config.json (projects map)
+│   │   ├── resolve-layers.js         ← global→agent→project resolver + merge
+│   │   ├── adapters/                 ← um módulo por agente (claude-code, cursor, codex, gemini-cli, continue, windsurf, roo-code, cline, opencode) + index.js registry
+│   │   ├── apply.js / drift.js / audit.js / doctor.js / lint-config.js / context.js / wizard.js / sync.js / tasks.js / history.js / snapshot.js / secrets.js / check-plugin-updates.js
 │   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
 │   ├── schemas/
-│   │   └── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
+│   │   ├── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
+│   │   ├── config.schema.json  ← valida ~/.agents/config.json (projects map)
+│   │   └── adapters.schema.json← valida source/adapters.json (breadth tier)
 │   ├── tests/                  ← node:test, roda com `npm test`
 │   └── ROADMAP.md              ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
 │
@@ -83,6 +92,8 @@ precisa cobrir `source/hooks/**/*.js` (fora de `dev/`) e `dev/scripts/*.js`/
 `dev/tests/**/*.js` (dentro), o único lugar que enxerga as duas árvores sem violar essa
 regra é a raiz. `tsconfig.json` foi junto por consistência (o `tsc` em si não tem essa
 restrição, mas manter os dois configs de tooling no mesmo lugar evita confusão).
+
+**Camada unificada (GOALS 6, 2026-08-23)**: `~/.agents/` é o canonical unificado (padrão `dot-agents`), com `~/.base_project/` mantido para bookkeeping próprio (repo-path, diary-root, usage ledger). Ver `source/claude/references/config-model.md` para layout completo `global→agent→project`, merge semantics e `link_type` (hardlink só para Cursor). Overrides: `AGENTS_HOME`/`BASE_PROJECT_HOME` (centralizado em `dev/scripts/paths.js`).
 
 **Regra de sincronização**: editar só `source/` não tem efeito imediato na máquina —
 `source/` é o "código-fonte", os arquivos instalados em `~/.claude/base_project/` são o
@@ -129,7 +140,7 @@ Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
 | `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
 | `/pr` | Abre um pull request pra branch atual — rascunha título/corpo a partir do range de commits real contra a branch base, confirma antes de criar. O passo que o próprio `/ship` (passo 9) já menciona mas nunca executa. |
 | `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
-| `/audit` | Scan de segurança (vulnerabilidade de dependência, segredo exposto). Usa Strix se instalado, senão `npm audit`/`pip-audit` + `gitleaks`/`trufflehog`. |
+| `/audit` | Dois modos: (1) segurança (vuln scan) como antes; (2) **config audit** (`--agent cursor`) — qual camada `global→agent→project` se aplica a um projeto+agent (matches `dot-agents audit`). `context` é só `audit --json`. |
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
 | `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. Sempre pede confirmação antes — custa ~6x uma resposta de passada única. |
 | `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
@@ -246,11 +257,27 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **Postgres MCP** (`postgres`) | plugin (MCP) | Consulta/inspeciona um Postgres local ou remoto. |
 | **SQLite MCP** (`sqlite`) | plugin (MCP) | Consulta/inspeciona um arquivo SQLite local. |
 
+### 🔄 Unified Layer — adapters (GOALS 6, sem comando novo no menu)
+| Agent | Tier | Link | Targets |
+|---|---|---|---|
+| claude-code | deep | symlink | `CLAUDE.md` → `~/.agents/rules/global/CLAUDE.md` |
+| opencode | deep | symlink | `AGENTS.md` |
+| codex | deep | symlink | `AGENTS.md` + `.codex/config.toml` (TOML) |
+| cursor | deep | **hardlink** | `.cursor/rules/*.mdc` (hardlink, EXDEV→copy) |
+| gemini-cli | deep | symlink | `GEMINI.md` |
+| continue | deep | symlink | `.continue/rules/` + YAML `mcpServers` |
+| windsurf | deep | symlink | `.windsurf/rules/` (6k limit, lossy) |
+| roo-code | deep | symlink | `.roo/rules/` |
+| cline | deep | symlink | `.clinerules` |
+| +22 generic | generic | symlink | `AGENTS.md` + `mcpServers`/`SKILL.md` onde suportado |
+
+Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `bootstrap` (inclui `sync` + `pr`); detalhe em `source/claude/references/config-model.md`. `explain` e `doctor`/`context` continuam como scripts em `dev/scripts/` mas não no menu (YAGNI).
+
 ### 🔒 Segurança
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **Strix** (`strix`) | plugin (CLI) | Pentest autônomo com prova de exploração real (não só lista estática), roda isolado em Docker. Usado por `/audit` quando instalado. |
-| **`/audit`** | comando | Scan de vulnerabilidade de dependência + segredo exposto no projeto atual. |
+| **`/audit`** | comando | Dois modos: (1) segurança (vuln scan) + (2) config audit (`global→agent→project`) via `/audit --agent`. |
 | **`scan-skill.js`** | script interno | Varre uma skill de terceiro baixada em busca de padrão suspeito (comando remoto, Unicode escondido) antes de confiar nela. Roda sozinho dentro do `/plugins`. |
 
 ### 🧭 Navegador / teste de UI
@@ -384,7 +411,7 @@ Sincronizado pelo installer pra `~/.claude/base_project/scripts/scan-skill.js`.
 ## 8. Testes (`dev/tests/`, `node:test`)
 
 `npm test` = `node --test dev/tests/*.test.js`. Sem framework externo (Jest/Vitest) —
-`node:test` nativo, zero dependência nova. 46 testes cobrindo:
+`node:test` nativo, zero dependência nova. 92 testes cobrindo:
 
 - `loop-detect.test.js` / `post-edit-format.test.js` / `session-start-git-context.test.js`
   / `usage-log.test.js` — os 4 hooks

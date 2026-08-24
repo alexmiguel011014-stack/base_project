@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://base_project.local/schemas/adapters.schema.json",
+  "title": "base_project adapters catalog ( source/adapters.json )",
+  "type": "object",
+  "required": ["adapters"],
+  "properties": {
+    "_managed_by": { "const": "base_project" },
+    "adapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "kind", "targets"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" },
+          "kind": { "type": "string", "enum": ["deep", "generic"] },
+          "link_type": { "type": "string", "enum": ["auto", "symlink", "hardlink"] },
+          "targets": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["source", "destination", "type"],
+              "properties": {
+                "source": { "type": "string" },
+                "destination": { "type": "string" },
+                "type": { "type": "string", "enum": ["symlink", "hardlink", "symlink-contents", "copy", "nested-glob"] },
+                "pattern": { "type": "string" },
+                "exclude": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

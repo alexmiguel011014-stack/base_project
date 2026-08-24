@@ -12,9 +12,9 @@
 // (OS temp dir, not persisted long-term). Must never fail or block the tool
 // call it's attached to — any error here is swallowed.
 
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 const REPEAT_THRESHOLD = 5;
 

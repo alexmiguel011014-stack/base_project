@@ -9,8 +9,8 @@
 // for the target project — this hook must never block or fail the edit it's
 // attached to, and must never install anything on the user's behalf.
 
-const { execFileSync } = require("child_process");
-const path = require("path");
+const { execFileSync } = require("node:child_process");
+const path = require("node:path");
 
 const FORMATTABLE_EXT = new Set([
   ".js",
@@ -61,7 +61,7 @@ async function main() {
       toolName === "Write" ||
       toolName === "MultiEdit"
     ) {
-      const filePath = (input.tool_input && input.tool_input.file_path) || "";
+      const filePath = input.tool_input?.file_path || "";
       if (filePath && FORMATTABLE_EXT.has(path.extname(filePath))) {
         tryFormat(filePath);
       }

@@ -4,12 +4,12 @@ description: Rigorously audit an existing (partial or complete) project against 
 ---
 
 Audit the current project against the base_project standards checklist and report what's
-missing or wrong. Read-only, same contract as `@architect` and `@reviewer`'s audit mode —
+missing or wrong. Read-only, same contract as `architect` and `reviewer`'s audit mode —
 never edit files in this command.
 
-1. Read `~/.config/opencode/base_project/references/project-standards.md` — the shared
-   checklist (identity, version control, secrets, dependencies, tests, lint/typecheck,
-   CI, basic security, structure).
+1. Read `~/.claude/base_project/references/project-standards.md` — the shared checklist
+   (identity, version control, secrets, dependencies, tests, lint/typecheck, CI, basic
+   security, structure).
 
 2. For each section, actually check the project — don't assume from the stack alone:
    - Read `.gitignore`, check `git status`/`git log` for secrets ever committed.
@@ -27,18 +27,26 @@ never edit files in this command.
      separately if you want the full picture.
 
 3. Score each checklist item as `ok` / `missing` / `broken`, with severity (`critical` /
-   `medium` / `low`) and file/line when applicable — same shape `@reviewer` already uses
+   `medium` / `low`) and file/line when applicable — same shape `reviewer` already uses
    for code review findings, not a new report format.
 
-4. Order the report by severity, critical first. For each finding, state concretely what
+4. **Unified layer health (doctor, now inside scanproject, not a separate command):** after the 9 standard categories, also check the unified `~/.agents/` health — same logic `doctor.js` uses, but reported inline here:
+   - Broken symlinks/hardlinks (Cursor `~/.cursor/rules/*.mdc` hardlink inode check; warn on `EXDEV` fallback copy)
+   - Missing canonical dirs (`~/.agents/rules/global`, `mcp`, `skills`, `commands`)
+   - Stale hooks in `~/.claude/settings.json` containing `dashboard/`
+   - Legacy formats (`.cursorrules` → `.cursor/rules/`)
+   - `sync` drift for `~/.agents/` if it is a git repo (`git status --porcelain` in canonical) — suggest `node dev/scripts/sync.js push` or `bootstrap` sync
+   Run `node dev/scripts/doctor.js --project . --json` and `node dev/scripts/drift.js --project .` for real evidence; report any `error`/`drift` as findings with file/line and fix hint (`apply --fix`).
+
+5. Order the report by severity, critical first. For each finding, state concretely what
    is wrong and what evidence supports it (the command you ran, the line you read) — not
    a vague impression.
 
-5. End with one line: how many critical/medium/low findings total, and whether running
+6. End with one line: how many critical/medium/low findings total, and whether running
    `/fixproject` next makes sense (it does if there's anything actionable; say so plainly
    if the project is already clean).
 
-6. Do not fix anything in this command, even trivial one-line fixes — that's
+7. Do not fix anything in this command, even trivial one-line fixes — that's
    `/fixproject`'s job, kept separate so a scan is always safe to run and its findings
    are trustworthy before anything acts on them.
 

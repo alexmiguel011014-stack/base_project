@@ -1,0 +1,297 @@
+{
+  "_managed_by": "base_project",
+  "adapters": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/CLAUDE.md", "destination": "CLAUDE.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".claude.json", "type": "copy" },
+        "skills": { "source": "skills", "destination": ".claude/skills", "type": "symlink-contents" }
+      }
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": "opencode.json", "type": "copy" },
+        "skills": { "source": "skills", "destination": ".opencode/skills", "type": "symlink-contents" }
+      }
+    },
+    {
+      "id": "codex",
+      "name": "Codex CLI",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".codex/config.toml", "type": "copy" }
+      }
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "kind": "deep",
+      "link_type": "hardlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": ".cursor/rules/agentsync.mdc", "type": "hardlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".cursor/mcp.json", "type": "copy" },
+        "skills": { "source": "skills", "destination": ".cursor/skills", "type": "symlink-contents" }
+      }
+    },
+    {
+      "id": "gemini-cli",
+      "name": "Gemini CLI",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "GEMINI.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".gemini/settings.json", "type": "copy" }
+      }
+    },
+    {
+      "id": "continue",
+      "name": "Continue",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": ".continue/rules/agentsync.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".continue/mcpServers/agentsync.yaml", "type": "copy" }
+      }
+    },
+    {
+      "id": "windsurf",
+      "name": "Windsurf",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": ".windsurf/rules/agentsync.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".codeium/windsurf/mcp_config.json", "type": "copy" }
+      }
+    },
+    {
+      "id": "roo-code",
+      "name": "Roo Code",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": ".roo/rules/agentsync.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".roo/mcp.json", "type": "copy" }
+      }
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "kind": "deep",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": ".clinerules", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".cline/mcp.json", "type": "copy" }
+      }
+    },
+    {
+      "id": "amp",
+      "name": "Amp",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".amp/mcp.json", "type": "copy" }
+      }
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "warp",
+      "name": "Warp",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "jules",
+      "name": "Jules",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "junie",
+      "name": "Junie",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "openhands",
+      "name": "OpenHands",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "amazonq",
+      "name": "Amazon Q",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "zed",
+      "name": "Zed",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "kilocode",
+      "name": "Kilo Code",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "kiro",
+      "name": "Kiro",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "trae",
+      "name": "Trae",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "jetbrains",
+      "name": "JetBrains AI",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "firebase",
+      "name": "Firebase Studio",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "antigravity",
+      "name": "Antigravity",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "augmentcode",
+      "name": "Augment Code",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "copilot",
+      "name": "Copilot",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": ".github/copilot-instructions.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "copilot-cli",
+      "name": "Copilot CLI",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "crush",
+      "name": "Crush",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "factory",
+      "name": "Factory",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "pi",
+      "name": "Pi",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral Vibe",
+      "kind": "generic",
+      "link_type": "symlink",
+      "targets": {
+        "memory": { "source": "rules/global/AGENTS.md", "destination": "AGENTS.md", "type": "symlink" }
+      }
+    }
+  ]
+}

@@ -12,7 +12,7 @@
 // "compact"/"fork": those aren't cold starts, and re-dumping git state mid-
 // session would be noise, not help.
 
-const { execFileSync } = require("child_process");
+const { execFileSync } = require("node:child_process");
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -133,7 +133,7 @@ async function main() {
     const cwd = input.cwd || process.cwd();
     const context = buildContext(cwd);
     if (context) {
-      process.stdout.write(context + "\n");
+      process.stdout.write(`${context}\n`);
     }
   } catch {
     // This hook must never fail the session it's attached to — silent no-op on any error.

@@ -1,29 +1,29 @@
 ---
 # base_project:managed
-description: Run vulnerability scan and security checks.
+description: Security audit (vuln scan) + unified-layer config audit (which layers apply to a project+agent).
 ---
 
-Execute a full security audit on the current project:
+Two modes — security and config visibility — in one command.
 
-1. If `strix` is installed (`strix --version` succeeds), use it as the primary scanner — it validates
-   findings with working proofs-of-concept instead of a static list. Otherwise fall back based on
-   whichever manifest is actually present — don't assume JS/Python, this project itself is
-   stack-agnostic elsewhere and `/audit` should be too:
-   - JavaScript (`package.json`): `npm audit` for vulnerabilities; `npm outdated` for outdated packages.
-   - Python (`requirements.txt`/`pyproject.toml`): `pip-audit` for vulnerabilities; `pip list --outdated`
-     for outdated packages.
-   - Go (`go.mod`): `govulncheck ./...` for vulnerabilities; `go list -u -m all` for outdated modules.
-   - Rust (`Cargo.toml`): `cargo audit` for vulnerabilities; `cargo outdated` for outdated crates (if
-     installed — mention it's optional if missing, don't block the scan on it).
-   - Ruby (`Gemfile`): `bundle audit check --update` for vulnerabilities; `bundle outdated` for outdated
-     gems.
-   - More than one manifest present (e.g. a repo with both a `package.json` frontend and a `go.mod`
-     backend): run every applicable tool, don't pick just one.
-   - None of the above tools available for a detected manifest: say so plainly and name what would need
-     to be installed, rather than silently skipping that stack's dependency check.
+**Config audit mode** (new, GOALS 6): when called with `--project`/`--agent` flags, show which unified-layer config applies.
+
+1. Resolve the canonical home via `dev/scripts/paths.js`.
+2. Run `node dev/scripts/audit.js --project <cwd> --agent <agent> --json` where `<agent>` is one of `claude-code`, `cursor`, `codex`, `opencode`, `gemini-cli`, `continue`, `windsurf`, `roo-code`, `cline` (or any breadth-tier id). If no agent is specified, ask briefly (one question).
+3. Render as a table: `source | files` (global → agent → project). Reuses `dev/scripts/resolve-layers.js`.
+4. Output shape must match `dot-agents audit`: `{ agent, project, layers: [{source, files}], effectiveConfig: { mcp, skills, instructions } }` when called with `--json`.
+
+**Security audit mode** (original): when called without `--agent`, run a full vulnerability scan.
+
+1. If `strix` is installed (`strix --version` succeeds), use it as primary scanner. Otherwise fall back by manifest:
+   - JavaScript (`package.json`): `npm audit` / `npm outdated`
+   - Python (`requirements.txt`/`pyproject.toml`): `pip-audit` / `pip list --outdated`
+   - Go (`go.mod`): `govulncheck` / `go list -u -m all`
+   - Rust (`Cargo.toml`): `cargo audit` / `cargo outdated`
+   - Ruby (`Gemfile`): `bundle audit` / `bundle outdated`
+   - Multiple manifests: run every applicable tool.
+   - No tool available: say so plainly and name what to install.
 2. Scan for exposed secrets using `gitleaks` or `trufflehog`.
 3. Report findings: critical vulnerabilities, leaked credentials, outdated packages.
-4. If `strix` isn't installed and the project handles auth/payments/user data, mention it's available via
-   `/plugins`.
+4. If `strix` isn't installed and project handles auth/payments/user data, mention it's available via `/plugins`.
 
-$ARGUMENTS
+Support `audit --help` for both modes.

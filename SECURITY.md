@@ -21,6 +21,12 @@ a web app," it's something that could affect every project you open afterward. R
 **Out of scope**: vulnerabilities in third-party tools base_project merely *recommends*
 (entries in `source/plugins.json`) — report those to the tool's own repository instead.
 
+## Unified Config Layer & Secrets Invariant (added 2026-08-23, GOALS 6)
+
+- Canonical unified store `~/.agents/` (plus `~/.base_project/` bookkeeping) never stores plaintext secrets for MCP env values (`*_API_KEY`, `*_TOKEN`, `*_SECRET`). Encrypted with `age` (`~/.agents/keys/age.txt`, gitignored); `apply` decrypts at projection time. Invariant check: `node dev/scripts/secrets.js --check --project <path>` asserts no plaintext in canonical.
+- `scan-skill.js` pre-trust scan is mandatory before any marketplace skill fetch (`source/adapters.json` marketplace fetcher).
+- `snapshot`/`restore` exclude `keys/` and `reports/` from archives.
+
 ## Reporting a Vulnerability
 
 **Please do not open a public GitHub issue for a security vulnerability.** Public disclosure

@@ -233,7 +233,7 @@ if ($prunedHookCount -gt 0) {
 # Same for the files themselves. Only deletes what carries the managed marker,
 # mirroring Sync-Managed - a file the user wrote by hand at the same path is
 # left alone even if the name matches.
-foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"))) {
+foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"))) {
     if (-not (Test-Path $staleCmd)) { continue }
     if ((Read-Utf8NoBom $staleCmd) -match 'base_project:managed') {
         Remove-Item $staleCmd -Force
@@ -615,6 +615,41 @@ if (Test-Path $opencodeReferencesSrcDir) {
         New-Item -ItemType Directory -Force -Path (Split-Path $destFile -Parent) | Out-Null
         Sync-Managed -SrcFile $_.FullName -DestFile $destFile
     }
+}
+
+# ---------------------------------------------------------------------
+# 8e. Unified layer scripts (GOALS 6) — config-store, resolvers, adapters, doctor, etc.
+# ---------------------------------------------------------------------
+Write-Step "Syncing unified-layer scripts..."
+$unifiedScripts = @(
+    "paths.js", "config-store.js", "resolve-layers.js", "apply.js", "drift.js",
+    "secrets.js", "lint-config.js", "doctor.js", "audit.js", "context.js",
+    "wizard.js", "sync.js", "tasks.js", "history.js", "snapshot.js",
+    "marketplace.js", "check-plugin-updates.js"
+)
+foreach ($script in $unifiedScripts) {
+    $src = Join-Path $repoRoot "dev\scripts\$script"
+    if (Test-Path $src) {
+        Sync-Managed -SrcFile $src -DestFile (Join-Path $claudeScriptsDir $script)
+    }
+}
+$adaptersSrcDir = Join-Path $repoRoot "dev\scripts\adapters"
+$adaptersDestDir = Join-Path $claudeScriptsDir "adapters"
+if (Test-Path $adaptersSrcDir) {
+    New-Item -ItemType Directory -Force -Path $adaptersDestDir | Out-Null
+    Get-ChildItem $adaptersSrcDir -Filter *.js | ForEach-Object {
+        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $adaptersDestDir $_.Name)
+    }
+}
+$adaptersJsonSrc = Join-Path $repoRoot "source\adapters.json"
+if (Test-Path $adaptersJsonSrc) {
+    Sync-Managed -SrcFile $adaptersJsonSrc -DestFile (Join-Path $ClaudeHome "base_project\adapters.json")
+    Sync-Managed -SrcFile $adaptersJsonSrc -DestFile (Join-Path $OpencodeHome "base_project\adapters.json")
+}
+Write-Step "Initializing unified canonical store (~/.agents)..."
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    & node (Join-Path $repoRoot "dev\scripts\config-store.js") --init *> $null
+    if ($LASTEXITCODE -eq 0) { Write-Ok "canonical store initialized (~/.agents)" }
 }
 
 # ---------------------------------------------------------------------

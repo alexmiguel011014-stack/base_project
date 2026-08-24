@@ -16,10 +16,24 @@
 // nothing currently calls this automatically before an install; it's a tool
 // a human runs before trusting a new skill.
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
-const SKIP_DIRS = new Set([".git", "node_modules", ".venv", "__pycache__"]);
+const SKIP_DIRS = new Set([
+  ".git",
+  "node_modules",
+  ".venv",
+  "__pycache__",
+  "tests",
+]);
+const SKIP_FILES = new Set([
+  "repomix-output.xml", // generated artifact, gitignored
+  "ARCHITECTURE.md", // documents patterns as examples
+  "ROADMAP.md", // documents patterns as examples
+  "relatorio-melhorias-comandos-2026.txt", // legacy report with examples
+  "scanproject.md", // command docs showing patterns
+  "scan-skill.js", // contains its own detection patterns as string literals
+]);
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // skip anything bigger — binaries/lockfiles, not skill logic
 
 // [pattern, human-readable reason]. Deliberately few and high-signal — the
@@ -98,6 +112,7 @@ function scanFile(filePath) {
     return findings;
   }
   if (stat.size > MAX_FILE_BYTES) return findings;
+  if (SKIP_FILES.has(path.basename(filePath))) return findings;
 
   let buf;
   try {

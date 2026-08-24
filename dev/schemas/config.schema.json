@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://base_project.local/schemas/config.schema.json",
+  "title": "base_project unified config ( ~/.agents/config.json )",
+  "type": "object",
+  "required": ["projects"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "projects": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string" },
+          "added": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "link_type": { "type": "string", "enum": ["auto", "symlink", "hardlink"] }
+      }
+    }
+  },
+  "additionalProperties": false
+}

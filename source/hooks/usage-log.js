@@ -24,9 +24,9 @@
 // Same hard contract as loop-detect.js: never throws, never blocks, always exits 0.
 // A broken ledger must never break the tool call it is attached to.
 
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 // Bounded so a single Write of a large file can't turn the ledger into a second
 // copy of the transcript. The Bash command / file_path lands at the start of the

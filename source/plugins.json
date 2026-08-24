@@ -177,6 +177,15 @@
         "args": ["-y", "skills", "add", "DietrichGebert/ponytail", "-g", "-a", "opencode", "-y"],
         "note": "lands in ~/.agents/skills/ — also copy the ponytail* folders into ~/.config/opencode/skills/ afterward so opencode (which reads skills from its own confirmed skills/ dir) definitely picks them up. The 'opencode-ponytail' npm package is deprecated, do not use it."
       }
+    },
+    {
+      "id": "marketplace-demo",
+      "name": "Marketplace Demo",
+      "kind": "marketplace",
+      "summary": "Example marketplace plugin that decomposes into canonical skills — used to validate marketplace fetcher and scan-skill pre-trust.",
+      "recommend_if": "Testing marketplace fetch; not auto-installed.",
+      "source": "https://github.com/spxrogers/agentsync",
+      "claude": { "instruction": "marketplace fetch marketplace-demo" }
     }
   ]
 }

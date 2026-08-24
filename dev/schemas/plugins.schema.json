@@ -57,7 +57,7 @@
           "description": "Real installed plugin name from `claude plugin list --json`, when it differs from id."
         },
         "name": { "type": "string" },
-        "kind": { "type": "string", "enum": ["mcp", "cli", "skill"] },
+        "kind": { "type": "string", "enum": ["mcp", "cli", "skill", "marketplace"] },
         "summary": { "type": "string" },
         "recommend_if": { "type": "string" },
         "source": { "type": "string", "format": "uri" },

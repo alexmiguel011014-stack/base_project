@@ -8,13 +8,13 @@ arquivo, não redigitar a lista de memória.
 
 O que você deseja fazer agora?
 
-- `/bootstrap` — sincroniza com o remoto (pull se estiver atrás) e mapeia o projeto atual (repomix + graphify); abre o mapa visual HTML do graphify no browser se der certo. Se falhar, guia passo a passo para instalar ou configurar a API key.
+- `/bootstrap` — botão de inicialização: sincroniza o projeto com o remoto (`git pull` se atrás) **e** o armário unificado `~/.agents/` (`sync pull` se for repo git + `sync push`/`pr` quando houver mudanças), depois mapeia o projeto (repomix + graphify) e abre o HTML. Se falhar, guia passo a passo.
 - `/newproject` — começar um projeto novo com a estrutura certa desde o início. Já dispara `/newgoal` em segundo plano.
 - `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
 - `/repertoire` — pesquisa o domínio do projeto (base científica, regulatória, cultural, midiática) antes do `/newgoal` planejar. Sempre confirma antes de rodar. Combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho.
 - `/execgoals` — executa o `GOALS.md` gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade.
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
-- `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
+- `/audit` — dois modos: (1) **segurança** (vuln scan) — aprofunda só a parte de segurança do `/scanproject`; (2) **config** (`--agent` flag) — mostra qual camada unificada (`global→agent→project`) realmente se aplica a um projeto+agent (`audit --agent cursor`).
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
 - `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
 - `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.

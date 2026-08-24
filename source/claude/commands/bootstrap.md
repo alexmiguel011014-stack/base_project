@@ -5,6 +5,10 @@ description: Map the current project into graphify + repomix outputs. Syncs with
 
 Map the current project for token-efficient AI context:
 
+0. Sync the unified canonical `~/.agents/` first (separate from the project's own remote — that's step 1):
+   - If `~/.agents/` is a git repo (`test -d ~/.agents/.git`), run `node dev/scripts/sync.js pull` (fast-forward only) to bring shared rules/MCP/skills up to date before mapping. If it is not a git repo, skip silently.
+   - `sync` is now inside `bootstrap` on purpose — bootstrap is the "start working" button, so it pulls updates from GitHub before you start touching code. `pr` follows the same idea: after you push a branch, `bootstrap`'s sync ensures the next session starts from the latest canonical. Never stash or force — same guard as step 1: if `sync status` shows dirty/uncommitted canonical changes, just note it and skip pulling.
+
 1. Sync with the remote first, so the map reflects the latest code, not a stale local
    state — this project's own remote, not base_project's (that's `/update`'s job, a
    different repo entirely):
