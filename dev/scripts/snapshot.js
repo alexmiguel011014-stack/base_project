@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // base_project:managed
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { execSync } = require("node:child_process");
 const { canonicalHome, snapshotsDir } = require("./paths");
@@ -78,16 +79,27 @@ if (cmd === "snapshot") {
     });
     console.log(`snapshot ${name} -> ${dest}`);
     process.exit(0);
-  } catch (_e) {
-    // fallback: copy dir
+  } catch (tarErr) {
+    console.error(
+      `tar unavailable or failed (${tarErr.message.split("\n")[0]}), falling back to copy`,
+    );
+    // fallback: copy dir. `${dest}.dir` lives under home/snapshots/, which is
+    // inside `home` itself — cpSync refuses to copy a directory into its own
+    // subdirectory, so copy to a temp dir outside `home` first, then move it
+    // into place.
     try {
-      fs.cpSync(home, `${dest}.dir`, {
+      const tmpCopy = fs.mkdtempSync(path.join(os.tmpdir(), "bp-snapshot-"));
+      fs.cpSync(home, tmpCopy, {
         recursive: true,
         force: true,
         filter: (src) =>
           !src.includes(`${path.sep}keys${path.sep}`) &&
-          !src.includes(`${path.sep}reports${path.sep}`),
+          !src.includes(`${path.sep}reports${path.sep}`) &&
+          !src.includes(`${path.sep}snapshots${path.sep}`),
       });
+      fs.rmSync(`${dest}.dir`, { recursive: true, force: true });
+      fs.cpSync(tmpCopy, `${dest}.dir`, { recursive: true, force: true });
+      fs.rmSync(tmpCopy, { recursive: true, force: true });
       console.log(`snapshot fallback copy ${dest}.dir`);
       process.exit(0);
     } catch (err) {
