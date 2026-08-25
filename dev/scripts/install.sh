@@ -16,6 +16,43 @@ SOURCE_DIR="$REPO_ROOT/source"
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 OPENCODE_HOME="${OPENCODE_HOME:-$HOME/.config/opencode}"
 
+# --opencode-commands <dense|lite> - which opencode command set to install.
+# dense = today's full command set (default, no behavior change for existing users).
+# lite = flatter, less-branchy commands for weaker/free LLM backends.
+OPENCODE_COMMAND_PROFILE=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --opencode-commands)
+            OPENCODE_COMMAND_PROFILE="$2"
+            shift 2
+            ;;
+        --opencode-commands=*)
+            OPENCODE_COMMAND_PROFILE="${1#*=}"
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+OPENCODE_PROFILE_STATE_FILE="$HOME/.base_project/opencode-command-profile.txt"
+if [ -z "$OPENCODE_COMMAND_PROFILE" ] && [ -f "$OPENCODE_PROFILE_STATE_FILE" ]; then
+    OPENCODE_COMMAND_PROFILE="$(cat "$OPENCODE_PROFILE_STATE_FILE")"
+fi
+OPENCODE_COMMAND_PROFILE="${OPENCODE_COMMAND_PROFILE:-dense}"
+
+if [ "$OPENCODE_COMMAND_PROFILE" != "dense" ] && [ "$OPENCODE_COMMAND_PROFILE" != "lite" ]; then
+    echo "Unknown --opencode-commands value '$OPENCODE_COMMAND_PROFILE' - falling back to 'dense'." >&2
+    OPENCODE_COMMAND_PROFILE="dense"
+fi
+
+if [ "$OPENCODE_COMMAND_PROFILE" = "lite" ]; then
+    OPENCODE_COMMAND_SRC_DIR="command-lite"
+else
+    OPENCODE_COMMAND_SRC_DIR="command"
+fi
+
 MARK_START="<!-- base_project:start -->"
 MARK_END="<!-- base_project:end -->"
 
@@ -303,11 +340,11 @@ sync_managed() {
     ok "$(basename "$dest")"
 }
 
-step "Syncing opencode agents/commands..."
+step "Syncing opencode agents/commands (profile: $OPENCODE_COMMAND_PROFILE)..."
 for f in "$SOURCE_DIR"/opencode/agent/*.md; do
     sync_managed "$f" "$OPENCODE_AGENT_DIR/$(basename "$f")"
 done
-for f in "$SOURCE_DIR"/opencode/command/*.md; do
+for f in "$SOURCE_DIR/opencode/$OPENCODE_COMMAND_SRC_DIR"/*.md; do
     sync_managed "$f" "$OPENCODE_COMMAND_DIR/$(basename "$f")"
 done
 
@@ -514,7 +551,9 @@ fi
 STATE_DIR="$HOME/.base_project"
 mkdir -p "$STATE_DIR"
 printf '%s' "$REPO_ROOT" > "$STATE_DIR/repo-path.txt"
+printf '%s' "$OPENCODE_COMMAND_PROFILE" > "$OPENCODE_PROFILE_STATE_FILE"
 ok "recorded repo path for update checks: $REPO_ROOT"
+ok "opencode command profile: $OPENCODE_COMMAND_PROFILE (switch with --opencode-commands dense|lite)"
 
 echo ""
 echo -e "\033[32mbase_project installed. Open any project - Claude Code and opencode now load these rules automatically.\033[0m"

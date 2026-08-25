@@ -85,10 +85,22 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/claude/agents/*.md` | `~/.claude/agents/` | `architect`, `coder`, `reviewer` subagents |
 | `source/claude/commands/*.md` | `~/.claude/commands/` | `/bootstrap`, `/audit`, `/plugins`, `/council`, `/status` |
 | `source/opencode/agent/*.md` | `~/.config/opencode/agent/` | Same trio, opencode format |
-| `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format |
+| `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format (`dense` profile, default) |
+| `source/opencode/command-lite/*.md` | `~/.config/opencode/command/` | Same 21 commands, flat checklist rewrite for weaker/free LLM backends (`lite` profile, opt-in — see below) |
 | `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered via `claude mcp add` | Context7, GitHub, filesystem, git (always on) |
 | `source/plugins.json` | `~/.claude/base_project/plugins.json` | Optional plugin catalog, read by `/plugins` |
 | `source/hooks/*.js` | `~/.claude/base_project/hooks/` | Loop detection, auto-format, git-context injection, usage ledger |
+
+**opencode command profile.** By default the installer copies the `dense` command set (the same rich, multi-step instructions Claude Code gets). If you're running opencode against a weaker or free LLM backend and it struggles to follow the dense commands, switch to `lite` — flatter, less-branchy versions of the same 21 commands, same names, no functionality removed:
+
+```bash
+bash dev/scripts/install.sh --opencode-commands lite   # macOS/Linux
+```
+```powershell
+.\dev\scripts\install.ps1 -OpencodeCommands lite        # Windows
+```
+
+The choice is remembered (`~/.base_project/opencode-command-profile.txt`) — re-running the installer later with no flag keeps whichever profile you last picked. Switch back any time with `--opencode-commands dense` / `-OpencodeCommands dense`. Claude Code's own command set is unaffected either way.
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 

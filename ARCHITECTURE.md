@@ -38,7 +38,13 @@ base_project/
 │   │                            research, lidos por /newgoal pra classificar cada meta)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
-│   │   ├── command/*.md        → ~/.config/opencode/command/   (mesmos comandos, formato opencode)
+│   │   ├── command/*.md        → ~/.config/opencode/command/   (perfil "dense", default — mesmos
+│   │   │                        comandos, formato opencode)
+│   │   ├── command-lite/*.md   → ~/.config/opencode/command/   (perfil "lite", opt-in via
+│   │   │                        `--opencode-commands lite` / `-OpencodeCommands lite` — mesmos 21
+│   │   │                        nomes de comando, reescritos como checklist plano sem prosa/
+│   │   │                        justificativa embutida, pra modelos fracos que perdem o fio em
+│   │   │                        instrução condicional densa; nunca os dois instalados juntos)
 │   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
 │   │                            formato opencode)
 │   │   └── mcp.json            → ~/.config/opencode/mcp.json + registrado via `claude mcp add`
@@ -124,7 +130,12 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ## 4. Os 21 comandos
 
-Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`.
+Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`. Só o lado
+opencode tem um segundo conjunto espelhado, `source/opencode/command-lite/*.md` (mesmos
+21 nomes, mesma descrição de propósito, reescrito como checklist plano) — opt-in via
+installer, ver § 2 acima. Claude Code não tem "lite" porque o problema que motivou o
+perfil (modelo fraco/gratuito perdendo o fio em instrução condicional densa) é específico
+de quem roda opencode com um backend não-Claude.
 
 | Comando | O que faz |
 |---|---|

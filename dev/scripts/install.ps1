@@ -17,7 +17,9 @@
 
 param(
     [string]$ClaudeHome = (Join-Path $HOME ".claude"),
-    [string]$OpencodeHome = (Join-Path $HOME ".config\opencode")
+    [string]$OpencodeHome = (Join-Path $HOME ".config\opencode"),
+    [ValidateSet("", "dense", "lite")]
+    [string]$OpencodeCommands = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,6 +33,20 @@ $MARK_END   = "<!-- base_project:end -->"
 function Write-Step($msg) { Write-Host "-> $msg" -ForegroundColor Cyan }
 function Write-Ok($msg)   { Write-Host "  OK  $msg" -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host "  !!  $msg" -ForegroundColor Yellow }
+
+# -OpencodeCommands <dense|lite> - which opencode command set to install.
+# dense = today's full command set (default, no behavior change for existing users).
+# lite = flatter, less-branchy commands for weaker/free LLM backends.
+$opencodeProfileStateFile = Join-Path $HOME ".base_project\opencode-command-profile.txt"
+if ([string]::IsNullOrEmpty($OpencodeCommands) -and (Test-Path $opencodeProfileStateFile)) {
+    $OpencodeCommands = (Get-Content $opencodeProfileStateFile -Raw).Trim()
+}
+if ([string]::IsNullOrEmpty($OpencodeCommands)) { $OpencodeCommands = "dense" }
+if ($OpencodeCommands -ne "dense" -and $OpencodeCommands -ne "lite") {
+    Write-Warn "Unknown -OpencodeCommands value '$OpencodeCommands' - falling back to 'dense'."
+    $OpencodeCommands = "dense"
+}
+$opencodeCommandSrcDir = if ($OpencodeCommands -eq "lite") { "command-lite" } else { "command" }
 
 # PS 5.1's Get-Content mis-decodes BOM-less UTF-8 as the system codepage, and
 # Set-Content -Encoding utf8 always adds a BOM (breaks strict JSON parsers).
@@ -399,11 +415,11 @@ function Sync-Managed {
     Write-Ok (Split-Path $DestFile -Leaf)
 }
 
-Write-Step "Syncing opencode agents/commands..."
+Write-Step "Syncing opencode agents/commands (profile: $OpencodeCommands)..."
 Get-ChildItem (Join-Path $sourceDir "opencode\agent") -Filter *.md | ForEach-Object {
     Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeAgentDir $_.Name)
 }
-Get-ChildItem (Join-Path $sourceDir "opencode\command") -Filter *.md | ForEach-Object {
+Get-ChildItem (Join-Path $sourceDir "opencode\$opencodeCommandSrcDir") -Filter *.md | ForEach-Object {
     Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $opencodeCommandDir $_.Name)
 }
 
@@ -658,7 +674,9 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 $stateDir = Join-Path $HOME ".base_project"
 New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
 Write-Utf8NoBom -Path (Join-Path $stateDir "repo-path.txt") -Content $repoRoot
+Write-Utf8NoBom -Path $opencodeProfileStateFile -Content $OpencodeCommands
 Write-Ok "recorded repo path for update checks: $repoRoot"
+Write-Ok "opencode command profile: $OpencodeCommands (switch with -OpencodeCommands dense|lite)"
 
 # ---------------------------------------------------------------------
 # 10. Custom folder icon for this repo's own folders (Windows Explorer only —

@@ -232,3 +232,40 @@ jobs:
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           Write-Output "second run succeeded without error"
+
+      - name: Verify opencode --opencode-commands lite profile (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
+          export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          bash dev/scripts/install.sh --opencode-commands lite
+          grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
+          test "$(cat "$HOME/.base_project/opencode-command-profile.txt")" = "lite"
+          # re-running with no flag must keep 'lite' (state-file default), not silently reset to dense
+          bash dev/scripts/install.sh
+          grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
+          # switching back to dense must restore the original command
+          bash dev/scripts/install.sh --opencode-commands dense
+          grep -qv "(lite)" "$OPENCODE_HOME/command/ship.md"
+          echo "opencode lite profile: install, persistence, and switch-back all verified"
+
+      - name: Verify opencode -OpencodeCommands lite profile (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
+          $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands lite
+          $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
+          if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite ship.md missing '(lite)' marker" }
+          $profileFile = Join-Path $HOME ".base_project\opencode-command-profile.txt"
+          if ((Get-Content $profileFile -Raw).Trim() -ne "lite") { throw "profile state file did not persist 'lite'" }
+          # re-running with no flag must keep 'lite' (state-file default), not silently reset to dense
+          & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
+          $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
+          if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite profile did not persist across a flag-less re-run" }
+          # switching back to dense must restore the original command
+          & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands dense
+          $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
+          if ($shipMd -match [regex]::Escape("(lite)")) { throw "dense switch-back did not restore the original command" }
+          Write-Output "opencode lite profile: install, persistence, and switch-back all verified"
