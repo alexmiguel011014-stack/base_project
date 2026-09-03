@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"license": "MIT",
-	"description": "Global config installer for Claude Code + opencode — validation/build tooling only, not a published package.",
+	"description": "Global config installer for Claude Code, Codex, and opencode — validation/build tooling only, not a published package.",
 	"scripts": {
 		"validate:plugins": "node dev/scripts/validate-plugins.js",
 		"scan:skill": "node dev/scripts/scan-skill.js",

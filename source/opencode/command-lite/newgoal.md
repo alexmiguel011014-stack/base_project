@@ -5,6 +5,8 @@ description: Research and write a 0-to-100% build plan for the current project a
 
 Produce `GOALS.md` at the project root: a build plan detailed enough that `/execgoals` can execute it without re-researching anything. This is research-heavy and front-loaded — go deep now so nothing needs rediscovering later.
 
+This command never implements anything — not the plan it just wrote, not a request that already sounds fully specified, not something already agreed earlier in this same conversation. Writing the plan is the entire job. Running it is `/execgoals`'s job, always.
+
 Two ways this runs: called directly (`/newgoal`) — narrate normally. Dispatched from `/newproject` as a background task — no progress narration, no intermediate questions, only a short start line and a short line with the file path when done.
 
 STEP 1 — Gather context without re-asking. If `/newproject` already established the stack, kind of project, and starting state in this session, reuse it. If invoked standalone, ask the same brief round: stack/language, kind of project, greenfield vs. existing. Skip anything already obvious from the current directory.
@@ -43,5 +45,7 @@ STEP 7 — Write `GOALS.md` in English, regardless of the conversation's languag
 STEP 8 — Never overwrite silently. If `GOALS.md` already exists, read it first and merge new findings in. `GOALS.md` is tracked in version control, not gitignored.
 
 STEP 9 — Report only: the file path (or the research deliverable's path for a research-type ask), and — only when run standalone, not backgrounded — a short outline of the sections written, not the full content.
+
+STEP 10 — Never execute. This command writes `GOALS.md` (or the research deliverable) and nothing else. Never edit other files, never run installs/builds, never implement a prior `GOALS.md`'s items — no matter how complete the request sounds. If something needs building, that's `/execgoals` or a separate explicit ask, never this command.
 
 $ARGUMENTS

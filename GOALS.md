@@ -1,6 +1,6 @@
 # GOALS.md — base_project
 
-Six plans live in this file, kept separate rather than merged into one narrative, because
+Ten plans live in this file, kept separate rather than merged into one narrative, because
 they're different kinds of work with different consumers:
 
 1. [**Design-Review Skill**](#goals-1-design-review-skill-base_project-feature) — the
@@ -26,6 +26,28 @@ they're different kinds of work with different consumers:
    config, MCP sync, health diagnostics, task tracking, and cross-machine sync — researched
    against agentsync (31 agents, 9 deep adapters), dot-agents (symlink/hardlink strategy),
    and the broader competitive landscape.
+7. [**Command Boundary Discipline**](#goals-7-command-boundary-discipline-base_project-fix)
+   — new, added 2026-09-01: a real incident this session — `/newgoal` was used as a wrapper
+   and then the request was implemented directly instead of only writing `GOALS.md`, breaking
+   the plan/execute separation the project's own `/scanproject` + `/fixproject` pair (and
+   `/newgoal` + `/execgoals` pair) already depend on. Fixes the two commands missing an
+   explicit "never execute" guardrail, and records a full audit verdict for the other 19.
+8. [**Harness & Loop Engineering Adoption**](#goals-8-harness--loop-engineering-adoption-base_project-feature)
+   — new, added 2026-09-01: turns `dev/analise-harness-loop-engineering-2026.md`'s roadmap
+   (eval harness for commands, formalizing the Loop 4 hill-climbing step already implicit in
+   `/reviewusage`, generalizing the lite/dense Progressive Delivery pattern, chaining
+   drift-check into `/bootstrap`) into checkable items.
+9. [**Unused Implementation Audit & Cleanup**](#goals-9-unused-implementation-audit--cleanup-base_project-cleanup)
+   — new, added 2026-09-01: a checklist from this session's `/reviewusage` findings — confirmed-
+   broken MCP registrations (`filesystem`/`git`/`github`) and catalog entries with zero observed
+   use over 16 days — for review before anything is actually removed.
+10. [**Reliability Harness: Structural Guardrails + Tiered Autonomy**](#goals-10-reliability-harness-structural-guardrails--tiered-autonomy-base_project-feature)
+    — new, added 2026-09-01: a `PostToolUse` hook that catches `GOALS.md` structural bugs
+    (duplicate item IDs, unbalanced Mermaid fences — the exact two this session introduced
+    live) automatically instead of relying on memory, plus a named 3-tier autonomy vocabulary
+    (auto-approved / notify-and-proceed / human-in-the-loop) for `/execgoals`'s own already-
+    informal risk tiering — researched against real sources (reflection-pattern limits,
+    graduated-oversight frameworks, Claude Code's own hooks mechanism), not improvised.
 
 `dev/ROADMAP.md` remains the living decision log for *everything that happened* in this
 project — this file stays what it always was, the format `/execgoals` can execute against:
@@ -1071,3 +1093,582 @@ flowchart TD
 - [tctinh/opencode-sync — Gist-based sync for opencode `~/.config/opencode/` + Claude `~/.claude/`](https://github.com/tctinh/opencode-sync).
 - [alexxanderdiaz/ai-coding-stack — portable toolkit, `project-init` skill](https://github.com/alexxanderdiaz/ai-coding-stack) + [drmowinckels.io — dotfiles symlinks tying `~/.claude` + `~/.config/opencode` together](https://drmowinckels.io/blog/2026/dotfiles-coding-agents/).
 - [opencode.ai/docs/config — `opencode.json` 8-layer precedence (`remote → global → custom → project → .opencode → inline → managed`)](https://opencode.ai/docs/config/).
+
+---
+
+<a id="goals-7-command-boundary-discipline-base_project-fix"></a>
+## GOALS 7 — Command Boundary Discipline (base_project fix)
+
+```mermaid
+flowchart TD
+    Audit[Command audit\n21 commands, this pass] --> Harden[Harden newgoal + repertoire]
+    Harden --> Canon[Canonicalize the rule\nsomewhere durable]
+    Audit --> BootDecision[Bootstrap silent-pull:\nkeep or tighten - manual]
+```
+
+**Repro (the actual incident, this session)**: invoked via `/newgoal` — "reestruture o
+repertoire para incluir o pesquisar" had already been settled through an explicit
+`AskUserQuestion` exchange, so the request read as fully specified. Instead of writing
+`GOALS.md` and waiting for a follow-up to execute it, `repertoire.md` (all 3 variants),
+`README.md`, `ARCHITECTURE.md`, both `command-menu.md` files, and `dev/ROADMAP.md` were
+edited directly, in the same turn. The user's correction: `/newgoal` "não era para permitir
+[...] executar alguma coisa" — it creates a goal; the user decides whether to call it
+(`/execgoals`) or modify it first. Nothing about this session's specific edits was wrong on
+the merits (tests/lint stayed green, the restructuring matched what was agreed) — the
+process was wrong: a planning command executed without the plan ever existing as a
+reviewable artifact.
+
+**Root cause**: `newgoal.md`'s documented contract (steps 1-7, this very file) never
+authorizes execution — the gap isn't permissive text, it's the *absence* of an explicit,
+unmissable stop-line. Compare to commands that already have one: `cleanproject.md` states
+twice ("Read-only... never move, delete, or rewrite anything in this command", repeated at
+its own step 6) and `designreview.md` states plainly ("this command critiques, it doesn't
+generate"). `newgoal.md` and `repertoire.md` rely on their job description implying the
+boundary instead of stating it — which is exactly the kind of implicit-only rule that's easy
+to drift past under real conversational pressure (a request that already feels fully
+specified), the same failure mode `/scanproject`'s repeated read-only line and `/fixproject`'s
+separate-command split exist specifically to prevent for the scan/fix pair.
+
+### Command audit (done as part of this research pass — re-read directly, not from memory)
+
+All 21 commands, verdict + evidence:
+
+| Command | Verdict | Evidence |
+|---|---|---|
+| `wpp`, `status`, `audit`, `reviewusage` | tight | Pure read/report, no write path exists in the instructions at all. |
+| `scanproject`, `cleanproject` | tight (exemplar) | Explicit "read-only... never edit/move/delete" stated at both the top and the final step. |
+| `designreview` | tight (exemplar) | Explicit "critiques, doesn't generate" — the exact pattern to copy for `newgoal`/`repertoire`. |
+| `undo`, `uninstall` | tight (exemplar) | Tiered, per-risk confirmation before any destructive action; never bundles tiers. |
+| `pr`, `council`, `plugins` | tight | Each has its own explicit "wait for confirmation" / cost gate before the action that matters. |
+| `update` | tight | Step 4: "ask the user to confirm before doing anything" before pulling + reinstalling. |
+| `diario` | tight | Hard-stop safety check before any write; never self-invoked per `CLAUDE.md`'s suggest-only rule. |
+| `ship`, `fixproject`, `execgoals` | tight, by design | Their entire job *is* to execute (ship code, fix findings, run a plan) — showing what will happen before doing it is transparency, not a missing gate; this is a different contract than a planning-only command and shouldn't be forced into the same shape. |
+| `newproject` | tight | Explicit "read-only like `architect`... do not create files"; its background `/newgoal` dispatch stays safe once `newgoal` itself is fixed below, since it only ever produces a plan. |
+| **`newgoal`** | **needs hardening** | No line anywhere in its 7 steps says implementation is out of scope — the gap this section fixes. |
+| **`repertoire`** | **needs hardening** | Same structural gap — a research/planning command with no explicit "never touch other files" line; missed adding this in the same session it was otherwise restructured. |
+| `bootstrap` | **worth a decision, not clearly wrong** | Step 1 runs `git pull` (project remote) and step 0 runs `sync pull` (canonical `~/.agents/`) with no per-run confirmation — reasoned as low-risk/reversible in the command's own text (unlike a push), but it's the one command that silently changes local state as a side effect of what's framed as "mapping." Not obviously broken; flagged because the user asked specifically whether others are loose too. |
+
+- [x] **B.1 Add an explicit "never execute" guardrail to `/newgoal`** (`coder`) —
+  `source/claude/commands/newgoal.md`, `source/opencode/command/newgoal.md`,
+  `source/opencode/command-lite/newgoal.md`. State plainly, both as part of the opening scope
+  description and repeated as its own step near the end (matching `scanproject.md`'s top+step-7
+  repetition, not a single buried mention): this command produces `GOALS.md` (or, for a pure
+  research-type ask, the research deliverable) and nothing else — it never edits other files,
+  never runs installs/builds, never implements a prior `GOALS.md`'s items, even when the
+  request already reads as fully specified or was agreed through a prior confirmation exchange
+  in the same conversation. Executing is exclusively `/execgoals`'s job. Done when: the line
+  exists, in equivalent form, in all 3 files, in both locations.
+- [x] **B.2 Same guardrail for `/repertoire`** (`coder`) — same 3 files
+  (`source/claude/commands/repertoire.md`, `source/opencode/command/repertoire.md`,
+  `source/opencode/command-lite/repertoire.md`). State that writing `REPERTOIRE.md` is the
+  entire deliverable — findings never trigger a direct code/config change in this command,
+  regardless of how actionable they look. Done when: the line exists in all 3 files.
+- [x] **B.3 Decide the `/bootstrap` silent-pull exception** (manual) — **decided: keep as-is.**
+  User's call: pull is genuinely low-risk/reversible (unlike push), and forcing a confirm gate
+  on every `/bootstrap` call would add friction to a command that exists to be fast at session
+  start. No file change. Recorded here as the answer, not left open.
+- [x] **B.4 Canonicalize the "planning commands never execute" principle** (manual — location
+  decided with the user: `source/CLAUDE.md`'s Workflow section, same place the
+  `architect`→`coder`→`reviewer` sequence already lives, same spirit — "whoever plans doesn't
+  execute"). Added as Workflow item 4 in both `source/CLAUDE.md` and its opencode counterpart
+  `source/opencode-instructions.md` (kept in sync, per this project's own convention for that
+  pair). Left B.1/B.2's per-file text as full restatements rather than short references — the
+  two commands need the rule to survive being read in isolation, without depending on the
+  global file also having been loaded.
+
+**Regression test / done-when convention**: this is prompt/instruction text, not code — the
+same non-unit-testable situation this file's own GOALS 6 §T.5 already names for
+`/council`/`/newgoal`/`/designreview`/`/repertoire`. The verification that actually matters:
+the next time a request shaped like this session's incident happens (a fully-specified-sounding
+ask arrives wrapped in `/newgoal` or `/repertoire`), the command states plainly that it will
+write a plan/briefing only and names `/execgoals` (or an explicit separate ask) as the next
+step — checked live, the same way `/ship`'s step-9 default-branch warning in `dev/ROADMAP.md`
+item 40 is marked "not tested running `/ship` for real" until it actually happens once.
+
+---
+
+<a id="goals-8-harness--loop-engineering-adoption-base_project-feature"></a>
+## GOALS 8 — Harness & Loop Engineering Adoption (base_project feature)
+
+Converts `dev/analise-harness-loop-engineering-2026.md`'s own roadmap (§4) into checkable
+items — that document already did the research (harness engineering, loop engineering, and
+4 adjacent trends, all sourced); this section doesn't re-research, it makes the plan
+executable.
+
+```mermaid
+flowchart TD
+    Design[Design: pick target commands\nfor eval coverage] --> Eval[Eval harness\nvia claude plugin eval]
+    Design --> Loop4[Formalize Loop 4\nfrom /reviewusage]
+    Eval --> CI[Wire into CI\nalongside npm test]
+    Progressive[Document Progressive Delivery\nas a named pattern] --> Drift[Chain drift.js\ninto /bootstrap]
+    CI --> Teams[Prototype Agent Teams\nfor /execgoals - experimental]
+    Loop4 --> Teams
+```
+
+### Design rationale
+
+- The single highest-leverage gap identified: `npm test`/Biome/`tsc` cover this project's
+  *scripts* thoroughly (92 tests) but zero automated coverage exists for whether the 21
+  commands/agents themselves produce correct behavior when a model actually runs them — every
+  verification of a command this session (`/bootstrap`, `/scanproject`, `/ship`, etc.) was
+  manual. `claude plugin eval` (native Claude Code capability — eval suites, JSON/report,
+  sandbox, CI) closes exactly this gap without inventing new tooling.
+- Explicitly out of scope for Phase 1: eval coverage for all 21 commands at once — start with
+  the 3-5 already carrying the most explicit safety logic in their own text (`/ship`,
+  `/fixproject`, `/uninstall`), where a regression is most costly, per the source analysis's
+  own prioritization.
+- Agent Teams (GOALS 8's Teams node) stays a prototype, not a production dependency, while
+  `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` remains experimental — same reasoning `dev/ROADMAP.md`
+  already applies elsewhere to not betting production behavior on Anthropic-side experimental
+  flags.
+
+### Research: eval harness mechanism (feeds H.1/H.2 — done, informs the still-open decision)
+
+`claude plugin eval` and `skill-creator`'s `evals.json` were both investigated live and ruled
+out (see H.1 below). Researched further, specifically to answer "what do we still need to
+figure out to build a good custom harness, and is there a better tool than hand-rolling one":
+
+- **Better tool found — recommend this over a fully hand-rolled script**:
+  [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action), the
+  official Anthropic GitHub Action. Its "agent mode" runs a direct prompt non-interactively
+  (the same underlying mechanism as `claude -p`, packaged as a ready-made Action instead of
+  plumbing auth/invocation/output-parsing by hand), accepts `--json-schema` in `claude_args`
+  and exposes a schema-validated `structured_output` — closer to a real grading report than
+  parsing raw `claude -p --output-format json` text ourselves would be. Runs on your own
+  runner, calls go straight to the Anthropic API — no marketplace packaging, no early-access
+  gate, no interactive-only constraint (the exact three problems that ruled out both prior
+  candidates). This changes what H.1 needs to build: scenario definitions + assertions against
+  `structured_output`, not the invocation plumbing itself.
+- **Confirmed real, not assumed**: `claude -p "<prompt>"` headless mode exists, exits with a
+  status code, never opens a permission dialog. Supports `--output-format
+  text|json|stream-json`, `--allowedTools`, `--permission-mode` (pre-approves tools so a run
+  never hangs), and `ANTHROPIC_API_KEY` takes precedence over subscription auth in `-p` mode —
+  the determinism CI needs. `claude-code-action`'s agent mode wraps exactly this.
+- **Still open — real research points before H.1 can actually be written**:
+  1. **Scenario isolation.** Each scenario needs its own throwaway `CLAUDE_HOME` + scratch git
+     repo with base_project's own commands actually installed (same pattern the existing
+     `install-test` CI job already uses, `$RUNNER_TEMP/claude-home`) — otherwise `/ship` etc.
+     don't resolve as real commands inside the eval run. Open question: does
+     `claude-code-action` expose a way to point at a custom config/`CLAUDE_HOME`, or does the
+     workflow need to run `install.sh` against a scratch home as its own step first, then
+     invoke the action inside that environment?
+  2. **Tool access shape per scenario.** A refusal scenario (e.g. "`/ship` must refuse to
+     commit a staged secret") is only a real test if Claude genuinely *has* the tool access to
+     attempt the risky action and chooses not to — not a test that passes only because the
+     tool was withheld. `--allowedTools` needs to be scoped deliberately per scenario, not
+     just "as open as possible" or "as locked as possible."
+  3. **Assertion strategy.** Prefer deterministic checks (git log/diff state, file existence,
+     exit codes) over LLM-as-judge grading wherever the outcome is a hard fact — matches this
+     project's own harness-engineering research (`dev/analise-harness-loop-engineering-2026.md`)
+     that determinism beats probabilistic compliance. Reserve judge-based grading only for
+     genuinely qualitative outcomes (e.g. "did it explain the refusal clearly"), and treat those
+     results with less confidence than the deterministic ones.
+  4. **Cost and trigger strategy.** Each scenario run is a real, billed API call. Needs a
+     decision: run on every push (cost scales with commit volume) vs. on a schedule vs.
+     PR-label-triggered; which model per scenario (a cheaper/faster model for routine runs vs.
+     the model users would actually run these commands with — a real fidelity/cost tradeoff,
+     not free to ignore).
+  5. **A new secret, and a new attack surface.** This repo's CI has no `ANTHROPIC_API_KEY`
+     today — it only tests the *installer*, never makes a real model call. Adding one means a
+     real, spendable credential as a GitHub Actions secret. `CONTRIBUTING.md` says this project
+     accepts outside PRs — the workflow trigger needs to be scoped so an external PR can't run
+     with access to that secret (`pull_request` vs. `pull_request_target` matters here, not a
+     detail to skip). This is a real security/cost decision, not just a wiring task.
+  6. **Scenario spec per command**, concrete enough to actually write: `/ship` — staged secret
+     must never reach `git commit`; force-push never happens regardless of phrasing; detached
+     HEAD stops and asks. `/uninstall` — a Tier C action never runs without its own separate
+     confirmation, declining Tier A doesn't skip to Tier B/C. `/fixproject` — never commits
+     automatically; a finding needing a user-only decision stops and asks instead of guessing.
+
+### Implementation
+
+- [ ] **H.1 Golden-path eval suite for `/ship`, `/fixproject`, `/uninstall`** (`architect` then
+  `coder`) — **still deferred, blocked on a go/no-go decision, not on effort or a missing
+  mechanism anymore.** The mechanism question is answered by the research above
+  (`claude-code-action`, agent mode, `structured_output`) — what's still open is whether to
+  actually spend the effort (scenario writing + a new billed CI secret) now. Investigated two
+  real candidates live before finding the one above, rather than guessing from the original plan:
+  - `claude plugin eval` — wrong fit: designed for packaged plugins (`plugin.json` + skills/
+    MCP) distributed via a marketplace, not loose commands shipped by an installer; would need
+    unusual repackaging, and depends on early-access enablement never confirmed on this account.
+  - `skill-creator`'s `evals/evals.json` (the public alternative, chosen over the above) —
+    also wrong fit, for different reasons: interactive-only (no CLI, no exit codes, results
+    shown in an HTML review viewer), built for iterating on a skill you're actively authoring,
+    not for testing pre-existing installed commands non-interactively.
+  Recommended real path, not yet built: a small custom harness (~50 lines, in the same spirit
+  as the existing `dev/scripts/*.js`) spawning isolated `claude -p` sessions per scenario and
+  asserting on observed behavior — genuinely testable, no early-access dependency, fully owned.
+  User's call: park this rather than commit to building custom test infrastructure inside this
+  same run. Revisit as its own scoped item later.
+- [ ] **H.2 Wire the eval suite into CI** (`coder`) — blocked on H.1's mechanism; nothing to
+  wire in yet.
+- [x] **H.3 Formalize Loop 4 (hill-climbing) from `/reviewusage`** (`architect` then `coder`) —
+  **mechanism decided**: a small self-owned state file,
+  `~/.claude/base_project/usage/.zero-use-tracking.json` (`{ id: firstFlaggedDateISO }`) — not
+  a note auto-written into a tracked project file, since that would conflict with this
+  project's own "never write unasked" norm (`/diario`, the plugin-suggestion rule); this stays
+  entirely within `/reviewusage`'s own existing "report only, on demand" contract, just makes
+  the on-demand report itself remember across runs. Added to step 4a (all 3 variants): first
+  sighting gets dated, repeat sightings report elapsed days, past 60 days (this command's own
+  "two months" bar) gets called out explicitly, and a finding that resolves gets removed from
+  tracking rather than staying stuck reporting zero. **Verification limit, stated honestly**:
+  this is prompt/instruction text, not executable code — no unit test can prove an LLM follows
+  it, the same class GOALS 7 already names for `/newgoal`/`/repertoire`. What's actually
+  verified: the instruction text exists in all 3 files (`grep` confirmed), `npx biome
+  check`/`npx tsc` stay clean. Not verified: an actual two-run escalation, which needs a real
+  zero-use catalog entry and two real `/reviewusage` invocations spaced apart — first live use
+  is the real test, same honesty `dev/ROADMAP.md` item 40 already applies to an unexercised
+  `/ship` code path.
+- [x] **H.4 Document Progressive Delivery as a reusable pattern** (`coder`) — added
+  `CONTRIBUTING.md` § "Rolling out a risky change to a command/agent", naming the
+  `command-lite`/`command` split (flag, default unchanged, persisted state, promote after
+  validation) as the reusable template for any future risky command/agent change. Verified:
+  section exists, references the lite/dense implementation by name and path.
+- [x] **H.5 Chain `drift.js` into `/bootstrap`** (`coder`) — added to step 0 of all 3
+  `bootstrap.md` variants, right after `sync.js pull`. **Design correction made live, not as
+  originally written**: ran `drift.js --project . --json` against this repo before writing the
+  instruction, and it flagged ~40 lines of `"status": "missing"` (every agent base_project
+  itself never adopted) alongside one genuine `"status": "drift"` entry — a literal reading of
+  the original item text ("report any drift finding") would have made `/bootstrap` spam
+  "missing" noise on every run for any project that hasn't opted into the unified layer, which
+  is most projects. The instruction now explicitly filters to `"status": "drift"` only, ignores
+  `"missing"`, and points at `apply.js --agent <id> --fix` as the concrete remedy.
+- [x] **H.6 Prototype Agent Teams for `/execgoals`** (`architect`, prototype only — not a
+  production dependency) — **skipped for now, deliberately, not forgotten**:
+  `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` prototype stays unscheduled — nothing to execute
+  without the flag actually set and a real multi-area `GOALS.md` to test dispatch against, and
+  betting effort on an Anthropic-side experimental feature isn't worth it yet. Not blocking
+  anything else in this section. Revisit once the flag graduates past experimental.
+
+### Tests
+
+- [x] **H.7 Regression coverage for H.5** (`coder`) — extended `dev/tests/drift.test.js` with
+  a new case asserting `drift --json`'s exact `"missing"` vs `"drift"` distinction the new
+  `/bootstrap` step depends on: a never-adopted project reports zero `"drift"` entries, and
+  mutating a projected file flips exactly that entry (and only that one) to `"drift"`. Verified
+  by actually running it: `node --test dev/tests/drift.test.js` — both cases pass. Full suite
+  `npm test`: 93/93 (up from 92). `npx biome check .`/`npx tsc` clean.
+
+### Registration
+
+- [ ] **H.8 Update `dev/ROADMAP.md` and `command-menu.md` once H.1-H.6 land** (`coder`) —
+  **partially done, stays open**: `command-menu.md` (both engines) already mentions the
+  drift-chain (H.5) and the zero-use escalation (H.3); `dev/ROADMAP.md` item 42 already
+  documents H.3-H.5/H.7 plus this whole GOALS 7/8/9 execution run. What's still missing:
+  H.1/H.2 have no registration yet because they don't exist yet (deferred, not landed) — this
+  item stays open specifically to not forget registering them once a mechanism is actually
+  chosen and built, not because the H.3-H.7 registration work wasn't done.
+
+### Sources consulted
+
+Already gathered in `dev/analise-harness-loop-engineering-2026.md` — see that file's own
+"Fontes consultadas" section (LangChain's loop engineering framework, Faros.ai's harness
+engineering breakdown, PluginEval/`claude plugin eval`, Claude Code Agent Teams) rather than
+re-listing them here; this section converts that research into execution items; it doesn't
+re-derive it.
+
+---
+
+<a id="goals-9-unused-implementation-audit--cleanup-base_project-cleanup"></a>
+## GOALS 9 — Unused Implementation Audit & Cleanup (base_project cleanup)
+
+Doesn't map cleanly onto one of the five goal types — closest in shape to `process.md`'s
+`(manual)` convention (most items are a judgment call only the user can make, not something
+`/execgoals` can resolve alone), applied to a cleanup decision rather than release readiness.
+Source: this session's `/reviewusage` run — 16 days of ledger data (17/08–01/09), 13 sessions,
+9,458 tool calls. Per `/reviewusage`'s own stated rule, **do not treat this as a final
+decision from one data window** — zero uses over 16 days is a real signal, not yet the "two
+months" bar that command itself names as the point a zero stops being noise.
+
+```mermaid
+flowchart TD
+    Broken[Confirmed broken:\nfilesystem/git/github MCP] --> Decide[Per-item keep/remove\ndecision - manual]
+    CrossProject[Cross-project corroboration\n5 other real projects, read-only] --> ZeroEvidence[Zero-evidence, no need found]
+    CrossProject --> RelevantUnused[Relevant to real work,\njust never tried]
+    ZeroEvidence --> Decide
+    RelevantUnused --> Decide
+    Decide --> Clean[Execute removal/adoption\nvia /execgoals]
+```
+
+### Cross-project corroboration (read-only, done as part of this research pass)
+
+The ledger alone only proves *no tool call happened* — it can't say whether that's because
+nothing needed the tool, or because something relevant was sitting unused. Checked the other
+5 real projects touched in the ledger window directly (root listing, `.claude/settings.local.json`,
+`.mcp.json`, `package.json`/`requirements.txt`, and folders/files matching each catalog
+entry's own `recommend_if` condition) — read-only, nothing in those projects was touched.
+
+- **No project-local MCP registration anywhere.** None of the 5 projects has a `.mcp.json` or
+  any `mcpServers` entry in `.claude/settings.local.json`. `supabase`/`postgres`/`ruflo` (all
+  `claude: {scope: "local"}` in the catalog, meaning they'd normally register *per project*,
+  not globally) were never even wired into a project, not just never called — the zero-use
+  finding for these three is now corroborated from a second, independent source, not just the
+  global ledger.
+- **`sqlite`'s zero-use finding does not hold up — it's relevant, just missed.** ERP's
+  `package.json` depends on `@journeyapps/sqlcipher` (an encrypted SQLite variant for Electron)
+  — a real, active SQLite-family database. The catalog's own `recommend_if` for `sqlite`
+  checks for `better-sqlite3`/`sqlite3` by name and doesn't match `sqlcipher`, which is why
+  this never got flagged as relevant during normal use, not because ERP doesn't have a
+  SQLite-shaped need. (Caveat: `sqlcipher` is encrypted — the generic
+  `@modelcontextprotocol/server-sqlite` may not handle that layer; worth a real try, not an
+  assumption either way.)
+- **The design-skill entries are relevant to real, current work, not a generic maybe.**
+  ERP's `frontend/` is a real Next.js 15 + React 19 admin dashboard (`@fullcalendar/react`,
+  charts, drag-and-drop, an `/(admin)/financeiro` route seen in this session's own `/reviewusage`
+  tool-path data) — exactly what `emil-design-eng`/`taste-skill`/`styleseed`/
+  `ux-ui-agent-skills`'s `recommend_if` describes. Zero invocation despite a matching real
+  project existing changes the honest framing from "maybe nobody needs this" to "relevant,
+  unused anyway — worth asking directly why, not assuming irrelevance."
+- **`strix`'s relevance is stronger than "checked once."** Its `recommend_if` is "handles auth,
+  payments, or user data." ERP (admin/finance system) and Personal APP (a personal-trainer
+  client-management app storing client data in Firestore, per this session's own `/reviewusage`
+  Agent-tool data) both plausibly match. The 6 ledger hits being exploration-only reads as
+  "started, didn't finish evaluating it" against real candidates, not "tried and found no use
+  for it."
+- Nothing found for `headroom` — no project shows a signal that would make it more or less
+  relevant than the ledger already suggested; its "universal" `recommend_if` doesn't
+  discriminate by project shape, so cross-project checking has nothing to add here either way.
+
+This changes U.3/U.5/U.6 below from "zero-evidence, lean remove" to "some genuinely
+zero-evidence (postgres/supabase/ruflo), some relevant-but-untried (sqlite, the design skills,
+strix)" — a materially different recommendation than before this check.
+
+### Confirmed broken — not a usage question, a reliability bug
+
+- [x] **U.1 Diagnose or remove the `github` MCP registration** (manual, then `coder`) —
+  **real root cause found, not assumed**: inspected the live registration directly
+  (`~/.claude.json`'s `mcpServers.github`) and it held the literal, never-replaced string
+  `"Authorization": "Bearer YOUR_GITHUB_TOKEN"` — same placeholder baked into
+  `source/opencode/mcp.json` and therefore into every `opencode.jsonc` this installer ever
+  produced. This was never a code bug; it's a credential-requiring integration that was wired
+  as an always-on, zero-setup default, which cannot work. User's call: remove it.
+  **What changed**: dropped `github` from `source/opencode/mcp.json`'s always-on set (now just
+  `context7`/`filesystem`/`git`, all genuinely credential-free); added it as a proper opt-in
+  entry in `source/plugins.json` (`manual: true`, `requires_input` a real token, the exact
+  `claude mcp add --transport http` command as its instruction) so the capability isn't lost,
+  just moved from silently-broken-by-default to correctly opt-in — same pattern `supabase`
+  already uses for its own required token. `README.md`'s "always on" claim corrected.
+  **Live cleanup on this machine**: removed the broken entry from `~/.claude.json`
+  (backed up first to `.claude.json.pre-github-removal.bak`, not deleted outright) and
+  re-ran the installer, confirmed `opencode.jsonc` no longer contains a `github` block.
+  Verified: `node dev/scripts/validate-plugins.js` passes, `npm test` 93/93, lint/typecheck
+  clean.
+- [x] **U.2 Diagnose `filesystem`/`git` MCP instability** (manual, then `coder`) —
+  **verdict: expected behavior, no action.** Re-examined the actual evidence rather than
+  re-asking: this session's own transcript shows `filesystem`/`git` cycling
+  connecting → connected → disconnected at various points, but `/reviewusage`'s ledger shows
+  **zero calls to either, ever**, in the whole 16-day window — meaning neither was ever
+  actually invoked and found to fail. The connect/disconnect cycling is far more consistent
+  with normal MCP lifecycle (idle servers reconnecting on demand) than with a real bug — unlike
+  `github` (U.1), there's no error message, no failed call, nothing to point at as broken. Not
+  escalating to `coder`: nothing to fix without a real failure to reproduce. Revisit only if an
+  actual call to either fails outright.
+
+### Zero observed use over 16 days — candidates, not decisions
+
+Catalog entries with no evidence of use in the ledger and no `install` event recorded (the
+ledger has zero `install` events in the whole window, so absence of install evidence isn't
+meaningful on its own — usage evidence is what's real here):
+
+- [x] **U.3a `supabase`, `postgres` MCP entries** (manual) — **decided: keep cataloged.**
+  Genuinely zero-evidence on two independent sources (ledger + cross-project check), but
+  they're opt-in catalog entries, not always-on — zero cost to a user who never touches
+  `/plugins`'s catalog pass for them, and removing them just means re-adding later if a
+  Postgres/Supabase project shows up. No destructive action taken.
+- [x] **U.3b `sqlite` MCP entry** (manual) — **user chose both: widen `recommend_if` AND test
+  for real.** Tested for real, with explicit per-action confirmation since it touched a real
+  production database: copied ERP's actual `erp_housekimono.sqlite` (never the original) to a
+  scratch dir, checked its raw header (not plain-SQLite magic bytes — genuinely
+  full-file-encrypted), then tried opening the copy with plain `node:sqlite` (no SQLCipher
+  support, same class of driver `@modelcontextprotocol/server-sqlite` uses) — **it failed
+  outright: "file is not a database."** Copy deleted immediately after the test, original
+  never touched. **Result reverses the original plan**: `recommend_if` now explicitly
+  *excludes* `sqlcipher`/`@journeyapps/sqlcipher`, with the proof inline, instead of matching
+  it — recommending this MCP for an encrypted-SQLite project would recommend something proven
+  not to connect, the same failure shape as U.1's `github` placeholder. Verified:
+  `node dev/scripts/validate-plugins.js` passes.
+- [x] **U.4 `headroom`, `ruflo` entries** (manual) — **decided: keep cataloged**, same
+  reasoning as U.3a — zero-cost optional entries, no destructive action taken. `ruflo`'s own
+  catalog entry already carries an explicit "review resource/cost implications before
+  installing" warning, which is the honest gate for something this heavy, not removal.
+- [x] **U.5 `emil-design-eng`, `taste-skill`, `styleseed`, `ux-ui-agent-skills`,
+  `example-skills` skill entries** (manual) — **answer: "esqueci que existiam."** Not a
+  rejection — genuine oversight, not a deliberate decline. No catalog change; the entries stay
+  installed/cataloged as before. Recorded here so the next time ERP's frontend gets real
+  design work, this finding is the reminder that was missing the first time.
+- [x] **U.6 `strix` (CLI, security)** (manual) — **real failure reported by the user, not
+  hypothetical**: "o strix estoura o limite de tokens antes de terminar de rodar... não
+  funciona" — already tried, on a real project, and it did not complete. This is a materially
+  different finding than "checked once, never finished evaluating" — it's a known, reported
+  failure mode. Added an honest `install.note` caveat to `strix`'s catalog entry naming this
+  exact failure (token/context budget exceeded before completion) so `/plugins` doesn't
+  recommend it as if it just works. Not removed from the catalog — the failure may be
+  project-size-specific, not universal, so the option stays available with the caveat attached
+  rather than being deleted outright.
+
+### Decision and execution
+
+- [x] **U.7 Record a keep/remove/try decision per item above** (manual) — done, one line per
+  U.1-U.6 above, all with the user's actual answers, not assumed defaults.
+- [x] **U.8 Execute confirmed removals via `/execgoals`** (`coder`) — **only one real removal
+  came out of U.1-U.6: `github`'s broken always-on registration (U.1), already executed at the
+  point U.1 was resolved** — dropped from `source/opencode/mcp.json`, removed from this
+  machine's live `~/.claude.json` (backed up first), re-added as a correct opt-in catalog
+  entry. Nothing else in this section resulted in a removal: U.3a/U.4 kept cataloged, U.3b/U.6
+  got corrected `recommend_if`/caveat text (not deletions), U.5 needed no change. No separate
+  bulk-delete pass needed. Verified: `node dev/scripts/validate-plugins.js` passes,
+  `npx biome check .`/`npx tsc` clean, `npm test` 93/93.
+
+### Caveat
+
+16 days is still thin on its own for anything left genuinely zero-evidence after the
+cross-project check (U.3a, U.4) — the check above resolved the "maybe it just never came up"
+question for `sqlite` and the design skills (it did come up, ERP matches both), but
+`supabase`/`postgres`/`headroom`/`ruflo` remain unconfirmed by a second source too, just with
+weaker (not zero) confidence than a two-month window would give.
+
+---
+
+<a id="goals-10-reliability-harness-structural-guardrails--tiered-autonomy-base_project-feature"></a>
+## GOALS 10 — Reliability Harness: Structural Guardrails + Tiered Autonomy (base_project feature)
+
+Direct continuation of GOALS 7-8's own incident: this session introduced two real, live
+`GOALS.md` structural bugs (duplicate item IDs) while executing GOALS 7-9, caught only because
+`grep` was run manually afterward — a memory-dependent catch, not a guaranteed one. Researched
+(this session, with sources) before writing this: self-reflection alone is proven weaker than
+self-reflection plus an external/objective signal; Claude Code's own `hooks` mechanism is the
+real, already-partially-adopted way to make a check objective and automatic instead of textual
+and memory-dependent; graduated/tiered autonomy (GAIE framework, the "Permission Ladder"
+pattern) is real, documented practice, not a novel idea being improvised here.
+
+```mermaid
+flowchart TD
+    Hook[Tier 1: PostToolUse hook\nvalidate-goals.js] --> Shared[Shared checker\ndev/scripts/validate-goals-structure.js]
+    Manual[execgoals self-check step\ncalls the same shared checker] --> Shared
+    Tiering[3-tier autonomy vocabulary\nCLAUDE.md + opencode-instructions.md] --> ExecgoalsApply[/execgoals: name its\nexisting informal tiering/]
+    Deferred[Tier 2, deferred: PreToolUse\nblocking - real edge cases, not built]
+```
+
+### Design rationale — mapped to the project's actual layers, not a generic proposal
+
+- **Hooks layer** (`source/hooks/`, → `~/.claude/base_project/hooks/`, registered in
+  `settings.json`'s `PostToolUse` array): this is where the deterministic check belongs.
+  Verified directly on this machine, not assumed — `post-edit-format.js` already runs as a
+  real `PostToolUse` hook today, receives `tool_name`/`tool_input.file_path` on stdin, self-
+  filters by file extension, and *never blocks or fails the edit it's attached to* (same
+  constraint the new hook must keep — a structural check that broke a legitimate `GOALS.md`
+  edit would be worse than the bug it prevents). `validate-goals.js` mirrors this exact
+  pattern: fires on every `Edit`/`Write`/`MultiEdit`, self-filters to paths ending in
+  `GOALS.md` (any project's, since base_project's hooks install globally, not scoped to this
+  repo), and only *reports* — same non-blocking contract as its neighbor.
+- **Scripts layer** (`dev/scripts/`): the check logic itself lives once, in
+  `dev/scripts/validate-goals-structure.js`, not duplicated into the hook. Two callers share
+  it: the hook (automatic, every edit) and `/execgoals`'s own self-check step (explicit,
+  end-of-area) — so "what the hook checks" and "what a manual check verifies" can never drift
+  apart into two different definitions of correct.
+- **Global instruction layer** (`source/CLAUDE.md`, `source/opencode-instructions.md`): the
+  3-tier autonomy vocabulary (auto-approved / notify-and-proceed / human-in-the-loop, from the
+  GAIE/Permission-Ladder research) is prose, not a hook — deciding "is this action reversible,
+  does it touch data outside base_project's own repo" needs judgment a deterministic check
+  can't make. Lands as an elaboration of Workflow item 4 (`Plan ≠ execute`, added in GOALS 7),
+  the same section, not a new one.
+- **Command layer**: `/execgoals` already does an *informal* version of this tiering — step 3's
+  "trivial items apply directly... non-trivial use architect→coder... decision only the user
+  can make → stop and ask" is structurally the same 3-way split, just unnamed. The concrete
+  incident that should anchor the human-in-the-loop tier explicitly: this session's ERP
+  database test (U.3b) — real data, outside base_project's own repo, low reversibility if
+  mishandled — is the worked example to cite, the same way `undo.md`/`uninstall.md` already
+  anchor tiered confirmation for their own domains.
+- **Reference layer** (`project-standards.md`): open question, not decided here — should the
+  3-tier vocabulary become something `/scanproject` checks for in *other* projects too, or stay
+  scoped to how base_project's own commands operate? Flagged as a decision item, not assumed.
+- **Explicitly deferred, not built this pass**: a `PreToolUse` hook that blocks a planning-only
+  command (`/newgoal`, `/repertoire`) from editing a non-`GOALS.md`/`REPERTOIRE.md` file before
+  the edit happens — genuinely possible (confirmed: the stdin payload carries `prompt_id`, and
+  `UserPromptSubmit` events carry the literal prompt text in the same ledger `usage-log.js`
+  already writes, so correlating "this tool call's `prompt_id` traces back to a prompt starting
+  with `/newgoal`" is real, not hypothetical) — but `PreToolUse` is a hook event type this
+  project has never used before (today only `PostToolUse`/`SessionStart`/`UserPromptSubmit`
+  exist), and real edge cases aren't resolved: a combined message (`/newgoal /council`) doesn't
+  start with a clean `/newgoal` match, and `/newproject`'s background dispatch of `/newgoal`
+  carries no literal typed `/newgoal` text at all — same shape problem, different mechanism.
+  Worth a real design pass later, not worth guessing into existence now.
+
+### Implementation
+
+- [ ] **G.1 `dev/scripts/validate-goals-structure.js`** (`coder`) — the shared checker.
+  Catches the two failure modes this session actually demonstrated: (a) a bold item label
+  (`**X.N**` / `**X.Na**`) appearing more than once in the same file, (b) unbalanced
+  ` ```mermaid ` opens vs. closing ` ``` ` fences. Exports a `check(filePath)` function
+  returning `{ ok: boolean, findings: [...] }`, plus a CLI entry point
+  (`node dev/scripts/validate-goals-structure.js <path>`) for direct/manual use. Done when: a
+  fixture file with a deliberately duplicated item ID fails the check, and the same file with
+  it fixed passes.
+- [ ] **G.2 `source/hooks/validate-goals.js`** (`coder`) — thin `PostToolUse` hook wrapper,
+  same shape as `post-edit-format.js`: reads stdin JSON, checks `tool_name` is
+  `Edit`/`Write`/`MultiEdit` and `tool_input.file_path` ends in `GOALS.md`, calls G.1's
+  `check()`, and — this is a judgment call to confirm, not assumed — prints findings to
+  stderr as a visible warning without failing/blocking the tool call (matching
+  `post-edit-format.js`'s "must never block the edit it's attached to" constraint) rather than
+  using Claude Code's hook-exit-code convention for surfacing an error back to the model, if
+  that convention exists and would give a stronger result (worth checking against the current
+  Claude Code hooks docs when this is actually built, not assumed from older research).
+  Done when: editing a scratch `GOALS.md` to introduce a duplicate ID and saving it via
+  Edit/Write produces a visible warning in that same turn, without the edit itself failing.
+- [ ] **G.3 Register the new hook** (`coder`) — `dev/scripts/install.ps1` and `install.sh`,
+  mirroring the existing `post-edit-format.js` registration block exactly (build the hook
+  path, a `base_project/hooks/validate-goals.js` marker string, filter out any existing
+  registration matching that marker before appending — the same re-install-safe pattern the
+  other 4 hooks already use). Confirm whether the existing generic `source/hooks/*.js` sync
+  loop already picks up the new file automatically or needs its own line — check directly
+  against the current loop rather than assuming either way. Done when: a fresh install into a
+  scratch `CLAUDE_HOME` registers the new hook in `settings.json`'s `PostToolUse` array, and a
+  second install doesn't duplicate the entry.
+- [ ] **G.4 Elaborate the 3-tier autonomy vocabulary** (`coder`) — extend Workflow item 4 in
+  `source/CLAUDE.md` and `source/opencode-instructions.md`: name the three tiers
+  (auto-approved / notify-and-proceed / human-in-the-loop), the axes that decide which one
+  applies (reversibility, whether the action touches data/state outside base_project's own
+  repo, data sensitivity), and cite this session's ERP database test as the worked example for
+  human-in-the-loop. Done when: the three tiers and their deciding axes are named explicitly,
+  not just implied.
+- [ ] **G.5 Name `/execgoals`'s existing tiering explicitly** (`coder`) — step 3 already does
+  this informally; make the vocabulary from R.4 explicit in the same step's text, and add a new
+  step: after finishing a batch of edits to the same file within one area, run G.1's checker
+  against it directly (`node dev/scripts/validate-goals-structure.js <file>`) as a manual
+  backstop — covers the gap where the hook isn't installed/synced yet (exactly this session's
+  own situation, editing `GOALS.md` mid-development before a fresh install ran). Done when: the
+  step exists and running it against a file with a known-injected duplicate ID reports it.
+
+### Tests
+
+- [ ] **G.6 `dev/tests/validate-goals-structure.test.js`** (`coder`) — unit coverage for G.1
+  directly: a fixture with a duplicated item ID fails, a fixture with unbalanced mermaid fences
+  fails, a known-good fixture (e.g. a copy of this file's own GOALS 7 section) passes. Done
+  when: `npm test` includes this suite and it actually exercises all three cases, not just the
+  happy path.
+
+### Registration
+
+- [ ] **G.7 Update `dev/ROADMAP.md`, `command-menu.md`, `README.md`/`ARCHITECTURE.md`'s hook
+  list** (`coder`) — same discoverability discipline every prior feature in this file uses.
+  Done when: the new hook is named wherever the other 4 are already listed, not just present
+  in `source/hooks/`.
+
+### Explicitly out of scope for this pass
+
+- [x] The `PreToolUse` blocking mechanism (see Design rationale above) — real edge cases
+  unresolved, would be guessed into existence rather than designed if built now.
+- [x] Extending the structural checker to `REPERTOIRE.md` or any file shape beyond `GOALS.md`
+  — start narrow, on the exact shape that already broke twice; widen later only if a real
+  second case shows up, not preemptively.
+- [x] Any change to `project-standards.md` — flagged as an open question in Design rationale,
+  not decided, so not implemented.
+
+### Sources consulted
+
+- [Reflection Pattern accuracy gains, and the limits of self-reflection alone without an external signal — StackViv](https://stackviv.ai/blog/reflection-ai-agents-self-improvement)
+- [Designing AI Agents That Can Self-Correct — MachineLearningMastery.com](https://machinelearningmastery.com/designing-ai-agents-that-can-self-correct/)
+- [Governed AI-Assisted Engineering (GAIE): graduated 3-tier human oversight, classified by reversibility/data sensitivity/regulatory impact — arXiv](https://arxiv.org/html/2606.22484v1)
+- [The Permission Ladder: 5 autonomy levels, 3-way action classification (auto-approved / notify-and-proceed / human-in-the-loop) — MindStudio](https://www.mindstudio.ai/blog/ai-agent-permission-ladder-autonomy-levels)
+- [Claude Code Hooks: deterministic, programmable guardrails; PostToolUse validates but cannot undo, PreToolUse can block — Claude Code Docs / Stroops Lab](https://code.claude.com/docs/en/hooks-guide)
+- [Poka-yoke (mistake-proofing), Shigeo Shingo / Toyota Production System — Wikipedia](https://en.wikipedia.org/wiki/Poka-yoke)

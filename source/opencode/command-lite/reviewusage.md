@@ -27,6 +27,8 @@ STEP 4 — Report, shortest useful thing first:
 - Slow — highest `ms`, only if something stands out.
 - Coverage — the ledger's date range and session count, so a zero reads correctly.
 
+STEP 4b — Track zero-use findings across runs so the report escalates on its own. Maintain `~/.claude/base_project/usage/.zero-use-tracking.json` (`{ id: firstFlaggedDateISO }`, this command's own housekeeping, never the ledger). New finding → add it with today's date. Already tracked → report days since first flagged; past 60 days, call it out explicitly as no longer noise. Now shows real usage → remove it from the file, it self-corrects.
+
 STEP 5 — Never delete or rewrite ledger files. If asked to clear history, give the path and let the user delete it.
 
 STEP 6 — If `--export <path>` is in the arguments, also write the report as Markdown there. With no path, report in the conversation only — never write into the project being inspected.

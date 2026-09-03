@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
-// PostToolUse hook: after Edit/Write touches a JS/TS/JSON/CSS file, runs
+// PostToolUse hook: after Edit/Write/apply_patch touches a JS/TS/JSON/CSS file, runs
 // `biome format --write` scoped to THAT SINGLE FILE only — never the whole
 // project. Scoping to one file is deliberate: a broad `biome format .` run
 // during base_project's own development reformatted 500+ unrelated lines in
@@ -51,19 +51,38 @@ function tryFormat(filePath) {
   }
 }
 
+function editedFiles(input) {
+  const toolName = String(input.tool_name || "").toLowerCase();
+  if (toolName === "edit" || toolName === "write" || toolName === "multiedit") {
+    const filePath = input.tool_input?.file_path;
+    return filePath ? [filePath] : [];
+  }
+  if (toolName !== "apply_patch") return [];
+
+  const toolInput = input.tool_input;
+  const patch =
+    typeof toolInput === "string"
+      ? toolInput
+      : toolInput?.patch || toolInput?.input || "";
+  return [
+    ...new Set(
+      [...patch.matchAll(/^\*\*\* (?:Add|Update) File: (.+)\r?$/gm)].map(
+        (match) => match[1].trim(),
+      ),
+    ),
+  ];
+}
+
 async function main() {
   try {
     const raw = await readStdin();
     const input = raw ? JSON.parse(raw) : {};
-    const toolName = input.tool_name || "";
-    if (
-      toolName === "Edit" ||
-      toolName === "Write" ||
-      toolName === "MultiEdit"
-    ) {
-      const filePath = input.tool_input?.file_path || "";
-      if (filePath && FORMATTABLE_EXT.has(path.extname(filePath))) {
-        tryFormat(filePath);
+    for (const filePath of editedFiles(input)) {
+      const absolute = path.isAbsolute(filePath)
+        ? filePath
+        : path.resolve(input.cwd || process.cwd(), filePath);
+      if (FORMATTABLE_EXT.has(path.extname(absolute))) {
+        tryFormat(absolute);
       }
     }
   } catch {
@@ -76,4 +95,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { FORMATTABLE_EXT };
+module.exports = { FORMATTABLE_EXT, editedFiles };

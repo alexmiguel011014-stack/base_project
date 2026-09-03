@@ -63,6 +63,9 @@ jobs:
           fi
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
+          export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
+          mkdir -p "$BASE_PROJECT_CODEX_ROOT"
           bash dev/scripts/install.sh
           test -f "$CLAUDE_HOME/CLAUDE.md"
           test -f "$CLAUDE_HOME/settings.json"
@@ -131,7 +134,16 @@ jobs:
           test -f "$OPENCODE_HOME/command/execgoals.md"
           test -f "$OPENCODE_HOME/command/designreview.md"
           test -f "$OPENCODE_HOME/command/reviewusage.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/agents/reviewer.toml"
+          test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/command-menu.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/goal-types/build.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/hooks.json"
+          test -f "$BASE_PROJECT_AGENTS_ROOT/skills/wpp/SKILL.md"
+          test -f "$BASE_PROJECT_AGENTS_ROOT/skills/newgoal/SKILL.md"
+          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
           node -e "JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8'))"
           echo "install.sh: all expected artifacts present and settings.json is valid JSON"
 
       - name: Run install.ps1 against a throwaway HOME (Windows)
@@ -140,6 +152,9 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
+          $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
+          New-Item -ItemType Directory -Force -Path $env:BASE_PROJECT_CODEX_ROOT | Out-Null
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           $expected = @(
             (Join-Path $claudeHome "CLAUDE.md"),
@@ -208,12 +223,21 @@ jobs:
             (Join-Path $opencodeHome "command\repertoire.md"),
             (Join-Path $opencodeHome "command\execgoals.md"),
             (Join-Path $opencodeHome "command\designreview.md"),
-            (Join-Path $opencodeHome "command\reviewusage.md")
+            (Join-Path $opencodeHome "command\reviewusage.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "agents\reviewer.toml"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\command-menu.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\goal-types\build.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\wpp\SKILL.md"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\newgoal\SKILL.md")
           )
           foreach ($path in $expected) {
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
           }
           Get-Content (Join-Path $claudeHome "settings.json") -Raw | ConvertFrom-Json | Out-Null
+          Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json | Out-Null
+          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 21) { throw "Expected exactly 21 Codex skills" }
           Write-Output "install.ps1: all expected artifacts present and settings.json is valid JSON"
 
       - name: Re-run installer to confirm it's idempotent (Linux/macOS)
@@ -221,6 +245,8 @@ jobs:
         run: |
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
+          export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           bash dev/scripts/install.sh
           echo "second run succeeded without error"
 
@@ -230,6 +256,8 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
+          $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           Write-Output "second run succeeded without error"
 
@@ -238,6 +266,8 @@ jobs:
         run: |
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
+          export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           bash dev/scripts/install.sh --opencode-commands lite
           grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
           test "$(cat "$HOME/.base_project/opencode-command-profile.txt")" = "lite"
@@ -255,6 +285,8 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
+          $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands lite
           $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
           if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite ship.md missing '(lite)' marker" }

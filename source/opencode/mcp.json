@@ -13,13 +13,6 @@
       "command": "npx",
       "args": ["-y", "mcp-git"],
       "autoApprove": ["get_branch", "get_status", "list_branches"]
-    },
-    "github": {
-      "type": "remote",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer YOUR_GITHUB_TOKEN"
-      }
     }
   }
 }

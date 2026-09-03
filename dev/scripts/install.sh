@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# base_project installer — populates GLOBAL config for Claude Code (~/.claude) and
-# opencode (~/.config/opencode). Never touches any project repository.
+# base_project installer - populates GLOBAL config for Claude Code (~/.claude),
+# Codex (~/.codex + ~/.agents/skills), and opencode (~/.config/opencode).
+# Never touches any project repository.
 #
 # Run once after cloning. Re-run any time (e.g. after `git pull`) to pick up
 # updates — it only touches the blocks/files it manages.
@@ -152,17 +153,9 @@ sync_instruction_block() {
 sync_instruction_block "$CLAUDE_HOME/CLAUDE.md" "CLAUDE.md"
 
 # ---------------------------------------------------------------------
-# 3a. Same block for the other engines that read an AGENTS.md.
-#     Codex CLI reads ~/.codex/AGENTS.md, Kimi Code CLI reads ~/.kimi/AGENTS.md
-#     (both verified against their docs, Aug/2026). Only written when the tool's
-#     home directory already exists: creating ~/.codex on a machine with no Codex
-#     would be exactly the kind of surprise side effect this project avoids.
+# 3a. Kimi also reads an AGENTS.md. Codex uses its own native block, skills,
+#     agents, references, and hooks, synchronized together later in this script.
 # ---------------------------------------------------------------------
-if [ -d "$HOME/.codex" ]; then
-    sync_instruction_block "$HOME/.codex/AGENTS.md" "Codex CLI AGENTS.md"
-else
-    warn "Codex CLI not detected ($HOME/.codex missing) - skipped its AGENTS.md. Install it and re-run this script."
-fi
 if [ -d "$HOME/.kimi" ]; then
     sync_instruction_block "$HOME/.kimi/AGENTS.md" "Kimi Code CLI AGENTS.md"
 else
@@ -546,6 +539,18 @@ if [ -d "$OPENCODE_REFERENCES_SRC_DIR" ]; then
 fi
 
 # ---------------------------------------------------------------------
+# 8d-2. Codex-native projection: AGENTS.md, 21 skills, 3 subagents,
+#       references, catalog, and hooks. One Node implementation keeps this
+#       behavior identical to the PowerShell installer.
+# ---------------------------------------------------------------------
+step "Syncing native Codex integration..."
+if command -v node &>/dev/null; then
+    node "$SCRIPT_DIR/install-codex.js" || warn "Codex integration sync failed."
+else
+    warn "Node.js not found - skipped native Codex skills/agents sync."
+fi
+
+# ---------------------------------------------------------------------
 # 9. Record the repo path (used to check for base_project updates later)
 # ---------------------------------------------------------------------
 STATE_DIR="$HOME/.base_project"
@@ -556,5 +561,5 @@ ok "recorded repo path for update checks: $REPO_ROOT"
 ok "opencode command profile: $OPENCODE_COMMAND_PROFILE (switch with --opencode-commands dense|lite)"
 
 echo ""
-echo -e "\033[32mbase_project installed. Open any project - Claude Code and opencode now load these rules automatically.\033[0m"
+echo -e "\033[32mbase_project installed. Open any project - Claude Code, Codex, and opencode now load these rules automatically.\033[0m"
 echo -e "\033[32mNothing was written inside any project repository.\033[0m"

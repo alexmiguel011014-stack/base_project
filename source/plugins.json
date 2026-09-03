@@ -45,6 +45,18 @@
       "opencode": { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } }
     },
     {
+      "id": "github",
+      "name": "GitHub Copilot MCP",
+      "kind": "mcp",
+      "summary": "Direct GitHub API access (issues, PRs, repo search) through GitHub's own Copilot MCP endpoint, instead of shelling out to `gh` via Bash for everything. Moved here from base_project's always-on default set — it needs a real personal access token to work at all, which can't be an always-on default (found broken with a literal placeholder token registered, see dev/ROADMAP.md item 42).",
+      "recommend_if": "You work with GitHub issues/PRs/repos often enough that `gh`-via-Bash friction is worth trading for a real MCP integration.",
+      "source": "https://github.com/github/github-mcp-server",
+      "requires_input": ["A GitHub personal access token (fine-grained, scoped to only what you need) — yours, never a shared/placeholder value"],
+      "claude_only": true,
+      "manual": true,
+      "claude": { "instruction": "claude mcp add --scope user --transport http github https://api.githubcopilot.com/mcp/ --header \"Authorization: Bearer <your-real-token>\"" }
+    },
+    {
       "id": "postgres",
       "name": "Postgres MCP",
       "kind": "mcp",
@@ -58,7 +70,7 @@
       "name": "SQLite MCP",
       "kind": "mcp",
       "summary": "Query and inspect a local SQLite database file directly from the agent.",
-      "recommend_if": "A .sqlite/.db file exists in the project, or package.json depends on better-sqlite3/sqlite3.",
+      "recommend_if": "A .sqlite/.db file exists in the project, or package.json depends on better-sqlite3/sqlite3. NOT sqlcipher/@journeyapps/sqlcipher — confirmed by direct test (copied a real @journeyapps/sqlcipher database, tried opening it with a plain, non-SQLCipher SQLite driver): the file has no plain-SQLite header at all and fails to open outright ('file is not a database'). This server's driver has no SQLCipher decryption support, so it cannot connect to an encrypted-SQLite project regardless of how well `recommend_if` matches — don't recommend it there.",
       "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] },
       "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] }
     },
@@ -70,7 +82,11 @@
       "recommend_if": "The project handles auth, payments, or user data, or the user wants deeper coverage than npm audit / gitleaks for /audit.",
       "source": "https://github.com/usestrix/strix",
       "requires": ["Docker running locally"],
-      "install": { "command": "pip", "args": ["install", "strix-agent"] }
+      "install": {
+        "command": "pip",
+        "args": ["install", "strix-agent"],
+        "note": "Reported by this project's own maintainer: strix has exceeded the token/context budget before finishing a run, on a real project — it did not complete. Confirm scope/timeout/target-size settings (see the project's own docs for limiting run size) before relying on it; don't assume a completed run without checking."
+      }
     },
     {
       "id": "skill-ui",

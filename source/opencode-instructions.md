@@ -17,6 +17,20 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 2. **Implement** — use `@coder` for surgical, scoped edits.
 3. **Review** — use `@reviewer` to run lint/typecheck/tests and prepare commits. It does not commit unless
    explicitly asked to.
+4. **Plan ≠ execute** — a command whose whole job is to produce a plan or analysis (e.g.
+   `/newgoal`, `/repertoire`) never implements it in the same turn, no matter how complete the
+   request already sounds or how firmly it was agreed earlier in the conversation. Producing
+   the plan is the deliverable; running it is a separate step (`/execgoals`, or an explicit new
+   ask) — never bundled into the planning command itself.
+
+### Autonomy & Confirmations
+- Once the user has authorized a task, perform ordinary, reversible, in-scope implementation
+  and verification steps without repeatedly asking permission.
+- Ask only when a choice would materially change scope, an action is destructive or hard to
+  recover, credentials/external publication are involved, or a command defines its own explicit
+  safety gate (for example `/council`, `/pr`, `/uninstall`, and destructive tiers of `/undo`).
+- A sandbox or host permission prompt is an environment requirement, not a reason to ask the
+  same question again in chat.
 
 ### Plugin auto-suggestion (suggest only, never auto-install)
 - When starting substantial work in a project (the same moment the `graphify-out/` bootstrap

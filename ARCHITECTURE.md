@@ -11,7 +11,7 @@ Para lições aprendidas com bugs reais, veja `CLAUDE.md` (regras deste repo) e
 ## 1. O que este projeto é, em uma frase
 
 Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `source/`
-para `~/.claude/` e `~/.config/opencode/` e projeta `~/.agents/` (unified layer) em 31
+para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/`, e projeta `~/.agents/` (unified layer) em 31
 agents — nada mais. Não é um servidor rodando o tempo todo, não é um pacote npm
 publicado, não escreve nada dentro de projetos que o usam. O "produto" real são os
 arquivos que acabam instalados: regras globais, 3 subagentes, **21 comandos**, um catálogo
@@ -48,6 +48,11 @@ base_project/
 │   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
 │   │                            formato opencode)
 │   │   └── mcp.json            → ~/.config/opencode/mcp.json + registrado via `claude mcp add`
+│   ├── codex/
+│   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
+│   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
+│   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 21 workflows; invocação `$nome`)
+│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex; standards/goal-types compartilhados)
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
 │   └── hooks/*.js              → ~/.claude/base_project/hooks/
 │
@@ -110,8 +115,8 @@ restrição, mas manter os dois configs de tooling no mesmo lugar evita confusã
 
 ## 3. Os 3 subagentes (architect / coder / reviewer)
 
-Arquivos: `source/claude/agents/*.md` (formato Claude Code) e `source/opencode/agent/*.md`
-(formato opencode) — conteúdo espelhado entre os dois pares.
+Arquivos: `source/claude/agents/*.md`, `source/opencode/agent/*.md` e
+`source/codex/agents/*.toml` — o mesmo trio em cada formato nativo.
 
 | Agente | Papel | Ferramentas |
 |---|---|---|
@@ -130,18 +135,24 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ## 4. Os 21 comandos
 
-Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md`. Só o lado
+Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md` +
+`source/codex/skills/*/SKILL.md`. Só o lado
 opencode tem um segundo conjunto espelhado, `source/opencode/command-lite/*.md` (mesmos
 21 nomes, mesma descrição de propósito, reescrito como checklist plano) — opt-in via
 installer, ver § 2 acima. Claude Code não tem "lite" porque o problema que motivou o
 perfil (modelo fraco/gratuito perdendo o fio em instrução condicional densa) é específico
 de quem roda opencode com um backend não-Claude.
 
+No Codex, workflows reutilizáveis são **skills**, não comandos customizados de topo. Portanto
+os mesmos 21 nomes usam `$nome` (`$wpp`, `$scanproject`, `$ship`); eles também aparecem no
+seletor de slash commands do Codex. `/prompts:nome` é outra categoria (prompt customizado) e
+não foi usada porque perderia descoberta implícita e o empacotamento progressivo das skills.
+
 | Comando | O que faz |
 |---|---|
 | `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. Dispara `/newgoal` em segundo plano ao final. |
 | `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
-| `/repertoire` | Pesquisa o domínio real do projeto-alvo — base científica, regulatória/legal, cultural, mídia — não a stack técnica. Sempre confirma antes de rodar; combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho. |
+| `/repertoire` | Pesquisa um assunto a fundo — o domínio real de um projeto (científico, regulatório/legal, cultural, mídia) alimentando o `/newgoal`, ou um tópico/tendência avulso que o usuário quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar; sempre confirma. |
 | `/execgoals` | Executa `GOALS.md` item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade. |
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
@@ -157,7 +168,7 @@ de quem roda opencode com um backend não-Claude.
 | `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
 | `/wpp` | Mostra o menu "o que você deseja fazer agora?" sob demanda (mesmo conteúdo que aparece automaticamente no início de sessão / fim de tarefa). |
 | `/status` | Mostra a versão do base_project e uma lista simples (só nomes) de tudo que está ativo agora — agentes, comandos, hooks, plugins instalados. |
-| `/reviewusage` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando. Só cobre Claude Code — atividade do opencode não é rastreada. |
+| `/reviewusage` / `$reviewusage` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando. Cobre Claude Code e Codex quando os hooks estão ativos; atividade do opencode não é rastreada. |
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
 | `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
 
@@ -189,7 +200,7 @@ básica, estrutura.
 
 ### 4.2 O menu "o que você deseja fazer agora?" (estilo WhatsApp)
 
-Instrução em `CLAUDE.md`/`opencode-instructions.md`: renderizar
+Instrução em `CLAUDE.md`/`opencode-instructions.md`/`codex/AGENTS.md`: renderizar
 `references/command-menu.md` **verbatim** (nunca redigitar a lista de memória) em dois
 momentos automáticos — início de sessão sem pedido específico já dado, e logo depois de
 fechar uma tarefa substancial (múltiplos edits, subagentes, ou TodoWrite envolvido).
@@ -197,7 +208,7 @@ Não dispara a cada turno — existe pra baixar a fricção de quem não sabe po
 começar, não pra virar ruído em uso avançado. `/wpp` é o mesmo menu sob demanda, pra
 quando o usuário quer vê-lo fora dos dois gatilhos automáticos. `command-menu.md` é a
 mesma fonte única que `plugins.json`/`project-standards.md`: um arquivo, todos os
-pontos de entrada (`CLAUDE.md`, `opencode-instructions.md`, `/wpp` nos dois engines)
+pontos de entrada (`CLAUDE.md`, `opencode-instructions.md`, `/wpp` e `$wpp`)
 apontam pra ele em vez de duplicar a lista.
 
 ### 4.3 `/update` e `/uninstall` — ciclo de vida da própria instalação
@@ -216,6 +227,23 @@ apontam pra ele em vez de duplicar a lista.
   --scope user` — afeta todo projeto da máquina, não só quem usa base_project). Nunca
   toca em arquivo sem o marcador `base_project:managed`, e **nunca apaga o repositório
   do base_project em si**, só os efeitos instalados globalmente.
+
+### 4.4 Projeção nativa do Codex
+
+`dev/scripts/install-codex.js` é o único sincronizador da camada Codex e é chamado por ambos
+os installers. Ele preserva conteúdo do usuário e instala seis superfícies coerentes:
+
+1. bloco delimitado de regras em `~/.codex/AGENTS.md`;
+2. 21 skills em `~/.agents/skills/`;
+3. três subagentes TOML em `~/.codex/agents/`;
+4. referências e catálogo em `~/.codex/base_project/`;
+5. hooks mesclados em `~/.codex/hooks.json`;
+6. MCPs no `~/.codex/config.toml` pelo installer principal.
+
+Os hooks Codex apontam deliberadamente para os scripts já instalados em
+`~/.claude/base_project/hooks/`. Em especial, `usage-log.js` continua escrevendo no ledger
+histórico compartilhado sob `~/.claude/base_project/usage/`; isso mantém `$diario` compatível
+com todos os registros antigos, sem migração nem divisão de histórico.
 
 ---
 
@@ -312,7 +340,7 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 | **`diary-source.js`** | script interno | Extração determinística por projeto/dia (duração com corte de ociosidade >30min, arquivos tocados, commits). Roda dentro do `/diario`. |
 | **`/newgoal`** | comando | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research`) e pesquisa + escreve `GOALS.md`, o plano que `/execgoals` consome. |
 | **`/execgoals`** | comando | Executa `GOALS.md` item por item na ordem escrita, verificando cada um antes de marcar como feito. |
-| **`/repertoire`** | comando | Pesquisa domínio real (científico/regulatório/cultural/mídia) do projeto-alvo antes do `/newgoal` planejar. Confirma antes de rodar; combina ou roda sozinho. |
+| **`/repertoire`** | comando | Pesquisa um assunto a fundo: domínio real (científico/regulatório/cultural/mídia) de um projeto antes do `/newgoal` planejar, **ou** um tópico/tendência avulso ("ouvi isso na mídia, investiga") independente de construir algo. Declara o que consegue pesquisar antes de rodar; confirma sempre. |
 | **`/ship`** | comando | Commita e sobe as mudanças pro remoto (GitHub etc.), com checagem de prontidão e guia passo a passo pra cada bloqueio (repo sem remoto, segredo detectado, lint quebrado, divergência com upstream...). Nunca força push, nunca resolve conflito sozinho. |
 | **`/pr`** | comando | Abre PR pra branch atual, título/corpo a partir do range de commits real, confirma antes de criar. |
 | **`/council`** | comando | Pressão-testa uma decisão difícil com 5 perspectivas de conselheiro independentes + veredito. |
@@ -363,7 +391,8 @@ porque um padrão assim precedeu um acidente real de perda de dados nesta mesma 
 desenvolvimento (`git checkout --` repetido).
 
 ### `source/hooks/post-edit-format.js` (`PostToolUse`, síncrono)
-Depois de `Edit`/`Write`/`MultiEdit` num arquivo `.js`/`.jsx`/`.ts`/`.tsx`/`.json`/`.css`,
+Depois de `Edit`/`Write`/`MultiEdit` ou do `apply_patch` do Codex num arquivo
+`.js`/`.jsx`/`.ts`/`.tsx`/`.json`/`.css`,
 roda `biome format --write` **só nesse arquivo** — nunca o projeto inteiro. Escopo
 restrito é deliberado: um `biome format .` amplo já causou um incidente de reformatação
 não intencional nesta mesma sessão. Silenciosamente não faz nada se não houver
@@ -385,10 +414,11 @@ Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em
 `~/.claude/base_project/usage/`, uma linha por chamada de tool (`ts`, `session`,
 `prompt_id`, `agent_type`, `agent_id`, `cwd`, `tool`, `input`, `response`, `ms`) e uma
 linha por prompt de usuário (mesmo cabeçalho + `prompt`), mais uma linha `install` quando
-`/plugins` instala algo (`--install <id> --kind <kind> --origin <catalog|discovery>`).
+`/plugins`/`$plugins` instala algo (`--install <id> --kind <kind> --origin <catalog|discovery>`).
 **Não classifica nada** — toda interpretação (o que está sendo usado, o que nunca foi
-tocado) acontece só na leitura, dentro de `/reviewusage`; a decisão deliberada de manter
-o hook burro existe porque uma versão anterior classificava no momento da escrita e
+tocado) acontece só na leitura, dentro de `/reviewusage`/`$reviewusage`. O ledger cobre
+Claude Code e Codex quando seus hooks estão ativos; opencode não tem esse registro. A
+decisão deliberada de manter o hook burro existe porque uma versão anterior classificava no momento da escrita e
 sub-reportava plugins que na verdade estavam em uso (ver `dev/scripts/NPInstructions.md`).
 Input grande é truncado pra um `Write` não inflar o ledger; sobrevive a input circular sem
 lançar exceção; cada entrada é uma linha só, então uma escrita corrompida não contamina as
@@ -415,14 +445,15 @@ apaga nada — puramente consultivo.
 arquivos localmente (`npx skills add`), o comando roda esse scanner na pasta resultante
 antes de dizer que está pronta pra uso.
 
-Sincronizado pelo installer pra `~/.claude/base_project/scripts/scan-skill.js`.
+Sincronizado pelo installer pra `~/.claude/base_project/scripts/scan-skill.js`; as skills
+Codex reutilizam esse caminho compartilhado.
 
 ---
 
 ## 8. Testes (`dev/tests/`, `node:test`)
 
 `npm test` = `node --test dev/tests/*.test.js`. Sem framework externo (Jest/Vitest) —
-`node:test` nativo, zero dependência nova. 92 testes cobrindo:
+`node:test` nativo, zero dependência nova. A suíte cobre:
 
 - `loop-detect.test.js` / `post-edit-format.test.js` / `session-start-git-context.test.js`
   / `usage-log.test.js` — os 4 hooks
@@ -432,6 +463,8 @@ Sincronizado pelo installer pra `~/.claude/base_project/scripts/scan-skill.js`.
   propósito
 - `contrast-check.test.js` — as regras de contraste WCAG e tamanho mínimo de alvo de
   toque usadas por `/designreview`
+- `codex.test.js` — paridade nominal 21/21, frontmatter das skills, instalação
+  idempotente e preservação de hooks/skills do usuário
 
 Escopo deliberado: testa lógica de instalador/hook/script, não "qualidade" de skill —
 mesmo princípio que a pesquisa achou no próprio ECC (maior projeto do gênero, só testa 2
@@ -447,7 +480,8 @@ Dois jobs:
    → `npx tsc` → `npm run validate:plugins` → `npm test`.
 2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`): roda
    `dev/scripts/install.sh`/`install.ps1` de verdade contra um `$HOME` descartável (via
-   os overrides `CLAUDE_HOME`/`OPENCODE_HOME` que os scripts já suportam nativamente),
+   os overrides `CLAUDE_HOME`/`OPENCODE_HOME` e
+   `BASE_PROJECT_CODEX_ROOT`/`BASE_PROJECT_AGENTS_ROOT`),
    confere que os artefatos-chave existem e que `settings.json` é JSON válido, e roda o
    installer uma 2ª vez pra confirmar idempotência.
 

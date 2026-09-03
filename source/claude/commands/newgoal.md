@@ -8,6 +8,11 @@ detailed enough that `/execgoals` can execute against it without re-researching 
 command's whole job is to produce the input `/execgoals` consumes. This is a research-heavy, front-loaded command — spend real depth now so nothing has
 to be rediscovered later.
 
+**This command never implements anything** — not the plan it just wrote, not a request that
+already reads as fully specified, not something already agreed through a prior confirmation
+exchange in this same conversation. Producing the plan (or, for a pure `research`-type ask,
+the research deliverable) is the entire job; running it is exclusively `/execgoals`'s.
+
 **Two ways this runs.** Called directly (`/newgoal`), it is the user's explicit ask — narrate
 normally. Dispatched from `/newproject` (see that command's own step 6: the Agent tool, with
 `run_in_background: true`, carrying these instructions as the prompt), it must run as a real
@@ -112,5 +117,12 @@ done. The point is depth in the file, not tokens in the chat.
 7. Report only: the file path (or, for a standalone `research`-type deliverable, that file's
    path instead), and — when this ran standalone, not backgrounded — a short outline of the
    sections written, not the full content (the file has that).
+
+8. **Never execute.** This command writes `GOALS.md` (or the standalone research deliverable)
+   — full stop. It never edits other files, never runs installs/builds/scaffolding, and never
+   implements a prior `GOALS.md`'s items, no matter how complete the request already sounds or
+   how thoroughly it was already agreed earlier in the conversation. If there's something to
+   build, the next step is `/execgoals` (or an explicit separate ask) — never this command, in
+   the same turn or any other.
 
 $ARGUMENTS

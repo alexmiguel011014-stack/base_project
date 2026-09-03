@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-  base_project installer — populates GLOBAL config for Claude Code (~/.claude) and
-  opencode (~/.config/opencode). Never touches any project repository.
+  base_project installer - populates GLOBAL config for Claude Code (~/.claude),
+  Codex (~/.codex + ~/.agents/skills), and opencode (~/.config/opencode).
+  Never touches any project repository.
 
 .DESCRIPTION
   Run this once after cloning base_project. Re-run any time (e.g. after `git pull`)
@@ -174,16 +175,13 @@ function Sync-InstructionBlock([string]$Path, [string]$Label) {
 Sync-InstructionBlock -Path (Join-Path $ClaudeHome "CLAUDE.md") -Label "CLAUDE.md"
 
 # ---------------------------------------------------------------------
-# 3a. Same block for the other engines that read an AGENTS.md.
-#     Codex CLI reads ~/.codex/AGENTS.md, Kimi Code CLI reads ~/.kimi/AGENTS.md
-#     (both verified against their docs, Aug/2026). Only written when the tool's
-#     home directory already exists: creating ~/.codex on a machine with no Codex
-#     would be exactly the kind of surprise side effect this project avoids.
+# 3a. Kimi also reads an AGENTS.md. Codex uses its own native block, skills,
+#     agents, references, and hooks, synchronized together in step 8d-2.
 # ---------------------------------------------------------------------
-foreach ($engine in @(
-    @{ Home = (Join-Path $HOME ".codex"); Name = "Codex CLI" },
-    @{ Home = (Join-Path $HOME ".kimi");  Name = "Kimi Code CLI" }
-)) {
+$kimiEngines = @(
+    @{ Home = (Join-Path $HOME ".kimi"); Name = "Kimi Code CLI" }
+)
+foreach ($engine in $kimiEngines) {
     if (Test-Path $engine.Home) {
         Sync-InstructionBlock -Path (Join-Path $engine.Home "AGENTS.md") -Label "$($engine.Name) AGENTS.md"
     } else {
@@ -634,7 +632,23 @@ if (Test-Path $opencodeReferencesSrcDir) {
 }
 
 # ---------------------------------------------------------------------
-# 8e. Unified layer scripts (GOALS 6) — config-store, resolvers, adapters, doctor, etc.
+# 8d-2. Codex-native projection: AGENTS.md, 21 skills, 3 subagents,
+#       references, catalog, and hooks. One cross-platform implementation keeps
+#       PowerShell and Bash installs behaviorally identical.
+# ---------------------------------------------------------------------
+Write-Step "Syncing native Codex integration..."
+$codexInstaller = Join-Path $repoRoot "dev\scripts\install-codex.js"
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    & node $codexInstaller
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Codex integration sync failed (exit $LASTEXITCODE)."
+    }
+} else {
+    Write-Warn "Node.js not found - skipped native Codex skills/agents sync."
+}
+
+# ---------------------------------------------------------------------
+# 8e. Unified layer scripts (GOALS 6) - config-store, resolvers, adapters, doctor, etc.
 # ---------------------------------------------------------------------
 Write-Step "Syncing unified-layer scripts..."
 $unifiedScripts = @(
@@ -702,5 +716,5 @@ if (Test-Path $iconPath) {
 }
 
 Write-Host ""
-Write-Host "base_project installed. Open any project - Claude Code and opencode now load these rules automatically." -ForegroundColor Green
+Write-Host "base_project installed. Open any project - Claude Code, Codex, and opencode now load these rules automatically." -ForegroundColor Green
 Write-Host "Nothing was written inside any project repository." -ForegroundColor Green
