@@ -12,7 +12,7 @@ O que você deseja fazer agora?
 - `/newproject` — começar um projeto novo com a estrutura certa desde o início. Já dispara `/newgoal` em segundo plano.
 - `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
 - `/repertoire` — pesquisa um assunto a fundo: o domínio real de um projeto (científico, regulatório, cultural, midiático) antes do `/newgoal` planejar, **ou** um tópico/tendência avulso que você ouviu falar e quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar. Sempre confirma. Combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho.
-- `/execgoals` — executa o `GOALS.md` gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade.
+- `/execgoals` — executa o `GOALS.md` ativo gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade e checando a estrutura do plano após lotes de edição.
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
 - `/audit` — dois modos: (1) **segurança** (vuln scan) — aprofunda só a parte de segurança do `/scanproject`; (2) **config** (`--agent` flag) — mostra qual camada unificada (`global→agent→project`) realmente se aplica a um projeto+agent (`audit --agent cursor`).
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.

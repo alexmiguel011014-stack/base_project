@@ -110,10 +110,13 @@ done. The point is depth in the file, not tokens in the chat.
    spot in a graph than in a list). Keep it to area/subsystem-level nodes, not one node per
    checkbox — a node per item is noise past a handful of items.
 
-6. **Never overwrite silently.** If `GOALS.md` already exists, read it first — merge new
-   findings in rather than discarding what's there, and say plainly what changed if this was
-   called directly. `GOALS.md` is meant to be tracked in version control like `README.md`, not
-   gitignored: it's project documentation the user keeps, not a regenerable artifact.
+6. **Never overwrite silently.** If `GOALS.md` already exists, read the active root file first
+   and merge new findings rather than discarding them. If `dev/goals-archive/README.md` exists,
+   read that index too; open an individual archived plan only when historic scope or evidence is
+   relevant, so completed detail does not become default planning context. Say plainly what
+   changed if this was called directly. `GOALS.md` is meant to be tracked in version control like
+   `README.md`, not gitignored: it's project documentation the user keeps, not a regenerable
+   artifact.
 
 7. Report only: the file path (or, for a standalone `research`-type deliverable, that file's
    path instead), and — when this ran standalone, not backgrounded — a short outline of the

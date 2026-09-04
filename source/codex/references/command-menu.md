@@ -10,7 +10,7 @@ O que você deseja fazer agora?
 - `$newproject` — planeja um projeto novo com a estrutura certa e inicia a pesquisa do `$newgoal` em segundo plano quando o ambiente permitir.
 - `$newgoal` — pesquisa e escreve o plano executável em `GOALS.md`; nunca implementa o plano.
 - `$repertoire` — pesquisa profundamente o domínio de um projeto ou um assunto avulso; declara limites e sempre confirma antes.
-- `$execgoals` — executa o `GOALS.md` item por item e só marca o que foi verificado.
+- `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição.
 - `$scanproject` — audita identidade, CI, testes, lint, segurança básica e estrutura. Comece aqui.
 - `$audit` — aprofunda segurança ou mostra as camadas de configuração aplicadas a um projeto e agente.
 - `$cleanproject` — procura arquivos mortos, pastas erradas e duplicação sem alterar nada.

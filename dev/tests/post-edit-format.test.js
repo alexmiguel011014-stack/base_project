@@ -36,7 +36,7 @@ test("path.extname integrates correctly with the FORMATTABLE_EXT check", () => {
   assert.ok(!FORMATTABLE_EXT.has(path.extname("ROADMAP.md")));
 });
 
-test("editedFiles supports Claude edits and Codex apply_patch payloads", () => {
+test("editedFiles supports Claude edits and both legacy and documented Codex apply_patch payloads", () => {
   assert.deepEqual(
     editedFiles({ tool_name: "Edit", tool_input: { file_path: "src/app.js" } }),
     ["src/app.js"],
@@ -56,5 +56,19 @@ test("editedFiles supports Claude edits and Codex apply_patch payloads", () => {
       },
     }),
     ["src/app.ts", "src/theme.css"],
+  );
+  assert.deepEqual(
+    editedFiles({
+      tool_name: "apply_patch",
+      tool_input: {
+        command: [
+          "*** Begin Patch",
+          "*** Update File: src/codex.ts",
+          "*** Add File: src/codex.css",
+          "*** End Patch",
+        ].join("\n"),
+      },
+    }),
+    ["src/codex.ts", "src/codex.css"],
   );
 });

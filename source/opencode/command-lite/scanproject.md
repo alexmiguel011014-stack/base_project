@@ -23,7 +23,7 @@ STEP 4 — Also check the unified `~/.agents/` health:
 - Stale hooks in `~/.claude/settings.json` containing `dashboard/`.
 - Legacy formats (`.cursorrules` → `.cursor/rules/`).
 - Sync drift for `~/.agents/` if it's a git repo (`git status --porcelain` in canonical) — suggest `node dev/scripts/sync.js push`.
-Run `node dev/scripts/doctor.js --project . --json` and `node dev/scripts/drift.js --project .` for evidence. Report any `error`/`drift` as findings with file/line and fix hint (`apply --fix`).
+Run `node dev/scripts/doctor.js --project . --json` and `node dev/scripts/drift.js --project . --json` for evidence. Only `drift` is repairable; `missing` means never adopted, and `not_applicable` means a self-host projection is deliberately disabled — never suggest `apply --fix` for either one.
 
 STEP 5 — Order the report by severity, critical first. For each finding: what's wrong, and the exact evidence (the command run, the line read).
 

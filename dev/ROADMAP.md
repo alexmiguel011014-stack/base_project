@@ -1993,6 +1993,63 @@ frontmatter mínimo e preservação de customizações.
 
 ---
 
+## 44. Hardening de contratos do Codex, segurança de dependências e proteção self-host (2026-09-03)
+
+**Achados corrigidos**: a auditoria de produção encontrou `fast-uri@3.1.5` vulnerável por quatro
+advisories altos; o hook `post-edit-format.js` reconhecia o formato histórico `patch`/`input`,
+mas não o `tool_input.command` documentado para `apply_patch` do Codex; e rodar `drift` no próprio
+repositório-fonte classificava suas instruções de desenvolvimento como drift e sugeria um
+`apply --fix` capaz de substituí-las.
+
+**Implementação mínima**: o lockfile agora resolve a versão corrigida de `fast-uri`; `package.json`
+expõe `lint`, `typecheck`, `audit:prod`, `check:unused-deps` e `verify`, e o CI chama o mesmo
+`npm run verify` que o desenvolvedor local. Dependabot abre PRs semanais para npm e GitHub Actions,
+sem auto-merge. O formatter aceita `tool_input.command` e o instalador Codex registra matcher só
+para ferramentas de edição. `apply` recusa escrita quando o alvo tem os marcadores reais de um
+repositório-fonte base_project (exit 3), enquanto `drift` retorna `not_applicable` e exit 0 nesse
+caso; consumidores normais continuam elegíveis a detectar/corrigir drift.
+
+**Contrato e documentação**: testes cobrem o payload Codex real, matcher instalado, preservação de
+hooks do usuário, paridade dos quatro formatos de workflow e a proteção self-host. README e
+ARCHITECTURE explicam a revisão/confiança de hooks do Codex, que o installer nunca tenta burlar.
+Os três `scanproject` e a skill Codex agora tratam somente `drift` como reparável; `missing` e
+`not_applicable` não recebem sugestão de `apply --fix`.
+
+**Validado**: `npm run verify` passou integralmente (100/100 testes, Biome, TypeScript, schema,
+dependências não usadas e `npm audit --omit=dev --audit-level=high` sem vulnerabilidades). O
+installer Windows também foi rodado de verdade para sincronizar Claude, Codex e opencode. O
+arquivamento de metas concluídas continua uma melhoria organizacional separada, não foi misturado
+com este reparo.
+
+---
+
+## 45. Guardrail estrutural de GOALS e contexto ativo compacto (2026-09-03)
+
+**Problema real**: duas edições anteriores de `GOALS.md` criaram IDs duplicados; ambas foram
+encontradas manualmente tarde. Além disso, o arquivo raiz carregava o histórico concluído junto
+com o trabalho aberto, desperdiçando contexto e aumentando a chance de um agente retomar uma
+decisão já encerrada.
+
+**Implementação**: `dev/scripts/validate-goals-structure.js` é o único verificador para IDs de
+checklist em negrito duplicados e fences Mermaid sem fechamento. O hook consultivo
+`source/hooks/validate-goals.js` roda após edição de `GOALS.md`, avisa em stderr e nunca bloqueia
+o tool call. Os instaladores o sincronizam para Claude e Codex; no Codex o matcher se limita a
+ferramentas de edição. `/execgoals` executa o mesmo checker como backstop por lote, e os três
+formatos de instrução agora nomeiam a autonomia em três níveis: auto-approved,
+notify-and-proceed e human-in-the-loop.
+
+**Contexto ativo**: os corpos concluídos foram movidos para `dev/goals-archive/`, com índice
+append-only, links navegáveis e checksums SHA-256. `/newgoal` lê primeiro `GOALS.md` ativo e o
+índice; só abre um corpo histórico quando a evidência dele for relevante. Não foi criado comando,
+gerador de comandos, bloqueio `PreToolUse`, nem um segundo mecanismo de distribuição.
+
+**Operação e validação**: menu, README, ARCHITECTURE, comandos de uninstall e contratos de CI
+descrevem o mesmo comportamento. `npm run verify` passou com 107 testes, Biome, TypeScript,
+schema, dependências não usadas e auditoria de produção; o instalador Windows foi executado para
+sincronizar os hooks instalados.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

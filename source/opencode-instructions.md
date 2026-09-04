@@ -22,6 +22,15 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
    request already sounds or how firmly it was agreed earlier in the conversation. Producing
    the plan is the deliverable; running it is a separate step (`/execgoals`, or an explicit new
    ask) — never bundled into the planning command itself.
+5. **Tiered autonomy** — classify every action before taking it: **auto-approved** for routine,
+   reversible work inside the current repository; **notify-and-proceed** for an in-scope,
+   reversible change whose visible effect should be stated before continuing; and
+   **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice,
+   data/state outside base_project's own repository, sensitive data, credentials, or external
+   publication. Decide from reversibility, scope of affected state, and data sensitivity — not
+   from whether the action merely looks technically easy. The ERP database compatibility test is
+   the model case for human-in-the-loop: even a copied test database was external sensitive data,
+   so it required explicit approval first.
 
 ### Autonomy & Confirmations
 - Once the user has authorized a task, perform ordinary, reversible, in-scope implementation

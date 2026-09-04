@@ -3,13 +3,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { canonicalHome, reportsDir } = require("./paths");
-const { doApply } = require("./apply");
+const { doApply, isBaseProjectSource } = require("./apply");
 
 function help() {
   console.log(`drift — classify native vs canonical drift
 Usage:
   node dev/scripts/drift.js --project <path> [--agent <id>]
-  Exit 0 = in-sync, 1 = drift/missing
+  Exit 0 = in-sync/not applicable, 1 = drift/missing
 `);
 }
 
@@ -34,6 +34,7 @@ const home =
     ? process.env.AGENTS_HOME || process.env.BASE_PROJECT_HOME
     : canonicalHome();
 const abs = path.resolve(proj);
+const selfHost = isBaseProjectSource(abs);
 
 // Simulate drift check: compare if any expected file is missing or content differs from canonical
 // For minimal check, we compare CLAUDE.md / AGENTS.md existence and mcp reports
@@ -42,12 +43,14 @@ const adapters =
   agent && agent !== "all" ? list().filter((a) => a.id === agent) : list();
 
 // First, ensure reports exist by dry-run
-const dry = doApply({
-  projectPath: abs,
-  agentFilter: agent || "all",
-  dryRun: true,
-  home,
-});
+const dry = selfHost
+  ? { reports: [] }
+  : doApply({
+      projectPath: abs,
+      agentFilter: agent || "all",
+      dryRun: true,
+      home,
+    });
 
 let driftFound = false;
 let missingFound = false;
@@ -56,6 +59,16 @@ const results = [];
 for (const adapter of adapters) {
   const targets = adapter.targets || {};
   for (const [tid, target] of Object.entries(targets)) {
+    if (selfHost) {
+      results.push({
+        agent: adapter.id,
+        target: tid,
+        status: "not_applicable",
+        path: target.destination,
+        reason: "base_project source repositories cannot be projection targets",
+      });
+      continue;
+    }
     if (target.type === "nested-glob") continue;
     const dest = path.join(abs, target.destination);
     const exists = fs.existsSync(dest);
@@ -127,6 +140,7 @@ if (args.includes("--json")) {
     JSON.stringify(
       {
         project: abs,
+        selfHost,
         drift: driftFound,
         missing: missingFound,
         results,
@@ -139,7 +153,8 @@ if (args.includes("--json")) {
 } else {
   for (const r of results)
     console.log(`${r.agent} ${r.target} ${r.status} ${r.path}`);
-  if (driftFound) console.log("drift detected");
+  if (selfHost) console.log("not applicable: base_project source repository");
+  else if (driftFound) console.log("drift detected");
   else console.log("in-sync");
 }
 

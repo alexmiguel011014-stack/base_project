@@ -263,10 +263,10 @@ foreach ($staleDir in @((Join-Path $ClaudeHome "base_project\dashboard"), (Join-
     }
 }
 
-# Loop-detection and auto-format hooks — real behavior, not just logging (see
-# ROADMAP.md item 2). Both are synchronous (not async) so their stderr output/
-# side effect lands before the next tool call, but neither ever throws or
-# blocks — see the scripts themselves for the swallow-all-errors guarantee.
+# Loop-detection, auto-format, and GOALS validation hooks are synchronous (not
+# async) so their warning/output lands before the next tool call. None ever
+# throws or blocks — see the scripts themselves for the swallow-all-errors
+# guarantee.
 $loopDetectPath   = (Join-Path $claudeHooksDir "loop-detect.js") -replace '\\', '/'
 $loopDetectMarker = "base_project/hooks/loop-detect.js"
 $loopDetectCommand = "node `"$loopDetectPath`""
@@ -292,6 +292,19 @@ $existingFormatGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
     -not ($_.hooks | Where-Object { $_.command -like "*$postEditFormatMarker*" })
 })
 $settingsObj.hooks.PostToolUse = @($existingFormatGroups) + @($ourFormatEntry)
+
+$validateGoalsPath   = (Join-Path $claudeHooksDir "validate-goals.js") -replace '\\', '/'
+$validateGoalsMarker = "base_project/hooks/validate-goals.js"
+$validateGoalsCommand = "node `"$validateGoalsPath`""
+$ourGoalsValidationEntry = [PSCustomObject]@{
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $validateGoalsCommand; async = $false }
+    )
+}
+$existingGoalsValidationGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$validateGoalsMarker*" })
+})
+$settingsObj.hooks.PostToolUse = @($existingGoalsValidationGroups) + @($ourGoalsValidationEntry)
 
 # Usage ledger — one JSONL line per tool call, plus the prompt that opened the chain,
 # so /reviewusage can answer whether an installed plugin/MCP/agent is actually used
@@ -571,7 +584,7 @@ Sync-Catalog (Join-Path $ClaudeHome "base_project\plugins.json")
 Sync-Catalog (Join-Path $OpencodeHome "base_project\plugins.json")
 
 # ---------------------------------------------------------------------
-# 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
+# 8b. Hooks with real behavior (loop-detect, post-edit-format, validate-goals)
 # ---------------------------------------------------------------------
 Write-Step "Syncing hook scripts..."
 $hooksSrcDir = Join-Path $sourceDir "hooks"
@@ -606,6 +619,15 @@ if (Test-Path $contrastCheckSrc) {
 $diarySourceSrc = Join-Path $repoRoot "dev\scripts\diary-source.js"
 if (Test-Path $diarySourceSrc) {
     Sync-Managed -SrcFile $diarySourceSrc -DestFile (Join-Path $claudeScriptsDir "diary-source.js")
+}
+
+# ---------------------------------------------------------------------
+# 8c-4. validate-goals-structure.js - deterministic GOALS.md checker used by
+# the validate-goals hook and /execgoals' manual backstop.
+# ---------------------------------------------------------------------
+$validateGoalsStructureSrc = Join-Path $repoRoot "dev\scripts\validate-goals-structure.js"
+if (Test-Path $validateGoalsStructureSrc) {
+    Sync-Managed -SrcFile $validateGoalsStructureSrc -DestFile (Join-Path $claudeScriptsDir "validate-goals-structure.js")
 }
 
 # ---------------------------------------------------------------------

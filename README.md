@@ -96,7 +96,7 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/codex/references/` + shared references | `~/.codex/base_project/references/` | Codex menu plus shared standards and goal types |
 | `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered via `claude mcp add` | Context7, filesystem, git (always on — no credentials needed). GitHub moved to the optional catalog (`/plugins`) since it needs a real personal access token, which can't be an always-on default. |
 | `source/plugins.json` | Engine `base_project/plugins.json` namespaces | Optional catalog read by `/plugins` or `$plugins` |
-| `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, git-context injection, shared usage ledger |
+| `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, GOALS structural validation, git-context injection, shared usage ledger |
 
 **opencode command profile.** By default the installer copies the `dense` command set (the same rich, multi-step instructions Claude Code gets). If you're running opencode against a weaker or free LLM backend and it struggles to follow the dense commands, switch to `lite` — flatter, less-branchy versions of the same 21 commands, same names, no functionality removed:
 
@@ -114,6 +114,8 @@ The installer also checks for (and installs if missing) the global CLI tools the
 21 workflows ship in total — see the Commands section below for the complete, current list (unified layer adds no new top-level workflow — `doctor` lives inside `/scanproject`, `sync` inside `/bootstrap`, `audit --agent`/`context` via `/audit`).
 
 **Codex invocation:** use `$scanproject`, `$newgoal`, `$ship`, `$wpp`, and so on. Enabled skills also appear in Codex's slash selector, but Codex does not support arbitrary custom top-level names like `/wpp`; custom prompt files would be namespaced under `/prompts:`. This is why the faithful Codex spelling is `$wpp`, not `/wpp`.
+
+**Codex hook trust:** Codex asks you to review and trust a newly installed or changed hook command before it runs. That review is intentional; base_project merges its hooks idempotently but never bypasses Codex's trust boundary.
 
 ### 🌐 Multi-Agent Support (Unified Layer — GOALS 6)
 
@@ -157,7 +159,7 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/newproject` | Plans the structure and starting checklist for a brand-new project — read-only, produces a plan, never scaffolds files on its own. Also kicks off `/newgoal` in the background to research a deeper build plan while you review this one. |
 | `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
-| `/execgoals` | Executes `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done (file exists, test passes, server starts) — resumes safely if interrupted. |
+| `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
 | `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure) **plus** unified-layer health (broken links, missing `~/.agents/` dirs) — the `doctor` checks now live here. Read-only — reports findings, never edits. **Start here.** |
 | `/audit` | Two modes: (1) security (vuln scan) como antes; (2) **config** (`audit --agent cursor`) — qual camada `global→agent→project` vale para um projeto+agent. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |

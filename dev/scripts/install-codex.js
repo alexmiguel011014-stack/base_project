@@ -199,7 +199,12 @@ function syncHooks() {
   };
 
   add("PostToolUse", "loop-detect.js");
-  add("PostToolUse", "post-edit-format.js");
+  add("PostToolUse", "post-edit-format.js", {
+    matcher: "apply_patch|Edit|Write|MultiEdit",
+  });
+  add("PostToolUse", "validate-goals.js", {
+    matcher: "apply_patch|Edit|Write|MultiEdit",
+  });
   add("PostToolUse", "usage-log.js", { async: true });
   add("UserPromptSubmit", "usage-log.js", { async: true });
   add("SessionStart", "session-start-git-context.js", {

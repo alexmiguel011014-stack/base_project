@@ -36,7 +36,7 @@ never edit files in this command.
    - Stale hooks in `~/.claude/settings.json` containing `dashboard/`
    - Legacy formats (`.cursorrules` → `.cursor/rules/`)
    - `sync` drift for `~/.agents/` if it is a git repo (`git status --porcelain` in canonical) — suggest `node dev/scripts/sync.js push` or `bootstrap` sync
-   Run `node dev/scripts/doctor.js --project . --json` and `node dev/scripts/drift.js --project .` for real evidence; report any `error`/`drift` as findings with file/line and fix hint (`apply --fix`).
+   Run `node dev/scripts/doctor.js --project . --json` and `node dev/scripts/drift.js --project . --json` for real evidence. Only a `drift` status is repairable; `missing` means the layer was never adopted, and `not_applicable` means self-host projection is deliberately disabled — never suggest `apply --fix` for either one.
 
 5. Order the report by severity, critical first. For each finding, state concretely what
    is wrong and what evidence supports it (the command you ran, the line you read) — not

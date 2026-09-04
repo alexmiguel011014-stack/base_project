@@ -19,8 +19,7 @@ Check all engines actually present:
 Report the inventory and confirm each tier separately:
 
 1. **Tier A — owned files:** managed skills/agents/commands/references/scripts/catalog copies, delimited instruction blocks, and state. Reinstalling restores these.
-2. **Tier B — automatic behavior:** hook registrations and global instruction links. Explain that future sessions lose loop detection, formatting, git context, and usage logging as applicable.
+2. **Tier B — automatic behavior:** hook registrations and global instruction links. Explain that future sessions lose loop detection, post-edit formatting, GOALS structure validation, Git context, and usage logging as applicable.
 3. **Tier C — MCP registrations:** exact detected global/project servers. Explain scope and impact for every affected engine.
 
 Execute only confirmed tiers. Remove only files carrying `base_project:managed`, owned namespaces, `_managed_by: base_project` JSON, exact delimited blocks, or hook/MCP entries matching base_project markers. Preserve all neighboring user configuration. If a marker is missing, skip and report why. Verify final state and list removed, skipped, and failed items per tier.
-

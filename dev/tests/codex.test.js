@@ -54,7 +54,7 @@ function install(roots) {
   });
 }
 
-test("Codex skill names have exact parity with both command sets", () => {
+test("Codex skill names have exact parity with all command sets", () => {
   const codex = names(
     path.join(repoRoot, "source", "codex", "skills"),
     "",
@@ -68,9 +68,14 @@ test("Codex skill names have exact parity with both command sets", () => {
     path.join(repoRoot, "source", "opencode", "command"),
     ".md",
   );
+  const opencodeLite = names(
+    path.join(repoRoot, "source", "opencode", "command-lite"),
+    ".md",
+  );
   assert.equal(codex.length, 21);
   assert.deepEqual(codex, claude);
   assert.deepEqual(codex, opencode);
+  assert.deepEqual(codex, opencodeLite);
 
   for (const name of codex) {
     const skill = fs.readFileSync(
@@ -101,6 +106,39 @@ test("Codex menu and high-risk workflow boundaries stay faithful", () => {
 
   const readSkill = (name) =>
     fs.readFileSync(path.join(skillRoot, name, "SKILL.md"), "utf8");
+  const readWorkflow = (variant, name) => {
+    if (variant === "codex") return readSkill(name);
+    const source =
+      variant === "claude"
+        ? ["source", "claude", "commands"]
+        : variant === "opencode"
+          ? ["source", "opencode", "command"]
+          : ["source", "opencode", "command-lite"];
+    return fs.readFileSync(
+      path.join(repoRoot, ...source, `${name}.md`),
+      "utf8",
+    );
+  };
+
+  for (const variant of ["claude", "opencode", "opencode-lite", "codex"]) {
+    assert.match(readWorkflow(variant, "newgoal"), /never execute/i);
+    assert.match(readWorkflow(variant, "newgoal"), /GOALS\.md/i);
+    assert.match(
+      readWorkflow(variant, "newgoal"),
+      /goals-archive\/README\.md/i,
+    );
+    assert.match(readWorkflow(variant, "repertoire"), /never execute/i);
+    assert.match(readWorkflow(variant, "repertoire"), /REPERTOIRE\.md/i);
+    assert.match(readWorkflow(variant, "ship"), /never force-push/i);
+    assert.match(readWorkflow(variant, "execgoals"), /auto-approved/i);
+    assert.match(readWorkflow(variant, "execgoals"), /notify-and-proceed/i);
+    assert.match(readWorkflow(variant, "execgoals"), /human-in-the-loop/i);
+    assert.match(
+      readWorkflow(variant, "execgoals"),
+      /validate-goals-structure\.js/i,
+    );
+  }
+
   assert.match(readSkill("newgoal"), /Hard boundary: never execute/i);
   assert.match(readSkill("repertoire"), /Hard boundary: never execute/i);
   assert.match(readSkill("council"), /Always confirm before running/i);
@@ -179,6 +217,26 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
         ),
       ).length,
       1,
+    );
+    const formatterGroups = hooks.hooks.PostToolUse.filter((group) =>
+      group.hooks.some((hook) =>
+        hook.command.includes("base_project/hooks/post-edit-format.js"),
+      ),
+    );
+    assert.equal(formatterGroups.length, 1);
+    assert.equal(
+      formatterGroups[0].matcher,
+      "apply_patch|Edit|Write|MultiEdit",
+    );
+    const goalsValidationGroups = hooks.hooks.PostToolUse.filter((group) =>
+      group.hooks.some((hook) =>
+        hook.command.includes("base_project/hooks/validate-goals.js"),
+      ),
+    );
+    assert.equal(goalsValidationGroups.length, 1);
+    assert.equal(
+      goalsValidationGroups[0].matcher,
+      "apply_patch|Edit|Write|MultiEdit",
     );
   } finally {
     fs.rmSync(roots.root, { recursive: true, force: true });

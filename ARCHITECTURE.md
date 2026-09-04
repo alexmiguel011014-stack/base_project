@@ -15,7 +15,7 @@ para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/`, e p
 agents — nada mais. Não é um servidor rodando o tempo todo, não é um pacote npm
 publicado, não escreve nada dentro de projetos que o usam. O "produto" real são os
 arquivos que acabam instalados: regras globais, 3 subagentes, **21 comandos**, um catálogo
-de plugins opcionais, 4 hooks com comportamento real, e o **unified config layer**
+de plugins opcionais, 5 hooks com comportamento real, e o **unified config layer**
 (`~/.agents/` → 9 deep adapters + 22 generic, `global→agent→project`, ver
 `source/claude/references/config-model.md`). (O dashboard web existiu até o ROADMAP item
 13 — removido por completo, ver histórico lá.) Versão rastreada via `package.json`
@@ -63,6 +63,7 @@ base_project/
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
+│   │   ├── validate-goals-structure.js ← CLI: detecta IDs duplicados e fences Mermaid abertas em GOALS.md
 │   │   ├── paths.js                  ← resolve CANONICAL_HOME (~/.agents) + TARGET_ROOT (GOALS 6)
 │   │   ├── config-store.js           ← CRUD de ~/.agents/config.json (projects map)
 │   │   ├── resolve-layers.js         ← global→agent→project resolver + merge
@@ -74,6 +75,7 @@ base_project/
 │   │   ├── config.schema.json  ← valida ~/.agents/config.json (projects map)
 │   │   └── adapters.schema.json← valida source/adapters.json (breadth tier)
 │   ├── tests/                  ← node:test, roda com `npm test`
+│   ├── goals-archive/          ← corpos imutáveis dos planos concluídos + índice com checksums
 │   └── ROADMAP.md              ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
 │
 ├── assets/                     ← ícone de pasta do Windows Explorer (desktop.ini + icone.ico), aplicado por install.ps1 em source/, dev/, assets/ — puramente cosmético, não distribuído a ninguém
@@ -86,7 +88,7 @@ base_project/
 ├── CONTRIBUTING.md             ← como contribuir
 ├── CODE_OF_CONDUCT.md          ← Contributor Covenant
 ├── README.md                   ← visão de usuário
-├── GOALS.md                    ← planos de feature/iniciativa em formato executável por /execgoals (diferente do ROADMAP.md: aqui é o plano, lá é o histórico)
+├── GOALS.md                    ← contexto ativo executável por /execgoals; planos concluídos vivem em dev/goals-archive/
 └── ARCHITECTURE.md             ← este arquivo
 ```
 
@@ -153,7 +155,7 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. Dispara `/newgoal` em segundo plano ao final. |
 | `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
 | `/repertoire` | Pesquisa um assunto a fundo — o domínio real de um projeto (científico, regulatório/legal, cultural, mídia) alimentando o `/newgoal`, ou um tópico/tendência avulso que o usuário quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar; sempre confirma. |
-| `/execgoals` | Executa `GOALS.md` item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade. |
+| `/execgoals` | Executa o `GOALS.md` ativo item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade e checa a estrutura após cada lote de edição. |
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
 | `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
@@ -244,6 +246,9 @@ Os hooks Codex apontam deliberadamente para os scripts já instalados em
 `~/.claude/base_project/hooks/`. Em especial, `usage-log.js` continua escrevendo no ledger
 histórico compartilhado sob `~/.claude/base_project/usage/`; isso mantém `$diario` compatível
 com todos os registros antigos, sem migração nem divisão de histórico.
+
+Quando um hook Codex é novo ou muda, o Codex pede revisão/confiança do usuário antes de executá-
+lo. O installer faz o merge idempotente, mas nunca tenta burlar essa fronteira de segurança.
 
 ---
 
@@ -358,13 +363,14 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 | **context7** | MCP (sempre ativo) | Busca documentação atualizada de biblioteca/framework. |
 | **filesystem** | MCP (sempre ativo) | Acesso a arquivo fora do diretório de trabalho padrão. |
 | **git** | MCP (sempre ativo) | Operações git estruturadas. |
-| **github** | MCP (sempre ativo) | Lê/escreve issues, PRs, código de repositório no GitHub. |
+| **github** | MCP opcional | Lê/escreve issues, PRs e código no GitHub quando o usuário fornece e configura um token pessoal. |
 
 ### 🛡️ Qualidade / comportamento automático
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **`loop-detect`** | hook (`PostToolUse`) | Avisa se o mesmo comando repetir 5x seguidas — sinal de que travou. |
 | **`post-edit-format`** | hook (`PostToolUse`) | Formata automaticamente só o arquivo que acabou de ser editado. |
+| **`validate-goals`** | hook (`PostToolUse`) | Avisa sobre IDs de item duplicados ou fences Mermaid abertas depois de editar um `GOALS.md`; nunca bloqueia a edição. |
 
 ### 📦 Instalação / catálogo
 | Nome | Tipo | O que faz |
@@ -378,7 +384,7 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 
 ---
 
-## 6. Os 4 hooks com comportamento real
+## 6. Os 5 hooks com comportamento real
 
 Todos com efeito de verdade, não só observação. Nenhum **falha** o tool call/sessão que
 os disparou (tudo dentro de `try/catch` que engole erro).
@@ -398,6 +404,14 @@ restrito é deliberado: um `biome format .` amplo já causou um incidente de ref
 não intencional nesta mesma sessão. Silenciosamente não faz nada se não houver
 `biome.json`/binário disponível no projeto alvo (não instala nada por conta própria).
 
+### `source/hooks/validate-goals.js` (`PostToolUse`, síncrono)
+Depois de um `Edit`/`Write`/`MultiEdit` ou `apply_patch` que toca qualquer `GOALS.md`, chama o
+único verificador em `dev/scripts/validate-goals-structure.js` (instalado em
+`~/.claude/base_project/scripts/`). Ele detecta IDs de checklist em negrito duplicados e blocos
+Mermaid sem fechamento, escreve um aviso em stderr e sai com sucesso: é um poka-yoke
+observável, nunca um bloqueio que pudesse invalidar uma edição legítima. No Codex, o registro usa
+matcher estreito só para ferramentas de edição; o filtro interno continua como defesa adicional.
+
 ### `source/hooks/session-start-git-context.js` (`SessionStart`, matcher `startup|resume|clear`)
 Injeta um resumo compacto do estado git (branch, commits à frente/atrás do upstream,
 arquivos com mudança não commitada, `git log -3 --oneline`) direto no contexto da
@@ -409,7 +423,7 @@ sincronizada com o upstream** — decisão deliberada de economia de token: a ma
 aberturas de sessão não tem nada de novo pra reportar. Deliberadamente não registrado
 pros matchers `compact`/`fork` (não são cold start de verdade).
 
-### `source/hooks/usage-log.js` (`PostToolUse` + `UserPromptSubmit`, síncrono)
+### `source/hooks/usage-log.js` (`PostToolUse` + `UserPromptSubmit`, assíncrono)
 Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em
 `~/.claude/base_project/usage/`, uma linha por chamada de tool (`ts`, `session`,
 `prompt_id`, `agent_type`, `agent_id`, `cwd`, `tool`, `input`, `response`, `ms`) e uma
@@ -455,8 +469,9 @@ Codex reutilizam esse caminho compartilhado.
 `npm test` = `node --test dev/tests/*.test.js`. Sem framework externo (Jest/Vitest) —
 `node:test` nativo, zero dependência nova. A suíte cobre:
 
-- `loop-detect.test.js` / `post-edit-format.test.js` / `session-start-git-context.test.js`
-  / `usage-log.test.js` — os 4 hooks
+- `loop-detect.test.js` / `post-edit-format.test.js` / `validate-goals-structure.test.js`
+  / `session-start-git-context.test.js` / `usage-log.test.js` — os 5 hooks, o checker e o
+  arquivo ativo/arquivo histórico de `GOALS.md`
 - `scan-skill.test.js` — as 6 regras do scanner + falsos-positivos (binário,
   `node_modules`)
 - `validate-plugins.test.js` — o validador de schema, incluindo casos malformados de
@@ -476,9 +491,10 @@ coisas de conteúdo de skill em ~130 arquivos de teste).
 
 Dois jobs:
 
-1. **`validate`** (ubuntu-latest): `npm ci` → `npx biome check .` → `npx biome format .`
-   → `npx tsc` → `npm run validate:plugins` → `npm test`.
-2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`): roda
+1. **`validate`** (ubuntu-latest): `npm ci` → `npm run verify` (Biome, TypeScript, schema de
+   plugins, dependências não usadas, testes e auditoria de dependências de produção). Dependabot
+   abre PRs semanais separados para npm e GitHub Actions; não há auto-merge.
+2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`/`macos-latest`): roda
    `dev/scripts/install.sh`/`install.ps1` de verdade contra um `$HOME` descartável (via
    os overrides `CLAUDE_HOME`/`OPENCODE_HOME` e
    `BASE_PROJECT_CODEX_ROOT`/`BASE_PROJECT_AGENTS_ROOT`),

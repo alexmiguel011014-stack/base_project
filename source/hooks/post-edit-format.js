@@ -63,7 +63,7 @@ function editedFiles(input) {
   const patch =
     typeof toolInput === "string"
       ? toolInput
-      : toolInput?.patch || toolInput?.input || "";
+      : toolInput?.command || toolInput?.patch || toolInput?.input || "";
   return [
     ...new Set(
       [...patch.matchAll(/^\*\*\* (?:Add|Update) File: (.+)\r?$/gm)].map(

@@ -38,6 +38,28 @@ function mcpToToml(mcpServers) {
   return out;
 }
 
+const SELF_HOST_REASON =
+  "base_project source repositories are not valid projection targets";
+
+function isBaseProjectSource(projectPath) {
+  const root = path.resolve(projectPath);
+  try {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(root, "package.json"), "utf8"),
+    );
+    const catalog = JSON.parse(
+      fs.readFileSync(path.join(root, "source", "adapters.json"), "utf8"),
+    );
+    return (
+      manifest.name === "base_project" &&
+      catalog._managed_by === "base_project" &&
+      fs.existsSync(path.join(root, "dev", "scripts", "apply.js"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 function doApply({ projectPath, agentFilter, dryRun, home }) {
   const h = home || canonicalHome();
   const targetRoot = projectPath ? path.resolve(projectPath) : process.cwd();
@@ -45,6 +67,16 @@ function doApply({ projectPath, agentFilter, dryRun, home }) {
     agentFilter && agentFilter !== "all"
       ? list().filter((a) => a.id === agentFilter)
       : list();
+
+  if (!dryRun && isBaseProjectSource(targetRoot)) {
+    return {
+      adapters: adapters.map((adapter) => adapter.id),
+      reports: [],
+      dryRun,
+      selfHost: true,
+      reason: SELF_HOST_REASON,
+    };
+  }
 
   const layers = resolveLayers(targetRoot, { home: h });
   // canonical files
@@ -614,6 +646,10 @@ if (require.main === module) {
       dryRun: args.includes("--dry-run"),
       home,
     });
+    if (result.selfHost) {
+      console.error(`refused: ${result.reason}`);
+      process.exit(3);
+    }
     if (args.includes("--dry-run")) {
       console.log(`dry-run: ${result.adapters.length} adapters`);
       for (const r of result.reports) {
@@ -638,4 +674,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { doApply, mcpToToml };
+module.exports = { doApply, isBaseProjectSource, mcpToToml };

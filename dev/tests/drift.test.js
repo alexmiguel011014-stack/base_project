@@ -4,7 +4,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execSync } = require("node:child_process");
+const { execSync, spawnSync } = require("node:child_process");
+
+const repoRoot = path.resolve(__dirname, "..", "..");
 
 function tmpHome() {
   const h = fs.mkdtempSync(path.join(os.tmpdir(), "bp-drift-home-"));
@@ -78,6 +80,57 @@ test("drift --json: distinguishes 'missing' (never adopted) from real 'drift' (s
   );
 
   fs.rmSync(proj, { recursive: true, force: true });
+  fs.rmSync(home, { recursive: true, force: true });
+});
+
+test("self-host source repositories are not projection targets", () => {
+  const home = tmpHome();
+  const agentsBefore = fs.readFileSync(
+    path.join(repoRoot, "AGENTS.md"),
+    "utf8",
+  );
+  const claudePath = path.join(repoRoot, "CLAUDE.md");
+  const claudeBefore = fs.existsSync(claudePath)
+    ? fs.readFileSync(claudePath, "utf8")
+    : null;
+  const env = { ...process.env, AGENTS_HOME: home };
+
+  const apply = spawnSync(
+    process.execPath,
+    ["dev/scripts/apply.js", "--project", repoRoot, "--agent", "claude-code"],
+    { cwd: repoRoot, env, encoding: "utf8" },
+  );
+  assert.equal(apply.status, 3);
+  assert.match(apply.stderr, /refused: base_project source repositories/i);
+  assert.equal(
+    fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8"),
+    agentsBefore,
+  );
+  assert.equal(
+    fs.existsSync(claudePath) ? fs.readFileSync(claudePath, "utf8") : null,
+    claudeBefore,
+  );
+
+  const drift = spawnSync(
+    process.execPath,
+    [
+      "dev/scripts/drift.js",
+      "--project",
+      repoRoot,
+      "--agent",
+      "claude-code",
+      "--json",
+    ],
+    { cwd: repoRoot, env, encoding: "utf8" },
+  );
+  assert.equal(drift.status, 0);
+  const report = JSON.parse(drift.stdout);
+  assert.equal(report.selfHost, true);
+  assert.ok(report.results.length > 0);
+  assert.ok(
+    report.results.every((result) => result.status === "not_applicable"),
+  );
+
   fs.rmSync(home, { recursive: true, force: true });
 });
 

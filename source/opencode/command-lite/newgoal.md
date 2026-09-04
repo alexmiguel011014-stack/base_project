@@ -42,7 +42,7 @@ STEP 6 — If `/repertoire` was invoked together with this command (same message
 
 STEP 7 — Write `GOALS.md` in English, regardless of the conversation's language. Structure it as concrete, checkable items grouped by the chosen module's areas, not prose paragraphs. Tag `(manual)` wherever `/execgoals` can't run it alone. Order items by what has to exist before what. Under each `GOALS N` heading, include a short Mermaid flowchart showing the dependency order between that section's areas — area/subsystem-level nodes only, not one node per checkbox.
 
-STEP 8 — Never overwrite silently. If `GOALS.md` already exists, read it first and merge new findings in. `GOALS.md` is tracked in version control, not gitignored.
+STEP 8 — Never overwrite silently. If `GOALS.md` already exists, read the active root file first and merge new findings in. If `dev/goals-archive/README.md` exists, read that index too; open an individual archived plan only when historic scope/evidence matters, so completed detail is not default planning context. `GOALS.md` is tracked in version control, not gitignored.
 
 STEP 9 — Report only: the file path (or the research deliverable's path for a research-type ask), and — only when run standalone, not backgrounded — a short outline of the sections written, not the full content.
 

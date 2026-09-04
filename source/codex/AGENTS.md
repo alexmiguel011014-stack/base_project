@@ -16,6 +16,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 2. **Implement** — use the `coder` subagent for surgical, scoped edits.
 3. **Review** — use the `reviewer` subagent to inspect the diff and run the project's lint, typecheck, and tests. It never commits unless explicitly asked.
 4. **Plan is not execution** — a planning or research skill such as `$newgoal` or `$repertoire` never implements its output in the same turn. `$execgoals`, or a separate explicit request, performs execution.
+5. **Tiered autonomy** — classify every action before taking it: **auto-approved** for routine, reversible work inside the current repository; **notify-and-proceed** for an in-scope, reversible change whose visible effect should be stated before continuing; and **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice, data/state outside base_project's own repository, sensitive data, credentials, or external publication. Decide from reversibility, scope of affected state, and data sensitivity — not from whether the action merely looks technically easy. The ERP database compatibility test is the model case for human-in-the-loop: even a copied test database was external sensitive data, so it required explicit approval first.
 
 ### Autonomy and Confirmations
 - Once the user authorizes a task, perform ordinary, reversible, in-scope implementation and verification without repeatedly asking permission.

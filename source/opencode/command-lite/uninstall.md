@@ -18,9 +18,9 @@ STEP 1 — Inventory, read-only. Check what's actually present, don't guess:
 - MCP servers registered via `claude mcp add --scope user` matching the catalog's server names (read the exact list from `source/opencode/mcp.json`'s `mcpServers` keys in the repo found via `~/.base_project/repo-path.txt` — don't hardcode names).
 Report the full inventory, grouped into the 3 tiers below, before asking anything.
 
-STEP 2 — Tier A confirmation. Tier A = base_project's own files: managed `.md` files (both engines), `plugins.json` copies, `~/.claude/base_project/hooks/*.js` + `scan-skill.js`, the managed block in `CLAUDE.md`, `~/.base_project/`. Safe, 100% reversible by reinstalling. Ask once: "Remove all of Tier A? (y/n)".
+STEP 2 — Tier A confirmation. Tier A = base_project's own files: managed `.md` files (both engines), `plugins.json` copies, `~/.claude/base_project/hooks/*.js` and managed helper scripts (such as `scan-skill.js` and `validate-goals-structure.js`), the managed block in `CLAUDE.md`, `~/.base_project/`. Safe, 100% reversible by reinstalling. Ask once: "Remove all of Tier A? (y/n)".
 
-STEP 3 — Tier B confirmation. Tier B = the 3 hook registrations in `settings.json`, the `instructions`/`mcp.file` keys in `opencode.jsonc`. Ask separately: "Also remove the hook registrations and opencode instructions link? This means loop-detect/post-edit-format/session-start-git-context stop running, and opencode loses its global instructions block, in every project. (y/n)".
+STEP 3 — Tier B confirmation. Tier B = the base_project hook registrations in `settings.json`, the `instructions`/`mcp.file` keys in `opencode.jsonc`. Ask separately: "Also remove the hook registrations and opencode instructions link? This means loop detection, post-edit formatting, GOALS validation, session-start Git context, and usage logging stop running, and opencode loses its global instructions block, in every project. (y/n)".
 
 STEP 4 — Tier C confirmation. Tier C = global MCP registrations — the `claude mcp remove <name> --scope user` calls, and `~/.config/opencode/mcp.json` if fully base_project-owned. Ask separately, naming the exact servers found in step 1: "Also unregister these N MCP servers globally: <list>? This affects every Claude Code/opencode project on this machine. (y/n)".
 

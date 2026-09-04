@@ -186,14 +186,15 @@ if command -v jq &>/dev/null; then
     # pre-existing settings.json) doesn't crash the very first `cat` below.
     printf '%s' "$BASE_SETTINGS" > "$SETTINGS_PATH"
 
-    # Loop-detection and auto-format hooks — real behavior, not just logging
-    # (see ROADMAP.md item 2). Synchronous (not async): loop-detect's stderr
-    # warning and post-edit-format's write need to land before the next tool
-    # call, but neither ever throws or blocks (swallow-all-errors by design).
+    # Loop-detection, auto-format, and GOALS validation hooks are synchronous
+    # (not async) so their warning/output lands before the next tool call.
+    # None ever throws or blocks (swallow-all-errors by design).
     LOOP_DETECT_PATH="$CLAUDE_HOOKS_DIR/loop-detect.js"
     LOOP_DETECT_MARKER="base_project/hooks/loop-detect.js"
     POST_EDIT_FORMAT_PATH="$CLAUDE_HOOKS_DIR/post-edit-format.js"
     POST_EDIT_FORMAT_MARKER="base_project/hooks/post-edit-format.js"
+    VALIDATE_GOALS_PATH="$CLAUDE_HOOKS_DIR/validate-goals.js"
+    VALIDATE_GOALS_MARKER="base_project/hooks/validate-goals.js"
     BASE_SETTINGS="$(cat "$SETTINGS_PATH")"
     # The first two filters prune hooks left behind by the dashboard (removed in
     # ROADMAP item 13). Deleting a feature from source/ only stops it being
@@ -206,13 +207,16 @@ if command -v jq &>/dev/null; then
         --arg loopMarker "$LOOP_DETECT_MARKER" \
         --arg formatCmd "node \"$POST_EDIT_FORMAT_PATH\"" \
         --arg formatMarker "$POST_EDIT_FORMAT_MARKER" \
+        --arg goalsCmd "node \"$VALIDATE_GOALS_PATH\"" \
+        --arg goalsMarker "$VALIDATE_GOALS_MARKER" \
         --arg dashMarker "$DASHBOARD_MARKER" \
         '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]' \
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($goalsMarker)) | not))) + [{"hooks": [{"type": "command", "command": $goalsCmd, "async": false}]}]' \
         > "$SETTINGS_PATH"
-    ok "settings.json (loop-detect + post-edit-format hooks merged, stale dashboard hooks pruned)"
+    ok "settings.json (loop-detect + post-edit-format + validate-goals hooks merged, stale dashboard hooks pruned)"
 
     # Usage ledger — one JSONL line per tool call, plus the prompt that opened the
     # chain, so /reviewusage can answer whether an installed plugin/MCP/agent is
@@ -480,7 +484,7 @@ sync_catalog "$CLAUDE_HOME/base_project/plugins.json"
 sync_catalog "$OPENCODE_HOME/base_project/plugins.json"
 
 # ---------------------------------------------------------------------
-# 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
+# 8b. Hooks with real behavior (loop-detect, post-edit-format, validate-goals)
 # ---------------------------------------------------------------------
 step "Syncing hook scripts..."
 HOOKS_SRC_DIR="$SOURCE_DIR/hooks"
@@ -515,6 +519,15 @@ fi
 DIARY_SOURCE_SRC="$SCRIPT_DIR/diary-source.js"
 if [ -f "$DIARY_SOURCE_SRC" ]; then
     sync_managed "$DIARY_SOURCE_SRC" "$CLAUDE_SCRIPTS_DIR/diary-source.js"
+fi
+
+# ---------------------------------------------------------------------
+# 8c-4. validate-goals-structure.js - deterministic GOALS.md checker used by
+# the validate-goals hook and /execgoals' manual backstop.
+# ---------------------------------------------------------------------
+VALIDATE_GOALS_STRUCTURE_SRC="$SCRIPT_DIR/validate-goals-structure.js"
+if [ -f "$VALIDATE_GOALS_STRUCTURE_SRC" ]; then
+    sync_managed "$VALIDATE_GOALS_STRUCTURE_SRC" "$CLAUDE_SCRIPTS_DIR/validate-goals-structure.js"
 fi
 
 # ---------------------------------------------------------------------
