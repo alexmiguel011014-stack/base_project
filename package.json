@@ -11,7 +11,8 @@
 	},
 	"dependencies": {
 		"ajv": "^8.17.1",
-		"ajv-formats": "^3.0.1"
+		"ajv-formats": "^3.0.1",
+		"graphify": "^1.0.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.6",

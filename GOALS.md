@@ -27,6 +27,64 @@ they're different kinds of work with different consumers:
    against agentsync (31 agents, 9 deep adapters), dot-agents (symlink/hardlink strategy),
    and the broader competitive landscape.
 
+## GOALS 7 — Bootstrap & Token-Efficient AI Context Mapping (base_project/build)
+   — new, added 2026-08-30: bootstrap process that synchronizes project state, generates
+   token-efficient context mappings via repomix and graphify, and produces a comprehensive
+   AI-ready briefing for `/execgoals` and subsequent sessions. Documents: git sync result,
+   generated artifacts status, graph community structure, and knowledge-gap identification.
+
+### Scope (what this plan covers)
+
+- **Git sync**: fast-forward pull from origin/main, detection of dirty tree/ahead-of-remote/diverged states
+- **Artifact generation**: repomix-output.xml (file packing, token summary), graphify-out/ (graph.json, graph.html, GRAPH_REPORT.md)
+- **Graph analysis**: community detection, god nodes, knowledge gaps, cross-community bridges
+- **Artifact hygiene**: .gitignore compliance (graphify-out/ and repomix-output.xml never committed)
+
+### Git-Sync Checklist (enter each as `GOALS 7 a`, `GOALS 7 b`, etc., or as checklist items below)
+
+- [ ] Step 1: Sync `~/.agents/` canonical rules/MCP/skills via `node dev/scripts/sync.js pull` (fast-forward only; skip if dirty)
+- [ ] Step 2: Project-internal git sync — `git status --porcelain` check, then `git fetch` + compare local vs upstream
+  - Up to date: continue silently
+  - Behind, fast-forward: `git pull` automatically
+  - Ahead/diverged: note in report, do not touch
+- [ ] Step 3: Ensure `.gitignore` contains `graphify-out/` and `repomix-output.xml` (create if project has no `.gitignore`)
+- [ ] Step 4: Run `repomix` → verify `repomix-output.xml` generated with token summary
+- [ ] Step 5: Run `graphify .` → verify `graphify-out/graph.json` and `graphify-out/graph.html` generated
+- [ ] Step 6: If `graphify-out/graph.html` exists, open in default browser (Platform-specific: Windows `Start-Process`, macOS `open`, Linux `xdg-open`)
+- [ ] Step 7: If `graphify-out/graph.html` does not exist but `graphify-out/graph.json` does, run `graphify cluster-only .` → generate `GRAPH_REPORT.md` and `graph.html`
+- [ ] Step 8: Report: git sync result (pulled N commits / already up to date / skipped — dirty tree / ahead of remote / diverged), artifact status, graph node/edge/community counts
+
+### Done-when convention
+
+The bootstrap script has been run successfully and all artifacts are present at `repomix-output.xml` and `graphify-out/` with valid `graph.html` openable in the default browser. The GRAPH_REPORT.md exists and contains community analysis. Knowledge gaps (isolated nodes) are documented but do not block completion.
+
+### Ordering rule
+
+Bootstrap must run before `/execgoals` can produce meaningful plans — it provides the token-efficient context that eliminates re-research. Items are ordered: git-sync steps → artifact generation → graph analysis → report.
+
+### Mermaid dependency flowchart for GOALS 7 areas
+
+```mermaid
+flowchart TD
+    A[Step 1: ~/.agents/ sync] --> B[Step 2: git status/remote check]
+    B --> C[Step 3: .gitignore compliance]
+    C --> D[Step 4: repomix → repomix-output.xml]
+    D --> E[Step 5: graphify . → graph.json]
+    E --> F[Step 6: graph.html exists?]
+    F -- Yes --> G[Step 8: open graph.html in browser]
+    F -- No --> H[Step 7: graphify cluster-only . → graph.html + GRAPH_REPORT.md]
+    H --> G
+    G --> I[Step 8: final report generation]
+```
+
+### Sources consulted (session 2026-08-30)
+
+- base_project `dev/scripts/sync.js` — canonical rules/MCP/skills sync
+- `git status --porcelain` and `git log --oneline` — git state detection
+- `npx repomix` — file packing and token analysis (143 files, 220.822 tokens)
+- `graphify .` — semantic graph extraction (708 nodes, 815 edges, 85 communities)
+- `graphify cluster-only .` — HTML generation from existing graph
+- Platform-specific browser launch commands (Windows/macOS/Linux)
 `dev/ROADMAP.md` remains the living decision log for *everything that happened* in this
 project — this file stays what it always was, the format `/execgoals` can execute against:
 concrete, checkable items, not prose.
