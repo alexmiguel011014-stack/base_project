@@ -26,16 +26,15 @@ installer usually does, actually check what's present on this machine right now:
   `~/.claude/CLAUDE.md`, if present.
 - `~/.base_project/` (state dir — `repo-path.txt`).
 - Hook entries in `~/.claude/settings.json` whose `command` contains
-  `base_project/hooks/` (loop-detect, post-edit-format, session-start-git-context).
+  `base_project/hooks/` (derive the current set from the installed entries rather than a
+  fixed list).
 - The `instructions` and `mcp.file` keys in `~/.config/opencode/opencode.jsonc`, if they
   point at this base_project repo's files.
 - `~/.config/opencode/mcp.json`, only if it has `"_managed_by": "base_project"` at the
   root (if it doesn't, the user or something else edited it — leave it alone).
 - MCP servers registered with Claude Code via `claude mcp add --scope user` matching the
-  server names in the base_project catalog (`context7`, `filesystem`, `git`, `github` —
-  confirm the exact list by reading `source/opencode/mcp.json`'s `mcpServers` keys from
-  the repo located via `~/.base_project/repo-path.txt`, don't hardcode the 4 names as
-  gospel in case the catalog changed).
+  server names declared by the base_project catalog/config. Confirm the exact current list
+  from the repo located via `~/.base_project/repo-path.txt`; never hardcode server names.
 
 Report the full inventory to the user, grouped into the 3 tiers below, before asking
 anything.
@@ -45,16 +44,18 @@ anything.
 **Tier A — base_project's own files (safe, 100% reversible by re-running the installer,
 no effect on anything outside base_project's own namespace):**
 managed `.md` files (agents/commands/references, both engines), `plugins.json` copies,
-`~/.claude/base_project/hooks/*.js` + `scan-skill.js`, the managed block in `CLAUDE.md`,
+`~/.claude/base_project/hooks/*.js` and managed helper scripts (such as `scan-skill.js` and
+`validate-goals-structure.js`), the managed block in `CLAUDE.md`,
 `~/.base_project/` state dir.
 Ask once: "Remove all of Tier A? (y/n)".
 
 **Tier B — changes what fires on every future session, not just base_project's own
 scope (still reversible by reinstalling, but has real effect until then):**
-the 3 hook registrations in `settings.json`, the `instructions`/`mcp.file` keys in
+the base_project hook registrations in `settings.json`, the `instructions`/`mcp.file` keys in
 `opencode.jsonc`.
 Ask separately: "Also remove the hook registrations and opencode instructions link?
-This means loop-detect/post-edit-format/session-start-git-context stop running, and
+This means loop detection, post-edit formatting, GOALS validation, session-start Git context,
+and usage logging stop running, and
 opencode loses the global instructions block, in EVERY project, not just this one.
 (y/n)".
 

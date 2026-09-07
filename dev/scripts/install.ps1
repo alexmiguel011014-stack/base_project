@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-  base_project installer — populates GLOBAL config for Claude Code (~/.claude) and
-  opencode (~/.config/opencode). Never touches any project repository.
+  base_project installer - populates GLOBAL config for Claude Code (~/.claude),
+  Codex (~/.codex + ~/.agents/skills), and opencode (~/.config/opencode).
+  Never touches any project repository.
 
 .DESCRIPTION
   Run this once after cloning base_project. Re-run any time (e.g. after `git pull`)
@@ -174,16 +175,13 @@ function Sync-InstructionBlock([string]$Path, [string]$Label) {
 Sync-InstructionBlock -Path (Join-Path $ClaudeHome "CLAUDE.md") -Label "CLAUDE.md"
 
 # ---------------------------------------------------------------------
-# 3a. Same block for the other engines that read an AGENTS.md.
-#     Codex CLI reads ~/.codex/AGENTS.md, Kimi Code CLI reads ~/.kimi/AGENTS.md
-#     (both verified against their docs, Aug/2026). Only written when the tool's
-#     home directory already exists: creating ~/.codex on a machine with no Codex
-#     would be exactly the kind of surprise side effect this project avoids.
+# 3a. Kimi also reads an AGENTS.md. Codex uses its own native block, skills,
+#     agents, references, and hooks, synchronized together in step 8d-2.
 # ---------------------------------------------------------------------
-foreach ($engine in @(
-    @{ Home = (Join-Path $HOME ".codex"); Name = "Codex CLI" },
-    @{ Home = (Join-Path $HOME ".kimi");  Name = "Kimi Code CLI" }
-)) {
+$kimiEngines = @(
+    @{ Home = (Join-Path $HOME ".kimi"); Name = "Kimi Code CLI" }
+)
+foreach ($engine in $kimiEngines) {
     if (Test-Path $engine.Home) {
         Sync-InstructionBlock -Path (Join-Path $engine.Home "AGENTS.md") -Label "$($engine.Name) AGENTS.md"
     } else {
@@ -265,10 +263,10 @@ foreach ($staleDir in @((Join-Path $ClaudeHome "base_project\dashboard"), (Join-
     }
 }
 
-# Loop-detection and auto-format hooks — real behavior, not just logging (see
-# ROADMAP.md item 2). Both are synchronous (not async) so their stderr output/
-# side effect lands before the next tool call, but neither ever throws or
-# blocks — see the scripts themselves for the swallow-all-errors guarantee.
+# Loop-detection, auto-format, and GOALS validation hooks are synchronous (not
+# async) so their warning/output lands before the next tool call. None ever
+# throws or blocks — see the scripts themselves for the swallow-all-errors
+# guarantee.
 $loopDetectPath   = (Join-Path $claudeHooksDir "loop-detect.js") -replace '\\', '/'
 $loopDetectMarker = "base_project/hooks/loop-detect.js"
 $loopDetectCommand = "node `"$loopDetectPath`""
@@ -294,6 +292,19 @@ $existingFormatGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
     -not ($_.hooks | Where-Object { $_.command -like "*$postEditFormatMarker*" })
 })
 $settingsObj.hooks.PostToolUse = @($existingFormatGroups) + @($ourFormatEntry)
+
+$validateGoalsPath   = (Join-Path $claudeHooksDir "validate-goals.js") -replace '\\', '/'
+$validateGoalsMarker = "base_project/hooks/validate-goals.js"
+$validateGoalsCommand = "node `"$validateGoalsPath`""
+$ourGoalsValidationEntry = [PSCustomObject]@{
+    hooks = @(
+        [PSCustomObject]@{ type = "command"; command = $validateGoalsCommand; async = $false }
+    )
+}
+$existingGoalsValidationGroups = @($settingsObj.hooks.PostToolUse | Where-Object {
+    -not ($_.hooks | Where-Object { $_.command -like "*$validateGoalsMarker*" })
+})
+$settingsObj.hooks.PostToolUse = @($existingGoalsValidationGroups) + @($ourGoalsValidationEntry)
 
 # Usage ledger — one JSONL line per tool call, plus the prompt that opened the chain,
 # so /reviewusage can answer whether an installed plugin/MCP/agent is actually used
@@ -573,7 +584,7 @@ Sync-Catalog (Join-Path $ClaudeHome "base_project\plugins.json")
 Sync-Catalog (Join-Path $OpencodeHome "base_project\plugins.json")
 
 # ---------------------------------------------------------------------
-# 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
+# 8b. Hooks with real behavior (loop-detect, post-edit-format, validate-goals)
 # ---------------------------------------------------------------------
 Write-Step "Syncing hook scripts..."
 $hooksSrcDir = Join-Path $sourceDir "hooks"
@@ -611,6 +622,15 @@ if (Test-Path $diarySourceSrc) {
 }
 
 # ---------------------------------------------------------------------
+# 8c-4. validate-goals-structure.js - deterministic GOALS.md checker used by
+# the validate-goals hook and /execgoals' manual backstop.
+# ---------------------------------------------------------------------
+$validateGoalsStructureSrc = Join-Path $repoRoot "dev\scripts\validate-goals-structure.js"
+if (Test-Path $validateGoalsStructureSrc) {
+    Sync-Managed -SrcFile $validateGoalsStructureSrc -DestFile (Join-Path $claudeScriptsDir "validate-goals-structure.js")
+}
+
+# ---------------------------------------------------------------------
 # 8d. Reference docs read by commands (project-standards.md, command-menu.md)
 # ---------------------------------------------------------------------
 Write-Step "Syncing reference docs..."
@@ -634,7 +654,23 @@ if (Test-Path $opencodeReferencesSrcDir) {
 }
 
 # ---------------------------------------------------------------------
-# 8e. Unified layer scripts (GOALS 6) — config-store, resolvers, adapters, doctor, etc.
+# 8d-2. Codex-native projection: AGENTS.md, 21 skills, 3 subagents,
+#       references, catalog, and hooks. One cross-platform implementation keeps
+#       PowerShell and Bash installs behaviorally identical.
+# ---------------------------------------------------------------------
+Write-Step "Syncing native Codex integration..."
+$codexInstaller = Join-Path $repoRoot "dev\scripts\install-codex.js"
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    & node $codexInstaller
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Codex integration sync failed (exit $LASTEXITCODE)."
+    }
+} else {
+    Write-Warn "Node.js not found - skipped native Codex skills/agents sync."
+}
+
+# ---------------------------------------------------------------------
+# 8e. Unified layer scripts (GOALS 6) - config-store, resolvers, adapters, doctor, etc.
 # ---------------------------------------------------------------------
 Write-Step "Syncing unified-layer scripts..."
 $unifiedScripts = @(
@@ -702,5 +738,5 @@ if (Test-Path $iconPath) {
 }
 
 Write-Host ""
-Write-Host "base_project installed. Open any project - Claude Code and opencode now load these rules automatically." -ForegroundColor Green
+Write-Host "base_project installed. Open any project - Claude Code, Codex, and opencode now load these rules automatically." -ForegroundColor Green
 Write-Host "Nothing was written inside any project repository." -ForegroundColor Green

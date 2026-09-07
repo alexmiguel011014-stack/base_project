@@ -3,11 +3,16 @@
 	"version": "1.0.0",
 	"private": true,
 	"license": "MIT",
-	"description": "Global config installer for Claude Code + opencode — validation/build tooling only, not a published package.",
+	"description": "Global config installer for Claude Code, Codex, and opencode — validation/build tooling only, not a published package.",
 	"scripts": {
+		"lint": "biome check .",
+		"typecheck": "tsc --noEmit",
+		"audit:prod": "npm audit --omit=dev --audit-level=high",
+		"check:unused-deps": "node dev/scripts/check-unused-deps.js",
 		"validate:plugins": "node dev/scripts/validate-plugins.js",
 		"scan:skill": "node dev/scripts/scan-skill.js",
-		"test": "node --test dev/tests/*.test.js"
+		"test": "node --test dev/tests/*.test.js",
+		"verify": "npm run lint && npm run typecheck && npm run validate:plugins && npm run check:unused-deps && npm test && npm run audit:prod"
 	},
 	"dependencies": {
 		"ajv": "^8.17.1",

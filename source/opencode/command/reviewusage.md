@@ -49,6 +49,17 @@ opencode will show zero uses. Never read a zero as "unused" without naming this.
    - **Slow** — highest `ms`, only when something stands out.
    - **Coverage** — the ledger's date range and how many sessions it covers, so the reader can
      judge whether "0 uses" means "not useful" or "only two days of data".
+4a. **Track zero-use findings across runs, so the report escalates on its own instead of the
+    reader needing to remember.** Maintain `~/.claude/base_project/usage/.zero-use-tracking.json`
+    (an object of `{ id: firstFlaggedDateISO }` — this command's own housekeeping, never the
+    ledger itself):
+    - A step-4 "installed but never used" finding not yet in this file → add it with today's
+      date, report as newly flagged.
+    - Already tracked → compute days since first flagged and say so in the finding ("zero use
+      for N days, first flagged <date>"); past 60 days (this command's own "two months" bar for
+      when a zero stops being noise), call that out explicitly, not just as another number.
+    - Something tracked here that now shows real usage → remove it from the file; it
+      self-corrects, don't keep reporting it as zero.
 5. Never delete or rewrite ledger files. If the reader asks to clear history, tell them the
    path and let them delete it themselves.
 6. If `--export <path>` is passed in the arguments, also write the report as Markdown to that

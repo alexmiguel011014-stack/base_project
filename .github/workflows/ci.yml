@@ -21,23 +21,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Biome linter
-        run: npx biome check .
-
-      - name: Run Biome formatter
-        run: npx biome format .
-
-      - name: Run TypeScript typecheck
-        run: npx tsc
-
-      - name: Validate plugins.json
-        run: npm run validate:plugins
-
-      - name: Check unused dependencies
-        run: node dev/scripts/check-unused-deps.js
-
-      - name: Run tests
-        run: npm test
+      - name: Verify project
+        run: npm run verify
 
   install-test:
     strategy:
@@ -63,15 +48,20 @@ jobs:
           fi
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
+          export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
+          mkdir -p "$BASE_PROJECT_CODEX_ROOT"
           bash dev/scripts/install.sh
           test -f "$CLAUDE_HOME/CLAUDE.md"
           test -f "$CLAUDE_HOME/settings.json"
           test -f "$CLAUDE_HOME/base_project/plugins.json"
           test -f "$CLAUDE_HOME/base_project/hooks/loop-detect.js"
+          test -f "$CLAUDE_HOME/base_project/hooks/validate-goals.js"
           test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
           test -f "$CLAUDE_HOME/base_project/scripts/contrast-check.js"
           test -f "$CLAUDE_HOME/base_project/scripts/diary-source.js"
+          test -f "$CLAUDE_HOME/base_project/scripts/validate-goals-structure.js"
           test -f "$CLAUDE_HOME/base_project/hooks/usage-log.js"
           test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
           test -f "$CLAUDE_HOME/base_project/references/command-menu.md"
@@ -131,7 +121,16 @@ jobs:
           test -f "$OPENCODE_HOME/command/execgoals.md"
           test -f "$OPENCODE_HOME/command/designreview.md"
           test -f "$OPENCODE_HOME/command/reviewusage.md"
-          node -e "JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8'))"
+          test -f "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/agents/reviewer.toml"
+          test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/command-menu.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/goal-types/build.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/hooks.json"
+          test -f "$BASE_PROJECT_AGENTS_ROOT/skills/wpp/SKILL.md"
+          test -f "$BASE_PROJECT_AGENTS_ROOT/skills/newgoal/SKILL.md"
+          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
+          node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1) process.exit(1)"
+          node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
           echo "install.sh: all expected artifacts present and settings.json is valid JSON"
 
       - name: Run install.ps1 against a throwaway HOME (Windows)
@@ -140,16 +139,21 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
+          $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
+          New-Item -ItemType Directory -Force -Path $env:BASE_PROJECT_CODEX_ROOT | Out-Null
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           $expected = @(
             (Join-Path $claudeHome "CLAUDE.md"),
             (Join-Path $claudeHome "settings.json"),
             (Join-Path $claudeHome "base_project\plugins.json"),
             (Join-Path $claudeHome "base_project\hooks\loop-detect.js"),
+            (Join-Path $claudeHome "base_project\hooks\validate-goals.js"),
             (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
             (Join-Path $claudeHome "base_project\scripts\contrast-check.js"),
             (Join-Path $claudeHome "base_project\scripts\diary-source.js"),
+            (Join-Path $claudeHome "base_project\scripts\validate-goals-structure.js"),
             (Join-Path $claudeHome "base_project\hooks\usage-log.js"),
             (Join-Path $claudeHome "base_project\references\project-standards.md"),
             (Join-Path $claudeHome "base_project\references\command-menu.md"),
@@ -208,12 +212,25 @@ jobs:
             (Join-Path $opencodeHome "command\repertoire.md"),
             (Join-Path $opencodeHome "command\execgoals.md"),
             (Join-Path $opencodeHome "command\designreview.md"),
-            (Join-Path $opencodeHome "command\reviewusage.md")
+            (Join-Path $opencodeHome "command\reviewusage.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "agents\reviewer.toml"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\command-menu.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\goal-types\build.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\wpp\SKILL.md"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\newgoal\SKILL.md")
           )
           foreach ($path in $expected) {
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
           }
-          Get-Content (Join-Path $claudeHome "settings.json") -Raw | ConvertFrom-Json | Out-Null
+          $settings = Get-Content (Join-Path $claudeHome "settings.json") -Raw | ConvertFrom-Json
+          $goalsGroups = @($settings.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
+          if ($goalsGroups.Count -ne 1) { throw "Expected exactly one Claude GOALS validation hook" }
+          $codexHooks = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json
+          $codexGoalsGroups = @($codexHooks.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
+          if ($codexGoalsGroups.Count -ne 1 -or $codexGoalsGroups[0].matcher -ne "apply_patch|Edit|Write|MultiEdit") { throw "Expected exactly one narrow Codex GOALS validation hook" }
+          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 21) { throw "Expected exactly 21 Codex skills" }
           Write-Output "install.ps1: all expected artifacts present and settings.json is valid JSON"
 
       - name: Re-run installer to confirm it's idempotent (Linux/macOS)
@@ -221,6 +238,8 @@ jobs:
         run: |
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
+          export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           bash dev/scripts/install.sh
           echo "second run succeeded without error"
 
@@ -230,6 +249,8 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
+          $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
           Write-Output "second run succeeded without error"
 
@@ -238,6 +259,8 @@ jobs:
         run: |
           export CLAUDE_HOME="$RUNNER_TEMP/claude-home"
           export OPENCODE_HOME="$RUNNER_TEMP/opencode-home"
+          export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
+          export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           bash dev/scripts/install.sh --opencode-commands lite
           grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
           test "$(cat "$HOME/.base_project/opencode-command-profile.txt")" = "lite"
@@ -255,6 +278,8 @@ jobs:
         run: |
           $claudeHome = Join-Path $env:RUNNER_TEMP "claude-home"
           $opencodeHome = Join-Path $env:RUNNER_TEMP "opencode-home"
+          $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
+          $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands lite
           $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
           if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite ship.md missing '(lite)' marker" }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# base_project installer — populates GLOBAL config for Claude Code (~/.claude) and
-# opencode (~/.config/opencode). Never touches any project repository.
+# base_project installer - populates GLOBAL config for Claude Code (~/.claude),
+# Codex (~/.codex + ~/.agents/skills), and opencode (~/.config/opencode).
+# Never touches any project repository.
 #
 # Run once after cloning. Re-run any time (e.g. after `git pull`) to pick up
 # updates — it only touches the blocks/files it manages.
@@ -152,17 +153,9 @@ sync_instruction_block() {
 sync_instruction_block "$CLAUDE_HOME/CLAUDE.md" "CLAUDE.md"
 
 # ---------------------------------------------------------------------
-# 3a. Same block for the other engines that read an AGENTS.md.
-#     Codex CLI reads ~/.codex/AGENTS.md, Kimi Code CLI reads ~/.kimi/AGENTS.md
-#     (both verified against their docs, Aug/2026). Only written when the tool's
-#     home directory already exists: creating ~/.codex on a machine with no Codex
-#     would be exactly the kind of surprise side effect this project avoids.
+# 3a. Kimi also reads an AGENTS.md. Codex uses its own native block, skills,
+#     agents, references, and hooks, synchronized together later in this script.
 # ---------------------------------------------------------------------
-if [ -d "$HOME/.codex" ]; then
-    sync_instruction_block "$HOME/.codex/AGENTS.md" "Codex CLI AGENTS.md"
-else
-    warn "Codex CLI not detected ($HOME/.codex missing) - skipped its AGENTS.md. Install it and re-run this script."
-fi
 if [ -d "$HOME/.kimi" ]; then
     sync_instruction_block "$HOME/.kimi/AGENTS.md" "Kimi Code CLI AGENTS.md"
 else
@@ -193,14 +186,15 @@ if command -v jq &>/dev/null; then
     # pre-existing settings.json) doesn't crash the very first `cat` below.
     printf '%s' "$BASE_SETTINGS" > "$SETTINGS_PATH"
 
-    # Loop-detection and auto-format hooks — real behavior, not just logging
-    # (see ROADMAP.md item 2). Synchronous (not async): loop-detect's stderr
-    # warning and post-edit-format's write need to land before the next tool
-    # call, but neither ever throws or blocks (swallow-all-errors by design).
+    # Loop-detection, auto-format, and GOALS validation hooks are synchronous
+    # (not async) so their warning/output lands before the next tool call.
+    # None ever throws or blocks (swallow-all-errors by design).
     LOOP_DETECT_PATH="$CLAUDE_HOOKS_DIR/loop-detect.js"
     LOOP_DETECT_MARKER="base_project/hooks/loop-detect.js"
     POST_EDIT_FORMAT_PATH="$CLAUDE_HOOKS_DIR/post-edit-format.js"
     POST_EDIT_FORMAT_MARKER="base_project/hooks/post-edit-format.js"
+    VALIDATE_GOALS_PATH="$CLAUDE_HOOKS_DIR/validate-goals.js"
+    VALIDATE_GOALS_MARKER="base_project/hooks/validate-goals.js"
     BASE_SETTINGS="$(cat "$SETTINGS_PATH")"
     # The first two filters prune hooks left behind by the dashboard (removed in
     # ROADMAP item 13). Deleting a feature from source/ only stops it being
@@ -213,13 +207,16 @@ if command -v jq &>/dev/null; then
         --arg loopMarker "$LOOP_DETECT_MARKER" \
         --arg formatCmd "node \"$POST_EDIT_FORMAT_PATH\"" \
         --arg formatMarker "$POST_EDIT_FORMAT_MARKER" \
+        --arg goalsCmd "node \"$VALIDATE_GOALS_PATH\"" \
+        --arg goalsMarker "$VALIDATE_GOALS_MARKER" \
         --arg dashMarker "$DASHBOARD_MARKER" \
         '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]' \
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($goalsMarker)) | not))) + [{"hooks": [{"type": "command", "command": $goalsCmd, "async": false}]}]' \
         > "$SETTINGS_PATH"
-    ok "settings.json (loop-detect + post-edit-format hooks merged, stale dashboard hooks pruned)"
+    ok "settings.json (loop-detect + post-edit-format + validate-goals hooks merged, stale dashboard hooks pruned)"
 
     # Usage ledger — one JSONL line per tool call, plus the prompt that opened the
     # chain, so /reviewusage can answer whether an installed plugin/MCP/agent is
@@ -487,7 +484,7 @@ sync_catalog "$CLAUDE_HOME/base_project/plugins.json"
 sync_catalog "$OPENCODE_HOME/base_project/plugins.json"
 
 # ---------------------------------------------------------------------
-# 8b. Hooks with real behavior (loop-detect, post-edit-format) - see ROADMAP item 2
+# 8b. Hooks with real behavior (loop-detect, post-edit-format, validate-goals)
 # ---------------------------------------------------------------------
 step "Syncing hook scripts..."
 HOOKS_SRC_DIR="$SOURCE_DIR/hooks"
@@ -525,6 +522,15 @@ if [ -f "$DIARY_SOURCE_SRC" ]; then
 fi
 
 # ---------------------------------------------------------------------
+# 8c-4. validate-goals-structure.js - deterministic GOALS.md checker used by
+# the validate-goals hook and /execgoals' manual backstop.
+# ---------------------------------------------------------------------
+VALIDATE_GOALS_STRUCTURE_SRC="$SCRIPT_DIR/validate-goals-structure.js"
+if [ -f "$VALIDATE_GOALS_STRUCTURE_SRC" ]; then
+    sync_managed "$VALIDATE_GOALS_STRUCTURE_SRC" "$CLAUDE_SCRIPTS_DIR/validate-goals-structure.js"
+fi
+
+# ---------------------------------------------------------------------
 # 8d. Reference docs read by commands (project-standards.md, command-menu.md)
 # ---------------------------------------------------------------------
 step "Syncing reference docs..."
@@ -546,6 +552,18 @@ if [ -d "$OPENCODE_REFERENCES_SRC_DIR" ]; then
 fi
 
 # ---------------------------------------------------------------------
+# 8d-2. Codex-native projection: AGENTS.md, 21 skills, 3 subagents,
+#       references, catalog, and hooks. One Node implementation keeps this
+#       behavior identical to the PowerShell installer.
+# ---------------------------------------------------------------------
+step "Syncing native Codex integration..."
+if command -v node &>/dev/null; then
+    node "$SCRIPT_DIR/install-codex.js" || warn "Codex integration sync failed."
+else
+    warn "Node.js not found - skipped native Codex skills/agents sync."
+fi
+
+# ---------------------------------------------------------------------
 # 9. Record the repo path (used to check for base_project updates later)
 # ---------------------------------------------------------------------
 STATE_DIR="$HOME/.base_project"
@@ -556,5 +574,5 @@ ok "recorded repo path for update checks: $REPO_ROOT"
 ok "opencode command profile: $OPENCODE_COMMAND_PROFILE (switch with --opencode-commands dense|lite)"
 
 echo ""
-echo -e "\033[32mbase_project installed. Open any project - Claude Code and opencode now load these rules automatically.\033[0m"
+echo -e "\033[32mbase_project installed. Open any project - Claude Code, Codex, and opencode now load these rules automatically.\033[0m"
 echo -e "\033[32mNothing was written inside any project repository.\033[0m"

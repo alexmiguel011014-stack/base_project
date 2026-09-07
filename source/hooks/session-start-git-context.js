@@ -2,10 +2,10 @@
 // base_project:managed
 // SessionStart hook: injects a compact git-state summary (branch, uncommitted
 // changes, recent commits) directly into context at the start of a session —
-// so Claude doesn't have to spend tool calls rediscovering "what was I doing"
+// so Claude Code or Codex doesn't spend tool calls rediscovering "what was I doing"
 // on every fresh start/resume/clear. Plain stdout on exit 0 is added straight
-// to context (no JSON wrapper needed) — see Claude Code's SessionStart hook
-// docs. Silent (no stdout) when there's nothing worth surfacing, to avoid
+// to context (no JSON wrapper needed) under both engines' SessionStart hook
+// contract. Silent (no stdout) when there's nothing worth surfacing, to avoid
 // spending tokens on a clean tree with nothing to report.
 //
 // Registered only for matcher "startup|resume|clear" — deliberately excludes

@@ -19,20 +19,22 @@ project, one ordered item at a time — with the same before/after verification 
    areas apply (backend/frontend/database/etc. — whichever `/newgoal` actually wrote for this
    project), how many items are already `[x]` vs. still open, and which open items are
    heavier/harder to reverse — installing dependencies, initializing a database, running an
-   external scaffolding CLI, `git init`. Ask for one confirmation to proceed with the whole
-   ordered run, not per item — the same one-pass-then-report shape `/fixproject` already uses,
-   just with a heavier first step, since unlike a fix this can install real dependencies and
-   create real service state.
+   external scaffolding CLI, `git init`. An explicit `/execgoals` invocation already authorizes
+   the auto-approved and notify-and-proceed work in the ordered run; ask only if an open item is
+   human-in-the-loop. That preserves one coherent safety gate without re-asking for ordinary
+   in-scope implementation.
 
 3. **Work through unchecked items in the order they're written.** `/newgoal` already orders
    items "what has to exist before what" — don't re-derive an order here. For each item:
-   - Trivial items (create a config file, add a `.gitignore` line) apply directly.
-   - Non-trivial items use the `architect` → `coder` subagent workflow, same as any other real
-     change in this project.
-   - If an item needs a decision only the user can make (which OAuth provider, which cloud
-     region, a real API key/credential), stop and ask — never fabricate a placeholder that
-     looks real. Secrets go in the project's own gitignored `.env`, never hardcoded, same rule
-     as everywhere else in this project.
+   - **Auto-approved**: trivial, routine, reversible work inside the current repository applies
+     directly.
+   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item uses the `architect` →
+     `coder` subagent workflow; state the visible effect, then continue and verify it.
+   - **Human-in-the-loop**: an irreversible or hard-to-recover action, a material choice only
+     the user can make (which OAuth provider, cloud region, or real credential), data/state
+     outside the repository, sensitive data, or external publication stops and asks. Never
+     fabricate a placeholder that looks real. Secrets go in the project's own gitignored `.env`,
+     never hardcoded.
 
 4. **Check items off as they're verified, not as they're attempted.** After completing an item,
    actually confirm it — the file exists, the test passes, the server starts — the same
@@ -40,6 +42,10 @@ project, one ordered item at a time — with the same before/after verification 
    editing the checkbox because the edit happened. Update `GOALS.md` in place (`[ ]` → `[x]`) as
    you go, so a later re-run of this command sees accurate progress and never redoes finished
    work.
+
+   After a batch of edits to the same `GOALS.md` within one area, run
+   `node ~/.claude/base_project/scripts/validate-goals-structure.js GOALS.md`. If it reports a
+   finding, repair the plan structure and leave the affected item open before continuing.
 
 5. **Run the project's own test/lint/typecheck after each area finishes**, not only at the very
    end — catch a broken area before three more areas get built on top of it.

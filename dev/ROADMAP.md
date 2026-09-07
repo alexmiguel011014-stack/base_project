@@ -1814,6 +1814,242 @@ existir; a régua acima é a especificação, a próxima vez que `/ship` rodar n
 
 ---
 
+### 41. `/repertoire`: ampliado pra cobrir pesquisa de tópico avulso, não só domínio de projeto
+
+**O que é**: feedback direto do dono do projeto depois de eu ter pedido pra pesquisar
+"harness engineering" e "loop engineering" (conceitos de engenharia de agentes de IA) via
+`/repertoire` — respondi que não se encaixava, porque as 5 lentes do comando eram descritas
+em termos de "o domínio real do projeto sendo construído" (base científica, regulatória,
+cultural, mídia *sobre o produto*), não de um tópico avulso ouvido em algum lugar. O dono
+discordou: "o repertoire era pra ter capacidade de ter esse escopo de pesquisa... isso era
+a função dele desde o início", e pediu explicitamente pra reestruturar o comando existente
+em vez de criar um novo — "temos que parar de querer ficar criando comando sem necessidade".
+
+**Decisão de design**: as 5 lentes (científica, regulatória, cultural, mídia, competitiva)
+já generalizam bem pra qualquer assunto, não só pra "produto sendo construído" — o gap não
+era de mecanismo, era de enquadramento na descrição do comando. `repertoire.md` (os dois
+engines + a variante lite) ganhou um novo passo 1 que ramifica entre dois modos: pesquisa
+de domínio de projeto (alimenta `/newgoal`, como antes) ou pesquisa de tópico avulso
+(independente de construir algo), sem duplicar a lógica de julgamento de lentes/
+pesquisa/redação — os passos 2-7 continuam idênticos pros dois modos, só a entrada (passo 1)
+e a integração com `/newgoal` (passo 6, agora explicitamente "só no modo domínio de
+projeto") mudaram.
+
+**Segundo pedido embutido no feedback**: o usuário também queria que o comando declarasse
+"o que ele consegue pesquisar na web e nos bancos de dados" antes de rodar — dobrado dentro
+do próprio gate de confirmação do passo 0 (que já existia pra custo em tokens), que agora
+também afirma o limite real: pesquisa web em tempo real, sem acesso a bases pagas/fechadas
+(Web of Science, Scopus). Uma frase, dois propósitos (custo + capacidade), no mesmo gate que
+já parava o usuário antes de rodar.
+
+**Por que não um comando novo**: cheguei a propor isso via `AskUserQuestion` (opção
+recomendada, pra não misturar "pesquisa de domínio pra `/newgoal`" com "pesquisa avulsa" no
+mesmo comando) — o usuário rejeitou explicitamente, preferindo ampliar o existente. Registrado
+aqui porque contraria a recomendação que eu daria por padrão nesse tipo de decisão.
+
+**Arquivos tocados**: `source/claude/commands/repertoire.md`,
+`source/opencode/command/repertoire.md`, `source/opencode/command-lite/repertoire.md`
+(reescritos), mais as descrições em `README.md`, `ARCHITECTURE.md` (2 ocorrências) e
+`source/{claude,opencode}/references/command-menu.md` — nenhuma ficou com a descrição
+antiga, pra não haver duas fontes contando histórias diferentes do que o comando faz.
+
+**Status**: `feito`.
+
+**Validado**: `npx biome check .`, `npx tsc`, `npm test` continuam verdes (mudança é só
+texto de instrução em `.md`, mesma natureza dos itens 38-40) — rodados por hábito antes do
+commit, não porque a lógica em JS tenha sido tocada. Instalador (`install.ps1`) re-rodado
+nesta máquina depois da edição, sincronizando `source/` → `~/.claude/` e `~/.config/opencode/`
+sem erro, confirmando que os arquivos novos são válidos e o `command-menu.md` renderizado
+reflete a descrição nova. **Não testado**: invocar `/repertoire` de verdade em modo
+tópico-avulso numa sessão nova pra confirmar que o passo 1 ramifica como esperado sem
+re-perguntar o que já foi estabelecido — o gatilho real desta mudança foi um pedido de
+pesquisa já respondido manualmente antes do comando existir nesse formato.
+
+---
+
+### 42. Correção de disciplina plan/execute (`/newgoal`/`/repertoire`) + execução real do GOALS 7/8 via `/execgoals`
+
+**O que é**: consequência direta do item 41 — ao reestruturar o `/repertoire` naquele item,
+7 arquivos reais foram editados na mesma resposta em vez de só escrever um `GOALS.md` e
+esperar confirmação. O dono do projeto corrigiu isso explicitamente: "`/newgoal`... não era
+pra permitir executar... eu escolheria se chamaria essa meta ou modificaria". Pediu também
+análise de quais outros comandos estavam "frouxos" da mesma forma, um checklist de
+implementações não usadas (a partir do `/reviewusage` já rodado na sessão), e os itens de
+melhoria já pesquisados em harness/loop engineering (a análise anterior a este item). As três
+coisas viraram GOALS 7/8/9 através de um `/newgoal` real — desta vez sem executar nada na
+mesma resposta — e só depois, com `/execgoals` invocado explicitamente, a execução começou.
+
+**Audit de 21 comandos (GOALS 7)**: releitura real (não memória) dos 21 comandos. Achado: só
+`/newgoal` e `/repertoire` tinham o gap — nunca autorizavam execução, mas também nunca a
+proibiam explicitamente, e essa ausência de um "nunca" declarado é exatamente o tipo de regra
+implícita fácil de escorregar sob pressão conversacional real. Os outros 19 já tinham gate
+explícito (`/cleanproject`/`/designreview`/`/undo`/`/uninstall` como exemplares) ou executam
+por design (`/ship`/`/fixproject`/`/execgoals`). `/bootstrap`'s `git pull` sem perguntar foi
+sinalizado como decisão de risco a confirmar, não um bug — usuário decidiu manter como está.
+
+**O que mudou**: `newgoal.md`/`repertoire.md` (3 variantes cada — claude, opencode, opencode
+lite) ganharam a mesma linha-guarda explícita, tanto na abertura quanto repetida como passo
+final — o mesmo padrão top+repetição que `cleanproject.md`/`scanproject.md` já usavam. A
+regra geral foi canonizada em `source/CLAUDE.md` e `source/opencode-instructions.md`, seção
+Workflow, item 4: "quem planeja não executa" — decisão do usuário sobre onde registrar,
+perguntada explicitamente em vez de assumida.
+
+**Achado real durante a execução do GOALS 8 (H.1, ainda aberto)**: o item já previa `claude
+plugin eval` como mecanismo pra uma suite de eval golden-path. Tentativa de verificação direta
+(`claude plugin eval --help`) falhou nesta máquina — o binário nativo do `claude` não roda
+neste harness. Pesquisa via subagente `claude-code-guide` revelou algo mais fundamental:
+`claude plugin eval` é pensado pra *plugins empacotados* (`plugin.json` + skills/MCP), não pra
+comandos soltos distribuídos por um installer como o base_project — usar exigiria repackaging
+incomum dos comandos como um plugin de teste, além de depender de early-access não confirmado
+na conta. H.1/H.2 ficaram deliberadamente bloqueados aguardando decisão do usuário em vez de
+forçar uma implementação sobre uma premissa nunca verificada.
+
+**Achado real durante H.5**: o texto original do item ("reportar qualquer achado de
+drift/error") teria feito o `/bootstrap` espalhar ~40 linhas de `"missing"` (não-adoção normal
+da camada unificada de 30+ agentes) em qualquer projeto que não usa esses agentes — a maioria.
+Rodar `node dev/scripts/drift.js --project . --json` contra o próprio base_project antes de
+escrever a instrução expôs a distinção real: `"status":"missing"` (nunca adotado, normal) vs.
+`"status":"drift"` (arquivo projetado existe mas está desatualizado, real). A instrução final
+filtra só por `"drift"` — corrigido antes de virar ruído em produção, não depois de reclamação.
+
+**Achado real durante GOALS 9 (U.1) — `github` MCP quebrado por padrão desde sempre, não só
+nesta sessão**: inspecionar `~/.claude.json` diretamente mostrou `"Authorization": "Bearer
+YOUR_GITHUB_TOKEN"` — o placeholder literal, nunca trocado por um token real. O mesmo
+placeholder estava hardcoded em `source/opencode/mcp.json`, então **todo install do
+base_project, nos dois engines, sempre registrou esse MCP quebrado por padrão** — não era um
+acidente desta máquina. Correção: `github` saiu do conjunto sempre-ativo (que agora é só
+`context7`/`filesystem`/`git` — os três realmente zero-configuração) e virou entrada opcional
+no catálogo do `/plugins`, com `requires_input` pedindo o token real, mesmo padrão que
+`supabase` já usa. `README.md` corrigido. Registro quebrado removido de `~/.claude.json` nesta
+máquina (com backup) e reinstalado sem ele.
+
+**Achado real durante GOALS 9 (U.3b) — testado contra dado de produção real, com confirmação
+explícita antes de tocar no arquivo**: o plano original era só ampliar o `recommend_if` do
+SQLite MCP pra reconhecer `@journeyapps/sqlcipher` (usado pelo ERP). O dono do projeto pediu
+pra também testar de verdade. Copiei `erp_housekimono.sqlite` (nunca o original) pra um
+diretório temporário — bloqueado uma vez pelo classificador de segurança do Auto Mode por
+tocar dado real de produção, parei e pedi confirmação explícita antes de prosseguir. O
+cabeçalho do arquivo não é o de SQLite puro (criptografado desde o primeiro byte), e abrir a
+cópia com um driver SQLite comum (`node:sqlite`, sem suporte a SQLCipher) falhou: `"file is
+not a database"`. Cópia apagada logo depois do teste. Resultado inverteu o plano original: o
+`recommend_if` agora **exclui** explicitamente `sqlcipher`, com a prova do teste registrada
+inline — recomendar esse MCP pra um projeto com SQLCipher seria recomendar algo comprovadamente
+incapaz de conectar, o mesmo formato de falha do `github` (U.1).
+
+**Achado real reportado pelo usuário (U.6) — `strix` não é "não testado", é "tentado e não
+funcionou"**: ao perguntar sobre rodar uma auditoria real com `strix`, a resposta foi que ele
+"estoura o limite de tokens antes de terminar de rodar... não funciona" — um teste real já
+feito, não hipotético. Adicionado um aviso honesto (`install.note`) na entrada do catálogo
+nomeando essa falha específica, sem remover a entrada (a falha pode ser específica de projetos
+grandes, não universal).
+
+**Status**: `feito`. GOALS 7 completo (B.1-B.4). GOALS 8: H.3/H.4/H.5/H.7 feitos, H.6
+explicitamente pulado (fica atrás de flag experimental `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`
+da Anthropic), H.1/H.2/H.8 seguem em aberto — H.1/H.2 bloqueados numa decisão real de
+mecanismo (nem `claude plugin eval` nem `skill-creator` servem pra avaliar comandos já
+instalados sem interface; harness próprio é o caminho recomendado, ainda não construído), H.8
+depende deles. GOALS 9 completo: U.1 (github corrigido), U.2 (filesystem/git — sem evidência de
+bug real, veredito registrado), U.3a/U.4 (mantidos no catálogo, custo zero), U.3b (sqlite —
+`recommend_if` corrigido com prova real), U.5 (esquecimento genuíno, registrado, nada mudado),
+U.6 (strix — falha real documentada), U.7/U.8 (decisões registradas, única remoção real já
+executada no U.1).
+
+**Validado**: `npx biome check .`/`npx tsc` limpos em cada ponto de checagem ao longo de toda a
+execução. `npm test`: 93/93 (92 → 93 — `dev/tests/drift.test.js` ganhou um caso novo provando
+ao vivo, não por inspeção, a distinção `missing`/`drift` da qual o H.5 depende). `node
+dev/scripts/validate-plugins.js` passa contra o catálogo final (entrada `github` nova, `sqlite`
+e `strix` corrigidas). **Não testado**: o ciclo completo de escalonamento do H.3 (`/reviewusage`
+rodado duas vezes de verdade, com um achado zero-uso real entre as rodadas) — é texto de
+instrução pra um modelo seguir, mesma classe não-testável por unidade que o próprio GOALS 7 já
+nomeia pra `/newgoal`/`/repertoire`. H.1/H.2 seguem sem mecanismo escolhido, portanto sem nada
+pra testar ainda.
+
+---
+
+## 43. Projeção nativa completa para Codex — 21 skills + agentes + hooks (2026-09-02)
+
+**Motivação real**: `/wpp` funcionava em Claude Code e opencode porque esses engines liam os
+arquivos em `commands/`, mas o Codex só recebia um bloco genérico de `AGENTS.md` e MCPs. Assim,
+o menu mencionava comandos que não existiam como superfícies invocáveis nesta conversa.
+
+**Decisão**: mapear por função, usando as extensões oficiais do Codex. Regras permanentes viram
+`source/codex/AGENTS.md`; os 21 comandos viram skills explícitas (`$wpp`, `$ship`, etc.) em
+`source/codex/skills/`; os três papéis viram TOML em `source/codex/agents/`; menu e referências
+vão para `~/.codex/base_project/references/`; hooks são mesclados em `~/.codex/hooks.json`.
+Não foi criado um quarto formato redundante de prompt `/prompts:*`: skills são a abstração
+correta porque têm descoberta, descrição e ativação explícita/implícita.
+
+**Compatibilidade prioritária**: `$diario` mantém `~/.base_project/diary-root.txt`, o Markdown
+fonte e o `.docx` existentes. O hook Codex usa o mesmo `usage-log.js` sob `~/.claude/`, mantendo
+um ledger histórico único em vez de migrar ou quebrar diários antigos.
+
+**Implementação**: `dev/scripts/install-codex.js` centraliza a projeção para que
+`install.ps1` e `install.sh` não divirjam. Ele só roda quando o diretório Codex já existe,
+preserva conteúdo fora do bloco gerenciado, não sobrescreve skill/agente sem marcador e faz
+merge idempotente dos hooks. `dev/tests/codex.test.js` exige paridade exata dos 21 nomes,
+frontmatter mínimo e preservação de customizações.
+
+**Status**: implementado; validação final registrada no fechamento da mudança.
+
+---
+
+## 44. Hardening de contratos do Codex, segurança de dependências e proteção self-host (2026-09-03)
+
+**Achados corrigidos**: a auditoria de produção encontrou `fast-uri@3.1.5` vulnerável por quatro
+advisories altos; o hook `post-edit-format.js` reconhecia o formato histórico `patch`/`input`,
+mas não o `tool_input.command` documentado para `apply_patch` do Codex; e rodar `drift` no próprio
+repositório-fonte classificava suas instruções de desenvolvimento como drift e sugeria um
+`apply --fix` capaz de substituí-las.
+
+**Implementação mínima**: o lockfile agora resolve a versão corrigida de `fast-uri`; `package.json`
+expõe `lint`, `typecheck`, `audit:prod`, `check:unused-deps` e `verify`, e o CI chama o mesmo
+`npm run verify` que o desenvolvedor local. Dependabot abre PRs semanais para npm e GitHub Actions,
+sem auto-merge. O formatter aceita `tool_input.command` e o instalador Codex registra matcher só
+para ferramentas de edição. `apply` recusa escrita quando o alvo tem os marcadores reais de um
+repositório-fonte base_project (exit 3), enquanto `drift` retorna `not_applicable` e exit 0 nesse
+caso; consumidores normais continuam elegíveis a detectar/corrigir drift.
+
+**Contrato e documentação**: testes cobrem o payload Codex real, matcher instalado, preservação de
+hooks do usuário, paridade dos quatro formatos de workflow e a proteção self-host. README e
+ARCHITECTURE explicam a revisão/confiança de hooks do Codex, que o installer nunca tenta burlar.
+Os três `scanproject` e a skill Codex agora tratam somente `drift` como reparável; `missing` e
+`not_applicable` não recebem sugestão de `apply --fix`.
+
+**Validado**: `npm run verify` passou integralmente (100/100 testes, Biome, TypeScript, schema,
+dependências não usadas e `npm audit --omit=dev --audit-level=high` sem vulnerabilidades). O
+installer Windows também foi rodado de verdade para sincronizar Claude, Codex e opencode. O
+arquivamento de metas concluídas continua uma melhoria organizacional separada, não foi misturado
+com este reparo.
+
+---
+
+## 45. Guardrail estrutural de GOALS e contexto ativo compacto (2026-09-03)
+
+**Problema real**: duas edições anteriores de `GOALS.md` criaram IDs duplicados; ambas foram
+encontradas manualmente tarde. Além disso, o arquivo raiz carregava o histórico concluído junto
+com o trabalho aberto, desperdiçando contexto e aumentando a chance de um agente retomar uma
+decisão já encerrada.
+
+**Implementação**: `dev/scripts/validate-goals-structure.js` é o único verificador para IDs de
+checklist em negrito duplicados e fences Mermaid sem fechamento. O hook consultivo
+`source/hooks/validate-goals.js` roda após edição de `GOALS.md`, avisa em stderr e nunca bloqueia
+o tool call. Os instaladores o sincronizam para Claude e Codex; no Codex o matcher se limita a
+ferramentas de edição. `/execgoals` executa o mesmo checker como backstop por lote, e os três
+formatos de instrução agora nomeiam a autonomia em três níveis: auto-approved,
+notify-and-proceed e human-in-the-loop.
+
+**Contexto ativo**: os corpos concluídos foram movidos para `dev/goals-archive/`, com índice
+append-only, links navegáveis e checksums SHA-256. `/newgoal` lê primeiro `GOALS.md` ativo e o
+índice; só abre um corpo histórico quando a evidência dele for relevante. Não foi criado comando,
+gerador de comandos, bloqueio `PreToolUse`, nem um segundo mecanismo de distribuição.
+
+**Operação e validação**: menu, README, ARCHITECTURE, comandos de uninstall e contratos de CI
+descrevem o mesmo comportamento. `npm run verify` passou com 107 testes, Biome, TypeScript,
+schema, dependências não usadas e auditoria de produção; o instalador Windows foi executado para
+sincronizar os hooks instalados.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

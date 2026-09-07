@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // base_project:managed
 // PostToolUse + UserPromptSubmit hook: appends one JSONL line per event to a
-// per-session ledger, so /reviewusage can later answer "was this plugin/MCP/agent
+// per-session ledger, so /reviewusage or $reviewusage can later answer "was this plugin/MCP/agent
 // ever actually used, in which project, and did it error" — questions the catalog
 // alone can't answer, because it only records what was *installed*.
 //
@@ -16,7 +16,7 @@
 //    guess is visible instead of silently absent.
 //
 // 2. ONE FILE PER SESSION. Hooks are global: a single ledger file would take
-//    concurrent appends from every Claude Code/opencode session running on the
+//    concurrent appends from every Claude Code/Codex session running on the
 //    machine at once (verified live — a session in another project wrote into the
 //    same capture during testing). Per-session files remove the contention rather
 //    than locking against it, which is also why this needs no database.
