@@ -1,12 +1,12 @@
-# Archived plan — GOALS 12: Command Suite Cleanup & Goal-Archive Automation
+# Archived plan — GOALS 13: Command Suite Cleanup & Goal-Archive Automation
 
 > Status: completed. Archived from root `GOALS.md` on 2026-09-07.
 > This body is a historical snapshot; keep it immutable and add future active work to root `GOALS.md`.
 
 ---
 
-<a id="goals-12-command-suite-cleanup-and-goal-archive-automation-base_project-feature"></a>
-## GOALS 12 — Command Suite Cleanup & Goal-Archive Automation (base_project feature)
+<a id="goals-13-command-suite-cleanup-and-goal-archive-automation-base_project-feature"></a>
+## GOALS 13 — Command Suite Cleanup & Goal-Archive Automation (base_project feature)
 
 Two independent, bounded changes to base_project's own command suite, written from a live
 conversation rather than through a formal `/newgoal` research pass — the investigation (file

@@ -6,6 +6,10 @@ description: Commit and push the current project's changes. Checks readiness fir
 Ship the current project's changes: verify it's actually ready, then commit and push —
 guiding through any blocker instead of failing silently or working around it.
 
+ ### Batching and stopping
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+
+
 1. Read-only inventory first — build the full picture before touching anything:
    - `git rev-parse --is-inside-work-tree` to confirm this is a git repo.
    - `git status --porcelain=v2 --branch` for branch, ahead/behind counts, staged/unstaged/

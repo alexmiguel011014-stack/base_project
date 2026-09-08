@@ -62,7 +62,7 @@ próprio trabalho, como decide que terminou. Framework de 4 camadas aninhadas (L
 informal: cada comando roda multi-step com gates de confirmação (`AskUserQuestion`,
 confirmações em `/ship`/`/council`/`/uninstall`) — isso é human-in-the-loop de verdade, não
 decorativo. Loop 3 não existe — nenhum comando roda disparado por evento externo. Loop 4
-tem uma semente real: `/reviewusage` lê o ledger de uso e reporta o que funciona/falha —
+tem uma semente real: `/usagebp` lê o ledger de uso e reporta o que funciona/falha —
 é literalmente "traces de produção alimentando análise", só que o passo de "atualizar a
 config automaticamente" ainda é 100% manual (um humano lê o relatório e decide).
 
@@ -109,7 +109,7 @@ prototipar, não vale apostar produção nisso enquanto for experimental.
 | Prática | Ganho de desempenho | Esforço de implementação | Por quê |
 |---|---|---|---|
 | Eval harness pra comandos/agentes | **Alto** | Médio | Único item que fecha um gap real e específico (zero cobertura hoje); usa `claude plugin eval`, já nativo |
-| Formalizar Loop 4 (hill-climbing a partir do `/reviewusage`) | Médio-Alto | Baixo | A leitura de dados já existe; falta só o passo de ação sistemática sobre o achado |
+| Formalizar Loop 4 (hill-climbing a partir do `/usagebp`) | Médio-Alto | Baixo | A leitura de dados já existe; falta só o passo de ação sistemática sobre o achado |
 | Generalizar Progressive Delivery como padrão documentado | Médio | **Baixo** | O mecanismo já existe (lite/dense) — é documentar o padrão, não construir algo novo |
 | Automatizar drift-check (GitOps) | Médio | **Baixo** | `drift.js` já existe — é só encadear a chamada em `/bootstrap` |
 | Prototipar Agent Teams em `/execgoals` | Baixo-Médio (hoje) | Alto | Feature experimental — risco de retrabalho se a API mudar antes de estabilizar |
@@ -121,9 +121,9 @@ prototipar, não vale apostar produção nisso enquanto for experimental.
    `/fixproject`, `/uninstall` — os que já têm lógica de segurança explícita nas próprias
    instruções) usando `claude plugin eval`. Rodar como novo job no CI, ao lado de
    `npm test`.
-2. Formalizar o Loop 4: `/reviewusage` já produz o achado ("catálogo X instalado, nunca
+2. Formalizar o Loop 4: `/usagebp` já produz o achado ("catálogo X instalado, nunca
    usado") — decidir uma ação padrão de acompanhamento (ex: sinalizar automaticamente pro
-   usuário depois de N dias sem uso, não só quando `/reviewusage` é chamado manualmente).
+   usuário depois de N dias sem uso, não só quando `/usagebp` é chamado manualmente).
 
 **Fase 2 — consolidar o que já existe (baixo esforço, ganho direto)**
 3. Documentar o padrão lite/dense como convenção reutilizável (um parágrafo em
@@ -139,6 +139,19 @@ prototipar, não vale apostar produção nisso enquanto for experimental.
    a essa feature especificamente por ela ainda ser experimental do lado da Anthropic.
 
 ---
+
+## Decisão de implementação — harness sem dependência externa (2026-09-08)
+
+Para remover a dependência de uma chave Anthropic faturável e ainda fechar o ciclo local de
+verificação, o projeto adotou um harness determinístico em `dev/scripts/eval-harness.js`, com
+cenários em `dev/harness/scenarios.json`. Ele valida os contratos textuais das 12 variantes
+de `/ship`, `/fixproject` e `/uninstall` e classifica 16 traces seguros, bloqueados ou
+inseguros. O CI executa `npm run test:harness` sem rede, modelo, CLI externo ou credencial.
+
+Essa escolha aplica a recomendação central da pesquisa: fatos verificáveis devem ser testados
+deterministicamente antes de qualquer avaliação probabilística. O limite permanece explícito:
+o harness não prova que um LLM obedecerá às instruções em uma conversa real; uma avaliação
+live-model pode ser adicionada depois, como decisão separada de custo, segurança e fidelidade.
 
 ## Fontes consultadas
 

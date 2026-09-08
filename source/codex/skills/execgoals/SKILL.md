@@ -6,6 +6,10 @@ description: Execute unchecked items in GOALS.md in dependency order and mark on
 
 Turn an existing `GOALS.md` into verified implementation.
 
+ ### Batching and stopping
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+
+
 1. Require `GOALS.md`. If the preceding `$newgoal` was research-only and intentionally produced a standalone document, explain that there is nothing to execute. Otherwise stop and direct the user to `$newgoal`; never improvise a missing plan.
 2. Read the whole file. Summarize completed/open counts, applicable areas, and high-impact or hard-to-reverse items. Explicit `$execgoals` invocation authorizes routine plan execution; ask only for an unresolved choice or a human-in-the-loop item.
 3. Continue from the first unchecked item; never redo `[x]` items unless asked. Follow written dependencies rather than deriving a new plan. Treat routine reversible work inside the repository as **auto-approved**; state and continue for an in-scope, reversible but visible **notify-and-proceed** change; stop for **human-in-the-loop** work: irreversible/hard-to-recover actions, material scope choices, outside-repository data/state, sensitive data, credentials, or external publication.

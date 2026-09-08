@@ -90,9 +90,9 @@ Analyze the current project and help the user pick optional plugins from the bas
 7b. Record the install in the usage ledger, once per item that actually installed, right after the
    scan and before reporting:
    `node ~/.claude/base_project/hooks/usage-log.js --install <id> --kind <kind> --origin <catalog|discovery>`
-   (the ledger lives under `~/.claude/` for both engines — same single ledger, see `/reviewusage`).
+   (the ledger lives under `~/.claude/` for both engines — same single ledger, see `/usagebp`).
    Use the catalog `id` for catalog entries, and the tool's own name for live-discovery ones. This is
-   what makes "installed and never used" answerable by `/reviewusage`: catalog entries can be
+   what makes "installed and never used" answerable by `/usagebp`: catalog entries can be
    cross-checked against `plugins.json`, but a live-discovery item exists in no catalog, so without
    this line it is invisible exactly when it matters most — pulled from the open web, then never used
    again. Never record an install that didn't happen (a failed or user-declined one). If the script is

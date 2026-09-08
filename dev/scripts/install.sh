@@ -219,7 +219,7 @@ if command -v jq &>/dev/null; then
     ok "settings.json (loop-detect + post-edit-format + validate-goals hooks merged, stale dashboard hooks pruned)"
 
     # Usage ledger — one JSONL line per tool call, plus the prompt that opened the
-    # chain, so /reviewusage can answer whether an installed plugin/MCP/agent is
+    # chain, so /usagebp can answer whether an installed plugin/MCP/agent is
     # actually used (see ROADMAP item 21). Same script on two events: the payload's
     # own hook_event_name tells them apart, so there is no flag to keep in sync.
     # Async because nothing in the turn waits on the write.
@@ -266,7 +266,7 @@ fi
 #     Only removes what carries the managed marker, mirroring sync_managed - a
 #     file written by hand at the same path is left alone even if the name matches.
 # ---------------------------------------------------------------------
-for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md" "$CLAUDE_COMMANDS_DIR/newproject.md" "$OPENCODE_COMMAND_DIR/newproject.md"; do
+for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md" "$CLAUDE_COMMANDS_DIR/newproject.md" "$OPENCODE_COMMAND_DIR/newproject.md" "$CLAUDE_COMMANDS_DIR/reviewusage.md" "$OPENCODE_COMMAND_DIR/reviewusage.md"; do
     [ -f "$stale_cmd" ] || continue
     if grep -q 'base_project:managed' "$stale_cmd"; then
         rm -f "$stale_cmd"
@@ -528,6 +528,24 @@ fi
 VALIDATE_GOALS_STRUCTURE_SRC="$SCRIPT_DIR/validate-goals-structure.js"
 if [ -f "$VALIDATE_GOALS_STRUCTURE_SRC" ]; then
     sync_managed "$VALIDATE_GOALS_STRUCTURE_SRC" "$CLAUDE_SCRIPTS_DIR/validate-goals-structure.js"
+fi
+
+# ---------------------------------------------------------------------
+# 8c-5. usage-envelope.js - deterministic parser for an optional Claude
+# `/usage` report consumed by /usagebp. It never stores the source text.
+# ---------------------------------------------------------------------
+USAGE_ENVELOPE_SRC="$SCRIPT_DIR/usage-envelope.js"
+if [ -f "$USAGE_ENVELOPE_SRC" ]; then
+    sync_managed "$USAGE_ENVELOPE_SRC" "$CLAUDE_SCRIPTS_DIR/usage-envelope.js"
+fi
+
+# ---------------------------------------------------------------------
+# 8c-6. usage-baseline.js - aggregate task-class activity metrics consumed
+# by /usagebp. It emits only summaries, never prompt/tool payloads.
+# ---------------------------------------------------------------------
+USAGE_BASELINE_SRC="$SCRIPT_DIR/usage-baseline.js"
+if [ -f "$USAGE_BASELINE_SRC" ]; then
+    sync_managed "$USAGE_BASELINE_SRC" "$CLAUDE_SCRIPTS_DIR/usage-baseline.js"
 fi
 
 # ---------------------------------------------------------------------

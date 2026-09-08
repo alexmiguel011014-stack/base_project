@@ -247,7 +247,7 @@ if ($prunedHookCount -gt 0) {
 # Same for the files themselves. Only deletes what carries the managed marker,
 # mirroring Sync-Managed - a file the user wrote by hand at the same path is
 # left alone even if the name matches.
-foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"), (Join-Path $claudeCommandsDir "newproject.md"), (Join-Path $opencodeCommandDir "newproject.md"))) {
+foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"), (Join-Path $claudeCommandsDir "newproject.md"), (Join-Path $opencodeCommandDir "newproject.md"), (Join-Path $claudeCommandsDir "reviewusage.md"), (Join-Path $opencodeCommandDir "reviewusage.md"))) {
     if (-not (Test-Path $staleCmd)) { continue }
     if ((Read-Utf8NoBom $staleCmd) -match 'base_project:managed') {
         Remove-Item $staleCmd -Force
@@ -307,7 +307,7 @@ $existingGoalsValidationGroups = @($settingsObj.hooks.PostToolUse | Where-Object
 $settingsObj.hooks.PostToolUse = @($existingGoalsValidationGroups) + @($ourGoalsValidationEntry)
 
 # Usage ledger — one JSONL line per tool call, plus the prompt that opened the chain,
-# so /reviewusage can answer whether an installed plugin/MCP/agent is actually used
+# so /usagebp can answer whether an installed plugin/MCP/agent is actually used
 # (see ROADMAP item 21). Registered on two events with the same script: the payload's
 # own hook_event_name tells them apart, so there's no flag to keep in sync. Async
 # because nothing in the turn waits on the write - unlike loop-detect, whose warning
@@ -677,7 +677,7 @@ $unifiedScripts = @(
     "paths.js", "config-store.js", "resolve-layers.js", "apply.js", "drift.js",
     "secrets.js", "lint-config.js", "doctor.js", "audit.js", "context.js",
     "wizard.js", "sync.js", "tasks.js", "history.js", "snapshot.js",
-    "marketplace.js", "check-plugin-updates.js"
+    "marketplace.js", "check-plugin-updates.js", "usage-envelope.js", "usage-baseline.js"
 )
 foreach ($script in $unifiedScripts) {
     $src = Join-Path $repoRoot "dev\scripts\$script"

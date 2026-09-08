@@ -24,6 +24,9 @@ jobs:
       - name: Verify project
         run: npm run verify
 
+      - name: Run deterministic contract harness
+        run: npm run test:harness
+
   install-test:
     strategy:
       fail-fast: false
@@ -90,7 +93,7 @@ jobs:
           test -f "$CLAUDE_HOME/commands/repertoire.md"
           test -f "$CLAUDE_HOME/commands/execgoals.md"
           test -f "$CLAUDE_HOME/commands/designreview.md"
-          test -f "$CLAUDE_HOME/commands/reviewusage.md"
+          test -f "$CLAUDE_HOME/commands/usagebp.md"
           test -f "$OPENCODE_HOME/opencode.jsonc"
           test -f "$OPENCODE_HOME/base_project/plugins.json"
           test -f "$OPENCODE_HOME/base_project/references/project-standards.md"
@@ -118,7 +121,7 @@ jobs:
           test -f "$OPENCODE_HOME/command/repertoire.md"
           test -f "$OPENCODE_HOME/command/execgoals.md"
           test -f "$OPENCODE_HOME/command/designreview.md"
-          test -f "$OPENCODE_HOME/command/reviewusage.md"
+          test -f "$OPENCODE_HOME/command/usagebp.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/agents/reviewer.toml"
           test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/command-menu.md"
@@ -180,7 +183,7 @@ jobs:
             (Join-Path $claudeHome "commands\repertoire.md"),
             (Join-Path $claudeHome "commands\execgoals.md"),
             (Join-Path $claudeHome "commands\designreview.md"),
-            (Join-Path $claudeHome "commands\reviewusage.md"),
+            (Join-Path $claudeHome "commands\usagebp.md"),
             (Join-Path $opencodeHome "opencode.jsonc"),
             (Join-Path $opencodeHome "base_project\plugins.json"),
             (Join-Path $opencodeHome "base_project\references\project-standards.md"),
@@ -208,7 +211,7 @@ jobs:
             (Join-Path $opencodeHome "command\repertoire.md"),
             (Join-Path $opencodeHome "command\execgoals.md"),
             (Join-Path $opencodeHome "command\designreview.md"),
-            (Join-Path $opencodeHome "command\reviewusage.md"),
+            (Join-Path $opencodeHome "command\usagebp.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "agents\reviewer.toml"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\command-menu.md"),

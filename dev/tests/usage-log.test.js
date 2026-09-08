@@ -36,7 +36,7 @@ test("main-thread call records null agent, subagent call records its name", () =
   assert.equal(entryFor(SUBAGENT).agent_id, "a0ba4fd79064806a2");
 });
 
-test("tool entry keeps the fields /reviewusage reports on", () => {
+test("tool entry keeps the fields /usagebp reports on", () => {
   const entry = entryFor(MAIN_THREAD);
   assert.equal(entry.event, "PostToolUse");
   assert.equal(entry.tool, "Bash");

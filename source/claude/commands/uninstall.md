@@ -81,6 +81,8 @@ machine. (y/n)".
 
 ## Step 4: Report
 
+Verify the final state before reporting: confirmed tiers are gone, declined tiers remain,
+the repository and neighboring user configuration are intact, and no unmarked item was touched.
 List what was actually removed per tier, what was skipped (with reason), and remind the
 user that re-running the installer (`dev/scripts/install.ps1`/`.sh` in the base_project
 repo — still on disk, untouched) fully restores everything removed in Tiers A and B.

@@ -5,6 +5,10 @@ description: Commit and push the current project's changes (lite). Checks readin
 
 Ship the current project's changes. Follow these steps in order. Do not skip a step.
 
+ ### Batching and stopping
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+
+
 STEP 1 — Look, do not touch yet.
 Run: `git rev-parse --is-inside-work-tree`, `git status --porcelain=v2 --branch`, `git remote -v`, `git log -1`.
 Use this to answer: is this a git repo? What branch? Anything staged/unstaged/untracked? Any remote? Any commit yet?

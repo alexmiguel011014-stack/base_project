@@ -13,7 +13,7 @@ the project folders, inside none of them — not by trusting a `.gitignore` insi
 
 **Scope limit, state it in the diary itself**: the ledger this reads only covers Claude Code —
 `usage-log.js` registers as a Claude Code hook, and the ledger and scripts install only under
-`~/.claude/`, in both engines (the same limit `/reviewusage` already declares). Work done
+`~/.claude/`, in both engines (the same limit `/usagebp` already declares). Work done
 elsewhere — in opencode, in another editor, away from the keyboard — leaves no trace here.
 Commits still capture some of it, but a day that shows little recorded activity means little
 was *recorded*, not that little was done, and the diary must say so rather than implying an

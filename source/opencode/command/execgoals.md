@@ -7,6 +7,10 @@ Execute `GOALS.md` at the project root: turn the plan `/newgoal` researched into
 project, one ordered item at a time — with the same before/after verification discipline as
 `/fixproject`, not "apply a patch and assume it worked."
 
+ ### Batching and stopping
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+
+
 1. **Require a plan.** If `GOALS.md` doesn't exist at the project root, check first whether
    `/newgoal` already ran for a `research`-type ask in this conversation — that path deliberately
    skips `GOALS.md` and produces a standalone deliverable document instead (see `newgoal.md`'s

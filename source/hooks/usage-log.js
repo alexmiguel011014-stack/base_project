@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // base_project:managed
 // PostToolUse + UserPromptSubmit hook: appends one JSONL line per event to a
-// per-session ledger, so /reviewusage or $reviewusage can later answer "was this plugin/MCP/agent
+// per-session ledger, so /usagebp or $usagebp can later answer "was this plugin/MCP/agent
 // ever actually used, in which project, and did it error" — questions the catalog
 // alone can't answer, because it only records what was *installed*.
 //
@@ -12,7 +12,7 @@
 //    write time which catalog entry a Bash command belonged to, and its #1 recurring
 //    bug — documented in dev/scripts/NPInstructions.md — was a plugin that was
 //    installed and working but never showed as used, because the matching rule
-//    silently didn't fire. Interpretation belongs in /reviewusage, where a wrong
+//    silently didn't fire. Interpretation belongs in /usagebp, where a wrong
 //    guess is visible instead of silently absent.
 //
 // 2. ONE FILE PER SESSION. Hooks are global: a single ledger file would take
@@ -30,7 +30,7 @@ const path = require("node:path");
 
 // Bounded so a single Write of a large file can't turn the ledger into a second
 // copy of the transcript. The Bash command / file_path lands at the start of the
-// serialized input, so it survives truncation — which is what /reviewusage greps.
+// serialized input, so it survives truncation — which is what /usagebp greps.
 const MAX_INPUT_CHARS = 300;
 const MAX_RESPONSE_CHARS = 150;
 const MAX_PROMPT_CHARS = 200;

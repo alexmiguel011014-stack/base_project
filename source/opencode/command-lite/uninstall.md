@@ -30,6 +30,7 @@ STEP 5 — Execute only what was confirmed:
 - For `settings.json`/`opencode.jsonc`, remove only the matching keys/entries — never replace the whole file.
 - If a step fails partway (e.g. `claude` CLI not on PATH), report exactly what succeeded and what didn't.
 
-STEP 6 — Report: what was removed per tier, what was skipped and why, and that re-running the installer (`dev/scripts/install.ps1`/`.sh`, still on disk) fully restores Tiers A and B.
+STEP 6 — Verify the final state: confirmed tiers are gone, declined tiers remain, the repository and neighboring user configuration are intact, and no unmarked item was touched.
+Then report what was removed per tier, what was skipped and why, and that re-running the installer (`dev/scripts/install.ps1`/`.sh`, still on disk) fully restores Tiers A and B.
 
 $ARGUMENTS
