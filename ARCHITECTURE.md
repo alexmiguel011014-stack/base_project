@@ -170,7 +170,7 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
 | `/wpp` | Mostra o menu "o que você deseja fazer agora?" sob demanda (mesmo conteúdo que aparece automaticamente no início de sessão / fim de tarefa). |
 | `/status` | Mostra a versão do base_project e uma lista simples (só nomes) de tudo que está ativo agora — agentes, comandos, hooks, plugins instalados. |
-| `/reviewusage` / `$reviewusage` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando. Cobre Claude Code e Codex quando os hooks estão ativos; atividade do opencode não é rastreada. |
+| `/usagebp` / `$usagebp` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando, além de uma fila priorizada de diagnóstico. Também compara dois baselines anotados, sem tratar menor consumo de token como sucesso isolado. Cobre Claude Code e Codex quando os hooks estão ativos; atividade do opencode não é rastreada. |
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
 | `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
 
@@ -378,7 +378,7 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 | **`/plugins`** | comando | Recomenda e instala plugins do catálogo pro projeto atual, ou instala um perfil pronto. |
 | **`/update`** | comando | Confere e aplica atualização do base_project (`git pull` + reroda o installer), com confirmação. |
 | **`/uninstall`** | comando | Remove o que o base_project instalou globalmente, em 3 níveis de confirmação. |
-| **`/reviewusage`** | comando | Lê o ledger de uso (hook `usage-log`) e reporta instalado-mas-nunca-usado, uso real por projeto, falhas. Só Claude Code — opencode não é rastreado. |
+| **`/usagebp`** | comando | Lê o ledger de uso (hook `usage-log`), reporta uso real por projeto, falhas e uma fila priorizada de diagnóstico. Também compara dois baselines anotados, sem tratar menor consumo de token como sucesso isolado. Cobre Claude Code e Codex quando seus hooks estão ativos; opencode não é rastreado. |
 | **`install.ps1` / `install.sh`** | script | O instalador de verdade — copia tudo isso pra `~/.claude/`/`~/.config/opencode/`. Também sugere (nunca aplica sozinho) configurar `fallbackModel`. |
 | **`validate-plugins.js`** | script | Valida `plugins.json` contra o schema antes de aceitar. |
 
@@ -430,7 +430,7 @@ Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em
 linha por prompt de usuário (mesmo cabeçalho + `prompt`), mais uma linha `install` quando
 `/plugins`/`$plugins` instala algo (`--install <id> --kind <kind> --origin <catalog|discovery>`).
 **Não classifica nada** — toda interpretação (o que está sendo usado, o que nunca foi
-tocado) acontece só na leitura, dentro de `/reviewusage`/`$reviewusage`. O ledger cobre
+tocado) acontece só na leitura, dentro de `/usagebp`/`$usagebp`. O ledger cobre
 Claude Code e Codex quando seus hooks estão ativos; opencode não tem esse registro. A
 decisão deliberada de manter o hook burro existe porque uma versão anterior classificava no momento da escrita e
 sub-reportava plugins que na verdade estavam em uso (ver `dev/scripts/NPInstructions.md`).

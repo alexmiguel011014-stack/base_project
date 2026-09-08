@@ -74,10 +74,12 @@ test("active GOALS.md stays structurally valid and contains only executable plan
   const goalsPath = path.join(repoRoot, "GOALS.md");
   const goals = fs.readFileSync(goalsPath, "utf8");
   assert.deepEqual(check(goalsPath), { ok: true, findings: [] });
-  assert.equal((goals.match(/^## GOALS /gm) || []).length, 1);
-  for (const number of [8]) {
-    assert.match(goals, new RegExp(`^## GOALS ${number} —`, "m"));
-  }
+  const activeNumbers = [...goals.matchAll(/^## GOALS (\d+) —/gm)].map(
+    (match) => Number(match[1]),
+  );
+  assert.ok(activeNumbers.length > 0);
+  assert.ok(activeNumbers.includes(8));
+  assert.ok(activeNumbers.includes(12));
   for (const [number] of archivedPlans) {
     assert.doesNotMatch(goals, new RegExp(`^## GOALS ${number} —`, "m"));
   }

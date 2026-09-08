@@ -149,7 +149,41 @@ test("Codex menu and high-risk workflow boundaries stay faithful", () => {
     /Never write diary content inside any repository/i,
   );
   assert.match(readSkill("diario"), /~\/\.base_project\/diary-root\.txt/);
-  assert.match(readSkill("reviewusage"), /~\/\.claude\/base_project\/usage\//);
+  assert.match(readSkill("usagebp"), /~\/\.claude\/base_project\/usage\//);
+});
+
+test("Batching and stopping guidance has exact parity across native layers", () => {
+  const guidance =
+    "### Batching and stopping\n- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.";
+  const paths = [
+    ["source", "CLAUDE.md"],
+    ["source", "opencode-instructions.md"],
+    ["source", "codex", "AGENTS.md"],
+    ["source", "claude", "commands", "execgoals.md"],
+    ["source", "claude", "commands", "fixproject.md"],
+    ["source", "claude", "commands", "ship.md"],
+    ["source", "opencode", "command", "execgoals.md"],
+    ["source", "opencode", "command", "fixproject.md"],
+    ["source", "opencode", "command", "ship.md"],
+    ["source", "opencode", "command-lite", "execgoals.md"],
+    ["source", "opencode", "command-lite", "fixproject.md"],
+    ["source", "opencode", "command-lite", "ship.md"],
+    ["source", "codex", "skills", "execgoals", "SKILL.md"],
+    ["source", "codex", "skills", "fixproject", "SKILL.md"],
+    ["source", "codex", "skills", "ship", "SKILL.md"],
+  ];
+
+  for (const relativePath of paths) {
+    const content = fs.readFileSync(
+      path.join(repoRoot, ...relativePath),
+      "utf8",
+    );
+    assert.equal(
+      content.split(guidance).length - 1,
+      1,
+      `${relativePath.join("/")} must contain exactly one shared guidance block`,
+    );
+  }
 });
 
 test("Codex installer synchronizes native layers and is idempotent", () => {

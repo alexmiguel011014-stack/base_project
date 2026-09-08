@@ -25,7 +25,7 @@ O que você deseja fazer agora?
 - `/council` — pressão-testar uma decisão difícil com várias perspectivas antes de decidir.
 - `/designreview` — criticar um design (mockup, screenshot, URL, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa, com achados acionáveis.
 - `/status` — ver a versão do base_project e tudo que está ativo agora.
-- `/reviewusage` — ver o que você instalou e realmente usa, o que nunca foi usado, e o que anda dando erro. Achados de zero-uso agora escalam sozinhos entre execuções, em vez de exigir que você lembre de checar de novo.
+- `/usagebp` — ver o que você instalou e realmente usa, o que nunca foi usado, e o que anda dando erro. Achados de zero-uso agora escalam sozinhos entre execuções, em vez de exigir que você lembre de checar de novo.
 - `/update` — checar se há uma versão nova do base_project e atualizar.
 - `/uninstall` — remover o base_project desta máquina (com confirmação em etapas).
 - Ou é só me contar o que você precisa, em português mesmo — eu decido as ferramentas certas.

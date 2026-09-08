@@ -6,6 +6,16 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
 - Never fully read `external/`, `node_modules/`, `.venv/`, or other vendored/dependency directories.
 - Before scanning an unfamiliar codebase, check for `graphify-out/`; if missing, run `/bootstrap` first.
 - When editing, show only the changed lines with minimal surrounding context — never rewrite whole files unless asked.
+- Optimize correctness per token: preserve the context and reasoning depth needed for a reliable result; reduce rework and redundant tool calls before reducing effort.
+
+### Quality-per-token profiles
+- Routine, short, well-scoped work may use low/medium effort.
+- Complex changes, cross-file work, or ambiguous failures keep high effort; use `xhigh`/`max` only when the value of deeper reasoning is clear.
+- Research and unrelated tasks should be isolated when practical; use `/clear` between unrelated tasks, `/compact` at natural breaks, and `/rewind` when abandoning a path.
+- Never impose a universal low-effort, output, turn, or context cap before comparing correctness and rework against the baseline.
+
+### Batching and stopping
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repo.

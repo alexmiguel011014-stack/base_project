@@ -62,7 +62,7 @@ próprio trabalho, como decide que terminou. Framework de 4 camadas aninhadas (L
 informal: cada comando roda multi-step com gates de confirmação (`AskUserQuestion`,
 confirmações em `/ship`/`/council`/`/uninstall`) — isso é human-in-the-loop de verdade, não
 decorativo. Loop 3 não existe — nenhum comando roda disparado por evento externo. Loop 4
-tem uma semente real: `/reviewusage` lê o ledger de uso e reporta o que funciona/falha —
+tem uma semente real: `/usagebp` lê o ledger de uso e reporta o que funciona/falha —
 é literalmente "traces de produção alimentando análise", só que o passo de "atualizar a
 config automaticamente" ainda é 100% manual (um humano lê o relatório e decide).
 
@@ -109,7 +109,7 @@ prototipar, não vale apostar produção nisso enquanto for experimental.
 | Prática | Ganho de desempenho | Esforço de implementação | Por quê |
 |---|---|---|---|
 | Eval harness pra comandos/agentes | **Alto** | Médio | Único item que fecha um gap real e específico (zero cobertura hoje); usa `claude plugin eval`, já nativo |
-| Formalizar Loop 4 (hill-climbing a partir do `/reviewusage`) | Médio-Alto | Baixo | A leitura de dados já existe; falta só o passo de ação sistemática sobre o achado |
+| Formalizar Loop 4 (hill-climbing a partir do `/usagebp`) | Médio-Alto | Baixo | A leitura de dados já existe; falta só o passo de ação sistemática sobre o achado |
 | Generalizar Progressive Delivery como padrão documentado | Médio | **Baixo** | O mecanismo já existe (lite/dense) — é documentar o padrão, não construir algo novo |
 | Automatizar drift-check (GitOps) | Médio | **Baixo** | `drift.js` já existe — é só encadear a chamada em `/bootstrap` |
 | Prototipar Agent Teams em `/execgoals` | Baixo-Médio (hoje) | Alto | Feature experimental — risco de retrabalho se a API mudar antes de estabilizar |
@@ -121,9 +121,9 @@ prototipar, não vale apostar produção nisso enquanto for experimental.
    `/fixproject`, `/uninstall` — os que já têm lógica de segurança explícita nas próprias
    instruções) usando `claude plugin eval`. Rodar como novo job no CI, ao lado de
    `npm test`.
-2. Formalizar o Loop 4: `/reviewusage` já produz o achado ("catálogo X instalado, nunca
+2. Formalizar o Loop 4: `/usagebp` já produz o achado ("catálogo X instalado, nunca
    usado") — decidir uma ação padrão de acompanhamento (ex: sinalizar automaticamente pro
-   usuário depois de N dias sem uso, não só quando `/reviewusage` é chamado manualmente).
+   usuário depois de N dias sem uso, não só quando `/usagebp` é chamado manualmente).
 
 **Fase 2 — consolidar o que já existe (baixo esforço, ganho direto)**
 3. Documentar o padrão lite/dense como convenção reutilizável (um parágrafo em

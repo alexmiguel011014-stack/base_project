@@ -24,7 +24,7 @@ O que você deseja fazer agora?
 - `$designreview` — revisa um design, screenshot, URL ou interface produzida contra uma rubrica verificável.
 - `$wpp` — mostra este mesmo menu novamente quando você quiser.
 - `$status` — mostra a versão e tudo que o base_project ativou no Codex.
-- `$reviewusage` — mostra o que foi instalado, usado, nunca usado, lento ou está falhando.
+- `$usagebp` — mostra o que foi instalado, usado, nunca usado, lento ou está falhando.
 - `$update` — verifica e aplica uma atualização do próprio base_project após confirmação.
 - `$uninstall` — remove a integração em camadas, com confirmação proporcional ao impacto.
 - Ou apenas descreva o que precisa em português; o Codex escolhe as ferramentas adequadas.

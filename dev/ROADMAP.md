@@ -837,7 +837,7 @@ carregar o desenho antigo aqui só criava dívida imaginária. O que cada fase v
   livro-caixa conta uso e grava sinal (erro, duração, projeto) de graça, via hook, sem
   gastar token. Não há o que implementar aqui além do que já existe.
 - **O bloqueio do "N usos"** — **dissolvido**, não resolvido. Ele só existia porque se queria
-  um veredito automático. Sem veredito automático, não há N a calibrar: o `/reviewusage`
+  um veredito automático. Sem veredito automático, não há N a calibrar: o `/usagebp`
   relata e o dono decide.
 - **Fase 4 (promover ao catálogo)** — separada em item próprio, o
   [item 22](#22-promover-ao-catálogo-o-que-o-livro-caixa-mostrar-que-presta), porque é a
@@ -845,7 +845,7 @@ carregar o desenho antigo aqui só criava dívida imaginária. O que cada fase v
   de um item marcado como concluído.
 
 **Furo fechado junto (15/08)**: o livro-caixa registrava uso mas não registrava **instalação**,
-e o cruzamento "instalado mas nunca usado" do `/reviewusage` só sabia consultar o
+e o cruzamento "instalado mas nunca usado" do `/usagebp` só sabia consultar o
 `plugins.json`. Item vindo da descoberta viva não está em catálogo nenhum — então ficava
 invisível exatamente no caso que mais importa (baixado da web aberta e nunca mais usado).
 Corrigido com um modo `--install` no `usage-log.js`, chamado pelo `/plugins` depois de cada
@@ -953,7 +953,7 @@ clone e as duas primeiras tentativas de `npm test`/`validate:plugins` falharam p
 ### 21. Livro-caixa de uso: saber o que é usado de verdade
 
 **O que é**: um hook grava uma linha por chamada de ferramenta (mais a linha do prompt que
-abriu a cadeia) num arquivo JSONL por sessão, e um comando novo `/reviewusage` lê tudo e
+abriu a cadeia) num arquivo JSONL por sessão, e um comando novo `/usagebp` lê tudo e
 relata o que está instalado e nunca foi usado, o que é usado e em quais projetos, o que dá
 erro e o que é lento. Analogia do dono do projeto, que é o desenho inteiro em uma frase: a
 empresa não escreve no para-brisa do carro — tem uma planilha na portaria, e o carro é uma
@@ -965,7 +965,7 @@ Fases 2–4 do [item 19](#19-descoberta-viva--período-de-teste-catálogo-deixa-
 
 **Como isso destrava o item 19**: a Fase 3 estava parada num ponto registrado como frágil —
 *"N usos não pode ser um número fixo universal"*. Com o livro-caixa, **o N deixa de existir**:
-não há veredito automático a calibrar. O `/reviewusage` relata ("instalado dia tal, 0 usos em
+não há veredito automático a calibrar. O `/usagebp` relata ("instalado dia tal, 0 usos em
 3 semanas") e o dono decide. O problema era consequência de querer automatizar a decisão;
 tirando a decisão automática, ele evapora.
 
@@ -984,7 +984,7 @@ cru e não classifica nada. O antecessor (`log-usage.js`, morto junto com o dash
 na escrita a qual entrada do catálogo um comando Bash pertencia, e o **erro #1 recorrente**
 documentado em `dev/scripts/NPInstructions.md` era plugin instalado e funcionando que nunca
 aparecia como usado, porque a regra não casava e falhava calada. Toda interpretação agora mora
-no `/reviewusage`, onde um palpite errado é visível em vez de silenciosamente ausente.
+no `/usagebp`, onde um palpite errado é visível em vez de silenciosamente ausente.
 
 **Verificado ao vivo antes de escrever qualquer código** (não assumido da documentação — a
 lição de "documentação mentiu, teste ao vivo não" já custou caro aqui): hook instrumentado
@@ -1004,20 +1004,20 @@ temporariamente, 28 payloads reais capturados, hook restaurado por hash. O que o
 sincronizada; `async: true` porque nada no turno espera a escrita, diferente do `loop-detect`).
 Ledger em `~/.claude/base_project/usage/<dia>-<sessão>.jsonl`. Campos de entrada e resposta
 truncados (300/150 chars) pra um único `Write` grande não transformar o ledger numa segunda
-cópia do transcript. `source/claude/commands/reviewusage.md` + equivalente opencode.
+cópia do transcript. `source/claude/commands/usagebp.md` + equivalente opencode.
 Registro nos dois instaladores pelo mesmo padrão de merge por marcador dos hooks existentes.
 `dev/tests/usage-log.test.js` (7 testes) usa payloads copiados da captura real, não inventados.
 
 **Limitação declarada, não contornada**: o ledger cobre **só o Claude Code**. O opencode não
 tem arquivo equivalente de registro de hooks (o próprio `/status` já registrava isso), então
-atividade feita lá fica de fora. O `/reviewusage` é obrigado a dizer isso em todo relatório —
+atividade feita lá fica de fora. O `/usagebp` é obrigado a dizer isso em todo relatório —
 senão um zero vira conclusão errada. Já existiu um `opencode-usage-logger.js` via
 `tool.execute.after`, removido com o dashboard e **nunca testado ao vivo**; se o lado opencode
 importar, é trabalho próprio, não uma linha a mais aqui.
 
 **Atribuição: exata para MCP, busca para CLI.** Ferramenta MCP se identifica sozinha
 (`mcp__<servidor>__<tool>`). Ferramenta CLI chamada via `Bash` só aparece procurando o nome do
-comando no campo `input` — é busca, não fato, e o `/reviewusage` tem instrução explícita de
+comando no campo `input` — é busca, não fato, e o `/usagebp` tem instrução explícita de
 dizer isso em vez de apresentar um zero como prova de não-uso.
 
 **Status**: `feito` (Fase 1 do livro-caixa: registrar e relatar). Promoção automática de um
@@ -1050,7 +1050,7 @@ Implementar a promoção antes de ter o que promover seria construir contra um c
 hipotético, exatamente o que o item 19 já tinha errado ao carregar 4 fases de uma vez.
 
 **Onde a decisão fica fácil quando chegar a hora**: o `--origin discovery` das linhas de
-`install` já separa o que veio de fora do catálogo, e o `/reviewusage` já cruza isso com uso
+`install` já separa o que veio de fora do catálogo, e o `/usagebp` já cruza isso com uso
 real. A entrada da decisão está pronta; falta só o ato de escrever no catálogo.
 
 **Ponto em aberto**: onde a documentação de "como usar" mora. O desenho original dizia
@@ -1874,7 +1874,7 @@ pesquisa já respondido manualmente antes do comando existir nesse formato.
 esperar confirmação. O dono do projeto corrigiu isso explicitamente: "`/newgoal`... não era
 pra permitir executar... eu escolheria se chamaria essa meta ou modificaria". Pediu também
 análise de quais outros comandos estavam "frouxos" da mesma forma, um checklist de
-implementações não usadas (a partir do `/reviewusage` já rodado na sessão), e os itens de
+implementações não usadas (a partir do `/usagebp` já rodado na sessão), e os itens de
 melhoria já pesquisados em harness/loop engineering (a análise anterior a este item). As três
 coisas viraram GOALS 7/8/9 através de um `/newgoal` real — desta vez sem executar nada na
 mesma resposta — e só depois, com `/execgoals` invocado explicitamente, a execução começou.
@@ -1958,7 +1958,7 @@ executada no U.1).
 execução. `npm test`: 93/93 (92 → 93 — `dev/tests/drift.test.js` ganhou um caso novo provando
 ao vivo, não por inspeção, a distinção `missing`/`drift` da qual o H.5 depende). `node
 dev/scripts/validate-plugins.js` passa contra o catálogo final (entrada `github` nova, `sqlite`
-e `strix` corrigidas). **Não testado**: o ciclo completo de escalonamento do H.3 (`/reviewusage`
+e `strix` corrigidas). **Não testado**: o ciclo completo de escalonamento do H.3 (`/usagebp`
 rodado duas vezes de verdade, com um achado zero-uso real entre as rodadas) — é texto de
 instrução pra um modelo seguir, mesma classe não-testável por unidade que o próprio GOALS 7 já
 nomeia pra `/newgoal`/`/repertoire`. H.1/H.2 seguem sem mecanismo escolhido, portanto sem nada
@@ -2047,6 +2047,70 @@ gerador de comandos, bloqueio `PreToolUse`, nem um segundo mecanismo de distribu
 descrevem o mesmo comportamento. `npm run verify` passou com 107 testes, Biome, TypeScript,
 schema, dependências não usadas e auditoria de produção; o instalador Windows foi executado para
 sincronizar os hooks instalados.
+
+---
+
+## 46. Fila priorizada de diagnóstico no `/usagebp` (2026-09-04)
+
+**Problema**: o ledger já mostrava repetição, cadeias vazias, falhas e latência, mas esses
+números ainda chegavam ao usuário como sinais soltos. Isso dificultava decidir o que investigar
+sem confundir atividade legítima com desperdício.
+
+**Implementação**: `usage-baseline.js` agora adiciona `diagnostics.queue`, ordenada por
+prioridade. Cada item contém `evidence`, `severity`, `confidence`, `hypothesis`, `next_test` e
+`status`. Falhas genuínas são separadas de candidatos, sinais ambíguos ficam em `needs_review`,
+e ausência de cobertura vira `unavailable`. A fila é somente triagem: não altera o ledger, não
+inclui `prompt`/`input`/`response` e não dispara limpeza, mudança de modelo ou limite sozinha.
+As quatro variantes do `/usagebp` documentam o mesmo contrato.
+
+**Validado**: 119 testes, Biome, TypeScript, schema de plugins e estrutura de `GOALS.md` passam.
+O instalador Windows foi executado e sincronizou a fila para Claude, Codex e opencode; os
+caminhos antigos `reviewusage` permanecem removidos quando gerenciados pelo base_project.
+
+---
+
+## 47. Batching explícito e compatibilidade fonte/instalado (2026-09-04)
+
+**Problema**: os fluxos tinham regras de verificação e segurança, mas não um contrato único
+para agrupar leituras independentes, reutilizar evidência e parar após um bloqueio real. Isso
+abria espaço para repetição sem justificar reduzir esforço ou contexto global.
+
+**Implementação**: um bloco canônico de `Batching and stopping` foi projetado nos três blocos
+globais e nos 12 fluxos de `execgoals`, `fixproject` e `ship` (Claude, opencode dense/lite e
+Codex). A orientação agrupa checks independentes, valida na fronteira da área, reutiliza
+evidência e não permite ultrapassar limites de plano, segurança ou diário. A paridade é testada
+exatamente nas 15 superfícies; nenhum comando novo foi criado.
+
+**Compatibilidade validada**: `usage-baseline.js` e `usage-envelope.js` foram exercitados tanto
+da árvore fonte quanto de uma projeção instalada, com caminho Windows nativo e com separadores
+slash. O ledger JSONL ficou intacto, um sentinel do diário externo ficou intacto e o script
+instalado leu o ledger real com sucesso. O instalador Windows sincronizou Claude, Codex e
+opencode.
+
+**Limite de evidência**: a regra foi instalada e sua paridade foi comprovada, mas V.9 continua
+aberto até existir uma amostra antes/depois que demonstre redução real de churn sem regressão.
+V.10 ainda é o harness de comparação que deve produzir essa decisão; V.8 continua aguardando a
+amostra A/B de perfis.
+
+---
+
+## 48. Comparação de baselines com qualidade como gate (2026-09-04)
+
+**Problema**: o `/usagebp` já produzia baseline e diagnóstico, mas não havia uma forma
+determinística de comparar uma intervenção com o estado anterior sem transformar menor consumo em
+objetivo único.
+
+**Implementação**: o próprio `usage-baseline.js` ganhou `--compare <baseline.json>
+<intervention.json>` e o contrato `usage-comparison/v1`. O resultado verifica igualdade de classe
+de tarefa, repositório, modelo e esforço; compara churn, erro, duração, tokens, cache e limite;
+exige resultados de comportamento/testes/regressões/retrabalho; e só retorna
+`keep_intervention` quando os gates de qualidade passam. Metadados ausentes retornam
+`needs_review`; regressão ou retrabalho extra retornam `revert_or_review`. Nenhum payload de
+prompt, input ou response é emitido.
+
+**Validação**: os casos de manter, revisar por regressão e revisar por metadado ausente passaram;
+as quatro variantes do `/usagebp` documentam o modo. O comparador ainda precisa de uma amostra
+real pareada antes/depois para fechar V.10 e decidir qualquer promoção.
 
 ---
 

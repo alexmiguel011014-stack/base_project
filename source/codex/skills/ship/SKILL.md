@@ -6,6 +6,9 @@ description: Validate, commit, and push the current project's changes safely. Us
 
 Ship the current changes without force-pushing, hiding blockers, or staging surprises.
 
+### Batching and stopping
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+
 1. Inventory first: confirm a git work tree; read porcelain-v2 status with branch/ahead/behind; inspect remotes, upstream, last commit, and merge/rebase/cherry-pick state.
 2. Treat invocation arguments as a commit-message override when they read like one, otherwise as a scope hint. Never expand a scoped request silently.
 3. Stop and guide on detached HEAD, unmerged state, active operation, index lock, missing repository, or ambiguous divergence. Never delete locks, resolve conflicts, invent remotes, or rewrite history.
@@ -17,4 +20,3 @@ Ship the current changes without force-pushing, hiding blockers, or staging surp
 9. Verify the remote tip after pushing.
 10. Determine the actual default branch from GitHub or the remote. If the pushed branch is not default, prominently explain that the repository homepage will not show it until merged and point to `$pr`; never create the PR automatically.
 11. Report commit message and file count, pushed branch/remote/range, default-branch status, exclusions, and blockers.
-

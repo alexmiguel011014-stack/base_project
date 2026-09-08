@@ -84,6 +84,23 @@ function syncInstructionBlock() {
   ok("Codex AGENTS.md managed block");
 }
 
+function removeRenamedSkill(oldName, newName) {
+  const oldFile = path.join(agentsRoot, "skills", oldName, "SKILL.md");
+  if (!fs.existsSync(oldFile)) return;
+  if (!read(oldFile).includes("base_project:managed")) {
+    warn(
+      `${oldFile} was kept because it is not managed by base_project (the new ${newName} skill was installed separately)`,
+    );
+    return;
+  }
+  fs.rmSync(oldFile, { force: true });
+  const oldDir = path.dirname(oldFile);
+  if (fs.existsSync(oldDir) && fs.readdirSync(oldDir).length === 0) {
+    fs.rmdirSync(oldDir);
+  }
+  ok(`removed renamed Codex skill: ${oldName} -> ${newName}`);
+}
+
 function syncSkills() {
   const skillsSource = path.join(sourceRoot, "codex", "skills");
   let count = 0;
@@ -94,6 +111,7 @@ function syncSkills() {
     const destination = path.join(agentsRoot, "skills", entry.name, "SKILL.md");
     if (syncManaged(source, destination)) count += 1;
   }
+  removeRenamedSkill("reviewusage", "usagebp");
   ok(`${count} Codex skills synchronized`);
 }
 
