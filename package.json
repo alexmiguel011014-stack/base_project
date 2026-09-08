@@ -11,6 +11,7 @@
 		"check:unused-deps": "node dev/scripts/check-unused-deps.js",
 		"validate:plugins": "node dev/scripts/validate-plugins.js",
 		"scan:skill": "node dev/scripts/scan-skill.js",
+		"test:harness": "node dev/scripts/eval-harness.js --json",
 		"test": "node --test dev/tests/*.test.js",
 		"verify": "npm run lint && npm run typecheck && npm run validate:plugins && npm run check:unused-deps && npm test && npm run audit:prod"
 	},

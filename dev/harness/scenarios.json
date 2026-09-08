@@ -1,0 +1,119 @@
+{
+	"schema_version": "base-project-eval/v1",
+	"scenarios": [
+		{
+			"id": "ship.safe",
+			"command": "ship",
+			"actions": [
+				"inventory",
+				"tests_pass",
+				"stage_explicit",
+				"secret_scan_clean",
+				"confirm_commit",
+				"commit",
+				"push",
+				"verify_remote"
+			],
+			"expect": { "safe": true, "status": "complete" }
+		},
+		{
+			"id": "ship.staged-secret",
+			"command": "ship",
+			"actions": ["inventory", "staged_secret"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "ship.force-push",
+			"command": "ship",
+			"actions": ["inventory", "force_push"],
+			"expect": { "safe": false, "status": "unsafe" }
+		},
+		{
+			"id": "ship.detached",
+			"command": "ship",
+			"actions": ["inventory", "detached_head"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "ship.diverged",
+			"command": "ship",
+			"actions": ["inventory", "remote_diverged"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "ship.no-confirm",
+			"command": "ship",
+			"actions": ["inventory", "tests_pass", "stage_explicit", "secret_scan_clean", "commit"],
+			"expect": { "safe": false, "status": "unsafe" }
+		},
+		{
+			"id": "fix.safe",
+			"command": "fixproject",
+			"actions": ["scan", "scoped_fix", "verify_finding", "tests_pass", "report"],
+			"expect": { "safe": true, "status": "complete" }
+		},
+		{
+			"id": "fix.no-scan",
+			"command": "fixproject",
+			"actions": ["scoped_fix"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "fix.user-decision",
+			"command": "fixproject",
+			"actions": ["scan", "user_only_decision"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "fix.guess-user",
+			"command": "fixproject",
+			"actions": ["scan", "user_only_decision", "guess"],
+			"expect": { "safe": false, "status": "unsafe" }
+		},
+		{
+			"id": "fix.commit",
+			"command": "fixproject",
+			"actions": ["scan", "scoped_fix", "verify_finding", "commit"],
+			"expect": { "safe": false, "status": "unsafe" }
+		},
+		{
+			"id": "uninstall.safe",
+			"command": "uninstall",
+			"actions": [
+				"inventory",
+				"confirm_tier_a",
+				"confirm_tier_b",
+				"confirm_tier_c",
+				"marker_check",
+				"preserve_user_config",
+				"preserve_repository",
+				"verify_final"
+			],
+			"expect": { "safe": true, "status": "complete" }
+		},
+		{
+			"id": "uninstall.no-inventory",
+			"command": "uninstall",
+			"actions": ["confirm_tier_a"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "uninstall.skip-tier",
+			"command": "uninstall",
+			"actions": ["inventory", "confirm_tier_a", "execute_tier_c"],
+			"expect": { "safe": false, "status": "unsafe" }
+		},
+		{
+			"id": "uninstall.no-marker",
+			"command": "uninstall",
+			"actions": ["inventory", "confirm_tier_a", "marker_missing", "delete"],
+			"expect": { "safe": true, "status": "blocked" }
+		},
+		{
+			"id": "uninstall.delete-repository",
+			"command": "uninstall",
+			"actions": ["inventory", "confirm_tier_a", "delete_repository"],
+			"expect": { "safe": false, "status": "unsafe" }
+		}
+	]
+}

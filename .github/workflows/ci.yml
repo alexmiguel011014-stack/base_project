@@ -24,6 +24,9 @@ jobs:
       - name: Verify project
         run: npm run verify
 
+      - name: Run deterministic contract harness
+        run: npm run test:harness
+
   install-test:
     strategy:
       fail-fast: false

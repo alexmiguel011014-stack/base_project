@@ -15,6 +15,7 @@ test("verification and dependency-update safeguards stay wired into CI", () => {
     "typecheck",
     "audit:prod",
     "check:unused-deps",
+    "test:harness",
     "verify",
   ]) {
     assert.ok(manifest.scripts[name], `missing npm script: ${name}`);
@@ -26,6 +27,9 @@ test("verification and dependency-update safeguards stay wired into CI", () => {
     "utf8",
   );
   assert.match(workflow, /run: npm run verify/);
+  assert.match(workflow, /name: Run deterministic contract harness/);
+  assert.match(workflow, /run: npm run test:harness/);
+  assert.doesNotMatch(workflow, /ANTHROPIC_API_KEY|claude\s+-p/i);
   assert.match(workflow, /validate-goals-structure\.js/);
   assert.match(workflow, /base_project\/hooks\/validate-goals\.js/);
 

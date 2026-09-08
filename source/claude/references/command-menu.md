@@ -16,10 +16,10 @@ O que você deseja fazer agora?
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
 - `/audit` — dois modos: (1) **segurança** (vuln scan) — aprofunda só a parte de segurança do `/scanproject`; (2) **config** (`--agent` flag) — mostra qual camada unificada (`global→agent→project`) realmente se aplica a um projeto+agent (`audit --agent cursor`).
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
-- `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`.
+- `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`, com contrato determinístico de escopo, decisão do usuário e verificação.
 - `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.
 - `/diario` — registra o que foi feito no diário de contribuições deste projeto (entradas datadas + tabela de horas), a partir do que já foi gravado automaticamente. Os diários ficam numa pasta fora de todos os repositórios — nunca vão pro GitHub.
-- `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar.
+- `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar. O contrato de segurança também é coberto por um harness local sem API paga.
 - `/pr` — abre um pull request pra branch atual, com título/corpo rascunhados a partir dos commits reais. Sempre confirma antes de criar.
 - `/plugins` — ver e instalar plugins opcionais (banco de dados, design, testes de UI, etc.) para este projeto.
 - `/council` — pressão-testar uma decisão difícil com várias perspectivas antes de decidir.
@@ -27,5 +27,5 @@ O que você deseja fazer agora?
 - `/status` — ver a versão do base_project e tudo que está ativo agora.
 - `/usagebp` — ver o que você instalou e realmente usa, o que nunca foi usado, e o que anda dando erro. Achados de zero-uso agora escalam sozinhos entre execuções, em vez de exigir que você lembre de checar de novo.
 - `/update` — checar se há uma versão nova do base_project e atualizar.
-- `/uninstall` — remover o base_project desta máquina (com confirmação em etapas).
+- `/uninstall` — remover o base_project desta máquina (com confirmação em etapas e verificação final protegida por marcadores).
 - Ou é só me contar o que você precisa, em português mesmo — eu decido as ferramentas certas.

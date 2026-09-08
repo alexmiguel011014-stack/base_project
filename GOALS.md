@@ -2,7 +2,7 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
-1. [**Harness & Loop Engineering Adoption**](#goals-8-harness--loop-engineering-adoption-base_project-feature) — H.1/H.2/H.8 remain deliberately deferred until the user decides whether to fund and secure the external LLM eval harness.
+1. [**Harness & Loop Engineering Adoption**](#goals-8-harness--loop-engineering-adoption-base_project-feature) — deterministic contract coverage is complete; live-model evaluation remains optional and separately scoped.
 2. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
@@ -224,7 +224,8 @@ flowchart LR
 - Treating cache reads as waste or deleting repeated context without measuring correctness.
 - Removing skills, plugins, MCP servers, commands, or hooks from one report alone.
 - Changing the external diary root, historical ledger format, or diary-generation behavior.
-- Deciding H.1/H.2/H.8's separately deferred external LLM eval harness in this plan.
+- Funding or wiring a future external live-model eval; the deterministic local scope is complete,
+  and any live-model version needs a separate cost and security decision.
 
 ### Sources consulted
 
@@ -281,13 +282,14 @@ flowchart TD
   already applies elsewhere to not betting production behavior on Anthropic-side experimental
   flags.
 
-### Research: eval harness mechanism (feeds H.1/H.2 — done, informs the still-open decision)
+### Research: eval harness mechanism (H.1/H.2 historical research; informs optional live-model work)
 
 `claude plugin eval` and `skill-creator`'s `evals.json` were both investigated live and ruled
-out (see H.1 below). Researched further, specifically to answer "what do we still need to
-figure out to build a good custom harness, and is there a better tool than hand-rolling one":
+out (see the historical decision below). The external live-model path was researched to answer
+what would be needed for a high-fidelity eval and whether there was a better tool than
+hand-rolling one. The implemented local harness deliberately avoids that dependency:
 
-- **Better tool found — recommend this over a fully hand-rolled script**:
+- **Better tool found for a future live-model eval — not required by the local harness**:
   [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action), the
   official Anthropic GitHub Action. Its "agent mode" runs a direct prompt non-interactively
   (the same underlying mechanism as `claude -p`, packaged as a ready-made Action instead of
@@ -296,14 +298,14 @@ figure out to build a good custom harness, and is there a better tool than hand-
   parsing raw `claude -p --output-format json` text ourselves would be. Runs on your own
   runner, calls go straight to the Anthropic API — no marketplace packaging, no early-access
   gate, no interactive-only constraint (the exact three problems that ruled out both prior
-  candidates). This changes what H.1 needs to build: scenario definitions + assertions against
-  `structured_output`, not the invocation plumbing itself.
+  candidates). If a future live-model eval is authorized, it would need scenario definitions
+  plus assertions against `structured_output`, not hand-built invocation plumbing.
 - **Confirmed real, not assumed**: `claude -p "<prompt>"` headless mode exists, exits with a
   status code, never opens a permission dialog. Supports `--output-format
   text|json|stream-json`, `--allowedTools`, `--permission-mode` (pre-approves tools so a run
   never hangs), and `ANTHROPIC_API_KEY` takes precedence over subscription auth in `-p` mode —
   the determinism CI needs. `claude-code-action`'s agent mode wraps exactly this.
-- **Still open — real research points before H.1 can actually be written**:
+- **Still open only if a future live-model eval is authorized**:
   1. **Scenario isolation.** Each scenario needs its own throwaway `CLAUDE_HOME` + scratch git
      repo with base_project's own commands actually installed (same pattern the existing
      `install-test` CI job already uses, `$RUNNER_TEMP/claude-home`) — otherwise `/ship` etc.
@@ -341,26 +343,17 @@ figure out to build a good custom harness, and is there a better tool than hand-
 
 ### Implementation
 
-- [ ] **H.1 Golden-path eval suite for `/ship`, `/fixproject`, `/uninstall`** (`architect` then
-  `coder`) — **still deferred, blocked on a go/no-go decision, not on effort or a missing
-  mechanism anymore.** The mechanism question is answered by the research above
-  (`claude-code-action`, agent mode, `structured_output`) — what's still open is whether to
-  actually spend the effort (scenario writing + a new billed CI secret) now. Investigated two
-  real candidates live before finding the one above, rather than guessing from the original plan:
-  - `claude plugin eval` — wrong fit: designed for packaged plugins (`plugin.json` + skills/
-    MCP) distributed via a marketplace, not loose commands shipped by an installer; would need
-    unusual repackaging, and depends on early-access enablement never confirmed on this account.
-  - `skill-creator`'s `evals/evals.json` (the public alternative, chosen over the above) —
-    also wrong fit, for different reasons: interactive-only (no CLI, no exit codes, results
-    shown in an HTML review viewer), built for iterating on a skill you're actively authoring,
-    not for testing pre-existing installed commands non-interactively.
-  Recommended real path, not yet built: a small custom harness (~50 lines, in the same spirit
-  as the existing `dev/scripts/*.js`) spawning isolated `claude -p` sessions per scenario and
-  asserting on observed behavior — genuinely testable, no early-access dependency, fully owned.
-  User's call: park this rather than commit to building custom test infrastructure inside this
-  same run. Revisit as its own scoped item later.
-- [ ] **H.2 Wire the eval suite into CI** (`coder`) — blocked on H.1's mechanism; nothing to
-  wire in yet.
+- [x] **H.1 Deterministic contract harness for `/ship`, `/fixproject`, `/uninstall`** (`architect` then
+  `coder`) — implemented `dev/scripts/eval-harness.js` and `dev/harness/scenarios.json` using
+  only Node's standard library. It checks all 12 command artifacts (Claude, opencode dense/
+  lite, and Codex) for the required safety contracts and evaluates 16 compliant, blocked, and
+  unsafe action traces. The harness never invokes an LLM, network, CLI, or credential, so it
+  removes the billed external-eval dependency. **Explicit limitation:** it proves source
+  contract presence and deterministic policy classification, not that a probabilistic model
+  will obey the text; live-model evaluation remains optional and separately scoped.
+- [x] **H.2 Wire the deterministic harness into CI** (`coder`) — added `npm run test:harness`,
+  a named CI step, and regression assertions in `dev/tests/ci-contract.test.js`. The step uses
+  no secret, network, model, or external service.
 - [x] **H.3 Formalize Loop 4 (hill-climbing) from `/usagebp`** (`architect` then `coder`) —
   **mechanism decided**: a small self-owned state file,
   `~/.claude/base_project/usage/.zero-use-tracking.json` (`{ id: firstFlaggedDateISO }`) — not
@@ -410,13 +403,11 @@ figure out to build a good custom harness, and is there a better tool than hand-
 
 ### Registration
 
-- [ ] **H.8 Update `dev/ROADMAP.md` and `command-menu.md` once H.1-H.6 land** (`coder`) —
-  **partially done, stays open**: `command-menu.md` (both engines) already mentions the
-  drift-chain (H.5) and the zero-use escalation (H.3); `dev/ROADMAP.md` item 42 already
-  documents H.3-H.5/H.7 plus this whole GOALS 7/8/9 execution run. What's still missing:
-  H.1/H.2 have no registration yet because they don't exist yet (deferred, not landed) — this
-  item stays open specifically to not forget registering them once a mechanism is actually
-  chosen and built, not because the H.3-H.7 registration work wasn't done.
+- [x] **H.8 Register the deterministic harness and its evidence** (`coder`) — updated
+  `dev/ROADMAP.md`, this plan, the research addendum, and all three command menus. The menus
+  describe coverage as part of the existing `/ship`, `/fixproject`, and `/uninstall` flows;
+  no new user-facing command was created. The original external live-model eval remains
+  explicitly documented as optional rather than being represented as completed.
 
 ### Sources consulted
 

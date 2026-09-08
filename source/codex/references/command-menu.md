@@ -14,10 +14,10 @@ O que você deseja fazer agora?
 - `$scanproject` — audita identidade, CI, testes, lint, segurança básica e estrutura. Comece aqui.
 - `$audit` — aprofunda segurança ou mostra as camadas de configuração aplicadas a um projeto e agente.
 - `$cleanproject` — procura arquivos mortos, pastas erradas e duplicação sem alterar nada.
-- `$fixproject` — corrige os achados de `$scanproject` e `$cleanproject` e verifica cada correção.
+- `$fixproject` — corrige os achados de `$scanproject` e `$cleanproject` e verifica cada correção; os contratos de escopo e decisão são testados localmente.
 - `$undo` — reverte o último lote de mudanças com confirmações separadas por risco.
 - `$diario` — registra contribuições no diário externo ao repositório, usando o histórico já coletado.
-- `$ship` — valida, commita e envia as mudanças sem force-push nem resolução automática de conflitos.
+- `$ship` — valida, commita e envia as mudanças sem force-push nem resolução automática de conflitos; a segurança é coberta por um harness local sem API paga.
 - `$pr` — prepara e abre um pull request da branch atual, sempre confirmando título e corpo.
 - `$plugins` — recomenda e instala capacidades opcionais adequadas ao projeto.
 - `$council` — testa uma decisão com cinco perspectivas independentes antes de sintetizar um veredito.
@@ -26,5 +26,5 @@ O que você deseja fazer agora?
 - `$status` — mostra a versão e tudo que o base_project ativou no Codex.
 - `$usagebp` — mostra o que foi instalado, usado, nunca usado, lento ou está falhando.
 - `$update` — verifica e aplica uma atualização do próprio base_project após confirmação.
-- `$uninstall` — remove a integração em camadas, com confirmação proporcional ao impacto.
+- `$uninstall` — remove a integração em camadas, com confirmação proporcional ao impacto e verificação final por marcadores.
 - Ou apenas descreva o que precisa em português; o Codex escolhe as ferramentas adequadas.

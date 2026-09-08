@@ -2114,6 +2114,28 @@ real pareada antes/depois para fechar V.10 e decidir qualquer promoção.
 
 ---
 
+## 49. Harness determinístico sem dependência externa (2026-09-08)
+
+**Problema**: H.1/H.2 estavam parados porque a alternativa originalmente estudada exigia
+executar um modelo externo em CI, uma credencial Anthropic faturável e uma decisão adicional
+de segurança para pull requests externos. Isso seria caro e não era necessário para validar
+os contratos estruturais dos comandos.
+
+**Implementação**: foi criado `dev/scripts/eval-harness.js` com o fixture
+`dev/harness/scenarios.json`. O harness lê as 12 superfícies de `/ship`, `/fixproject` e
+`/uninstall` (Claude, opencode dense/lite e Codex), verifica os contratos de segurança e
+classifica 16 traces determinísticos como completos, bloqueados ou inseguros. Ele usa apenas
+a biblioteca padrão do Node, não chama modelo, rede, CLI externo ou credencial, e não criou um
+novo comando de usuário.
+
+**Validação**: `node dev/scripts/eval-harness.js --json` passou com 12/12 artefatos e 16/16
+cenários; a suíte dedicada e a asserção de wiring do CI passaram. O CI ganhou uma etapa
+nomeada para executar o mesmo check sem secrets. O wrapper `npm` deste sandbox falha antes de
+iniciar o processo por `EPERM` ao resolver `C:\`, então o script foi verificado diretamente;
+isso é uma limitação do ambiente, não do harness. A limitação funcional é explícita: o harness
+prova o contrato e a política determinística, não a obediência de um LLM probabilístico. Uma
+avaliação live-model continua opcional e não faz parte desta entrega.
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

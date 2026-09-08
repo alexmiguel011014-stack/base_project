@@ -140,6 +140,19 @@ prototipar, não vale apostar produção nisso enquanto for experimental.
 
 ---
 
+## Decisão de implementação — harness sem dependência externa (2026-09-08)
+
+Para remover a dependência de uma chave Anthropic faturável e ainda fechar o ciclo local de
+verificação, o projeto adotou um harness determinístico em `dev/scripts/eval-harness.js`, com
+cenários em `dev/harness/scenarios.json`. Ele valida os contratos textuais das 12 variantes
+de `/ship`, `/fixproject` e `/uninstall` e classifica 16 traces seguros, bloqueados ou
+inseguros. O CI executa `npm run test:harness` sem rede, modelo, CLI externo ou credencial.
+
+Essa escolha aplica a recomendação central da pesquisa: fatos verificáveis devem ser testados
+deterministicamente antes de qualquer avaliação probabilística. O limite permanece explícito:
+o harness não prova que um LLM obedecerá às instruções em uma conversa real; uma avaliação
+live-model pode ser adicionada depois, como decisão separada de custo, segurança e fidelidade.
+
 ## Fontes consultadas
 
 - [Harness Engineering for AI Coding Agents: Constraints That Ship Reliable Code — Augment Code](https://www.augmentcode.com/guides/harness-engineering-ai-coding-agents)
