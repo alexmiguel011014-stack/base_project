@@ -2050,6 +2050,50 @@ sincronizar os hooks instalados.
 
 ---
 
+## 46. `/newproject` removido do escopo (2026-09-07)
+
+**Decisão do usuário**: nunca usava `/newproject` — sempre chamava `/newgoal` direto, que já
+faz a mesma rodada de perguntas iniciais quando invocado sozinho (seu próprio passo 1). Removido
+por completo, não descontinuado/escondido.
+
+**O que saiu**: os 4 arquivos de comando/skill (`source/claude/commands/newproject.md`,
+`source/opencode/command/newproject.md`, `source/opencode/command-lite/newproject.md`,
+`source/codex/skills/newproject/`). Referências limpas em `README.md`, `ARCHITECTURE.md`
+(§4.1 reframed, sem `/newproject` como entrada do pipeline), CI (4 asserts de arquivo + 2
+asserts de contagem de skills Codex, 21→20), `status.md`, `command-menu.md` (3 plataformas),
+`project-standards.md` (2 plataformas).
+
+**Achado maior que o esperado**: `/newgoal` e `/repertoire` (3 plataformas cada) citavam
+`/newproject` no próprio corpo — não só menção solta, mas o modo "dispatched in background by
+`/newproject`" era metade da lógica de execução do `/newgoal`. Colapsado para um modo só
+(sempre direto/narrado); o modo de disparo silencioso em segundo plano deixou de existir, não
+ficou como código morto descrevendo um gatilho inexistente.
+
+**Deixado intacto de propósito**: a menção a `/newproject` em
+`references/goal-types/research.md` (exemplo histórico real desta própria pesquisa do projeto)
+e as entradas 14/24/32 deste ROADMAP — histórico não se reescreve.
+
+**Efeito colateral descoberto e corrigido no mesmo `/execgoals`**: adicionar `GOALS 12` como
+segundo plano ativo em `GOALS.md` (necessário pra planejar este item + o auto-archive abaixo)
+quebrou um teste que assumia "sempre exatamente 1 plano ativo" — corrigido junto
+(`dev/tests/validate-goals-structure.test.js`'s `archivedPlans`/active-plan-count agora
+derivam do `dev/goals-archive/README.md` e do `## Active plans` do próprio `GOALS.md` em vez de
+lista/número hardcoded — detalhe completo em
+[goals-12-command-suite-cleanup-and-goal-archive-automation.md](goals-archive/goals-12-command-suite-cleanup-and-goal-archive-automation.md),
+já arquivado no mesmo `/execgoals`). **Achado adicional durante a instalação de verificação**:
+nenhum dos 3 installers apagava um comando/skill removido do `source/` — só sincronizava o que
+existe, nunca o que sumiu (mesma classe de bug que motivou a lista de prune do item 13/dashboard,
+que esqueceu de crescer junto). `newproject.md`/skill adicionado à lista de prune explícita em
+`install.ps1`, `install.sh`, e `install-codex.js` (este último não tinha prune nenhum até agora —
+`pruneStaleSkills()` nova). Confirmado ao vivo: o `newproject.md` que ainda estava em
+`~/.claude/commands/` e `~/.config/opencode/command/` nesta máquina foi removido no re-run.
+**Drift pré-existente encontrado, não corrigido (fora de escopo deste item)**: `install.sh` nunca
+teve `doctor.md`/`context.md`/`explain.md` na sua lista de prune, só `dashboard.md` — o
+`install.ps1` tem os 3. Não mexi nisso agora porque é uma lacuna anterior e não relacionada ao
+`/newproject`; registrando pra não se perder.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

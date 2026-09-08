@@ -7,9 +7,7 @@ Produce `GOALS.md` at the project root: a build plan detailed enough that `/exec
 
 This command never implements anything — not the plan it just wrote, not a request that already sounds fully specified, not something already agreed earlier in this same conversation. Writing the plan is the entire job. Running it is `/execgoals`'s job, always.
 
-Two ways this runs: called directly (`/newgoal`) — narrate normally. Dispatched from `/newproject` as a background task — no progress narration, no intermediate questions, only a short start line and a short line with the file path when done.
-
-STEP 1 — Gather context without re-asking. If `/newproject` already established the stack, kind of project, and starting state in this session, reuse it. If invoked standalone, ask the same brief round: stack/language, kind of project, greenfield vs. existing. Skip anything already obvious from the current directory.
+STEP 1 — Gather context without re-asking. If this session already established the stack, kind of project, and starting state earlier in the conversation, reuse it. Otherwise ask one brief round: stack/language, kind of project, greenfield vs. existing. Skip anything already obvious from the current directory.
 
 STEP 2 — Read `~/.config/opencode/base_project/references/project-standards.md` first — the shared definition of a well-formed project. Every plan should satisfy it, not reinvent it.
 
@@ -36,11 +34,13 @@ Exception: a pure research-type ask with nothing to execute after skips `GOALS.m
 
 STEP 4 — Research for real, in one pass, as deep as the chosen type needs. Use web search for current best practices and concrete tool/library choices where the type calls for it.
 
-STEP 5 — If `/council` was invoked together with this command (same message), and only in direct narrated mode (never during background dispatch): for each item where the choice is genuinely contested (a real fork like monolith vs. microservices), run `/council` on that decision, including its own confirmation gate, before writing the choice into `GOALS.md`. Record only the President's verdict.
+STEP 5 — If `/council` was invoked together with this command (same message): for each item where the choice is genuinely contested (a real fork like monolith vs. microservices), run `/council` on that decision, including its own confirmation gate, before writing the choice into `GOALS.md`. Record only the President's verdict.
 
-STEP 6 — If `/repertoire` was invoked together with this command (same message, direct mode only): let it finish first, read the `REPERTOIRE.md` it produces, then research tech/build specifics. `/repertoire` researches the subject; this step researches how to build it.
+STEP 6 — If `/repertoire` was invoked together with this command (same message): let it finish first, read the `REPERTOIRE.md` it produces, then research tech/build specifics. `/repertoire` researches the subject; this step researches how to build it.
 
 STEP 7 — Write `GOALS.md` in English, regardless of the conversation's language. Structure it as concrete, checkable items grouped by the chosen module's areas, not prose paragraphs. Tag `(manual)` wherever `/execgoals` can't run it alone. Order items by what has to exist before what. Under each `GOALS N` heading, include a short Mermaid flowchart showing the dependency order between that section's areas — area/subsystem-level nodes only, not one node per checkbox.
+
+STEP 7a — Annotate each module with a suggested model + effort, right after its flowchart: one line, `Suggested: <model> · <effort> — <one-clause reason>`. Model from `{haiku, sonnet, opus}`, effort from `{low, medium, high, xhigh}`, picked per that module's own risk/complexity, never one fixed setting for the whole plan: haiku/low for mechanical low-risk work (boilerplate, config, docs); sonnet/medium for typical implementation; sonnet/high or opus/high for nontrivial logic or ambiguous/multi-system scope; opus/xhigh for irreversible or high-cost-of-failure work (migrations, auth/security, infra, destructive ops). This is a suggestion applied by hand, not an automatic mid-session switch.
 
 STEP 8 — Never overwrite silently. If `GOALS.md` already exists, read the active root file first and merge new findings in. If `dev/goals-archive/README.md` exists, read that index too; open an individual archived plan only when historic scope/evidence matters, so completed detail is not default planning context. `GOALS.md` is tracked in version control, not gitignored.
 

@@ -9,7 +9,7 @@ This command never implements anything from its own findings, no matter how acti
 
 STEP 1 — Confirm before running, every time. Tell the user plainly what this can search: the live web (articles, docs, preprints, regulatory text, public discussion) — no paid/closed databases like Web of Science or Scopus. Ask: "Running /repertoire spends real tokens researching <the subject> — want that?" If the subject looks generic or low-stakes, say so and suggest skipping.
 
-STEP 2 — Figure out what's being researched. If `/newproject`/`/newgoal` already established a project in this session and the ask is about that project's real-world context, reuse it. If the ask names a topic/trend/claim on its own, independent of building anything right now, that's standalone research — skip to step 3. If unclear, ask briefly what's being researched (the subject, not the stack).
+STEP 2 — Figure out what's being researched. If `/newgoal` already established a project in this session and the ask is about that project's real-world context, reuse it. If the ask names a topic/trend/claim on its own, independent of building anything right now, that's standalone research — skip to step 3. If unclear, ask briefly what's being researched (the subject, not the stack).
 
 STEP 3 — Decide which of these five lenses apply — not all are mandatory, same five for a project or a standalone topic:
 - Scientific/evidence base — is there research backing the claims or practice?

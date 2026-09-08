@@ -5,13 +5,14 @@ Do not rewrite archived bodies during ordinary planning. Add a new active plan f
 
 | Plan | Status | Historical body | SHA-256 file checksum |
 | --- | --- | --- | --- |
-| GOALS 1 — Design-Review Skill | completed | [goals-01-design-review-skill.md](./goals-01-design-review-skill.md) | `a944d9f3afc227768fa86e4990fc9376523f67f88c67b67b11c0a04a01603379` |
-| GOALS 2 — Public Release Readiness | completed | [goals-02-public-release-readiness.md](./goals-02-public-release-readiness.md) | `23dc0b67a285ecc72ff905d023afc416e3ad3cf942b191fe270ada572351227d` |
-| GOALS 3 — Repertoire Research Command | completed | [goals-03-repertoire-research-command.md](./goals-03-repertoire-research-command.md) | `8cd471a23e09c4523cfdd2ec2141db447e09fe5d1a537aa82b77693cb2599991` |
-| GOALS 4 — Design-Review Calibration Upgrade | completed | [goals-04-design-review-calibration-upgrade.md](./goals-04-design-review-calibration-upgrade.md) | `27889001aa6f157329988e024699e9d9020b97365dd744273f3eb542d6178d2c` |
-| GOALS 5 — Contribution Diary System | completed | [goals-05-contribution-diary-system.md](./goals-05-contribution-diary-system.md) | `dedda7a846655ae34d4b4e1e1c588ec00c8b66944af53f5a4aa0412aec0985c0` |
-| GOALS 6 — Multi-Agent Expansion and Platform Unification | completed | [goals-06-multi-agent-expansion-platform-unification.md](./goals-06-multi-agent-expansion-platform-unification.md) | `52e171c4c5af0f85e74993824c225756aaed89bccaf686ff3e086362120a1e08` |
-| GOALS 7 — Command Boundary Discipline | completed | [goals-07-command-boundary-discipline.md](./goals-07-command-boundary-discipline.md) | `a6593ae4a6ab2c0a282f06a0e1fa21a8fedf7dc2c8b3d4b6027c9e7ea3e4647f` |
-| GOALS 9 — Unused Implementation Audit and Cleanup | completed | [goals-09-unused-implementation-audit-cleanup.md](./goals-09-unused-implementation-audit-cleanup.md) | `3cdef52a6f52c2a314132ade634b443aad8d9ffca2d519d69f8bd9f1852960c1` |
-| GOALS 10 — Reliability Harness: Structural Guardrails + Tiered Autonomy | completed | [goals-10-reliability-harness-structural-guardrails.md](./goals-10-reliability-harness-structural-guardrails.md) | `85aa9056cd0d11640afa975d8bf9418d7072d6b76cbfb30d3840cc46dfbcb780` |
-| GOALS 11 — Architecture Integrity & Context Economy | completed | [goals-11-architecture-integrity-context-economy.md](./goals-11-architecture-integrity-context-economy.md) | `e919a2585feede76af52db215bc133c55bbb5bfdeac2055ea74d640710c0a2a1` |
+| GOALS 1 — Design-Review Skill | completed | [goals-01-design-review-skill.md](./goals-01-design-review-skill.md) | `d77d76e754bff4a7473ae91624d0d1df64f1d4fd3b1386e6430f875b231b0a64` |
+| GOALS 2 — Public Release Readiness | completed | [goals-02-public-release-readiness.md](./goals-02-public-release-readiness.md) | `06ff903f2842d4ca02d42325b03439f798355da420373b7d40a304b4e9fabbd4` |
+| GOALS 3 — Repertoire Research Command | completed | [goals-03-repertoire-research-command.md](./goals-03-repertoire-research-command.md) | `96266142d4ce453e82c8056e6a6cc22d4189319457da33f1ba53ddd350a9ae86` |
+| GOALS 4 — Design-Review Calibration Upgrade | completed | [goals-04-design-review-calibration-upgrade.md](./goals-04-design-review-calibration-upgrade.md) | `fd695715a50be05f66f9552113115a3962708acc1475de322b41eba7e3bc982d` |
+| GOALS 5 — Contribution Diary System | completed | [goals-05-contribution-diary-system.md](./goals-05-contribution-diary-system.md) | `412a2dd4c2e6a31193d52f8efe441840e8a181bb5fa0e3adac6a7a77f02ea515` |
+| GOALS 6 — Multi-Agent Expansion and Platform Unification | completed | [goals-06-multi-agent-expansion-platform-unification.md](./goals-06-multi-agent-expansion-platform-unification.md) | `f058b68ac95c4d3f7f8d6c4f12ded2b3b52899c13bf31c53933f251d93d70250` |
+| GOALS 7 — Command Boundary Discipline | completed | [goals-07-command-boundary-discipline.md](./goals-07-command-boundary-discipline.md) | `3cf2f3b98f99d9ec4ce797df2030a39e8a06f29e21ca4fa3eb9f2bf28e34a5ca` |
+| GOALS 9 — Unused Implementation Audit and Cleanup | completed | [goals-09-unused-implementation-audit-cleanup.md](./goals-09-unused-implementation-audit-cleanup.md) | `184e4af42818cd9c0c9d4100585d988558245bb9ddb470b0398e9a819a45aa1a` |
+| GOALS 10 — Reliability Harness: Structural Guardrails + Tiered Autonomy | completed | [goals-10-reliability-harness-structural-guardrails.md](./goals-10-reliability-harness-structural-guardrails.md) | `91be2ccae7a3a611b54a92eab3a396f1e078679630b03bc06c3ac91ab7c1e3f5` |
+| GOALS 11 — Architecture Integrity & Context Economy | completed | [goals-11-architecture-integrity-context-economy.md](./goals-11-architecture-integrity-context-economy.md) | `e532e4679083fe7dfc6abf3bc98b8ed95759b5da8a0c1777e99d009d6e4ab7a0` |
+| GOALS 12 — Command Suite Cleanup & Goal-Archive Automation | completed | [goals-12-command-suite-cleanup-and-goal-archive-automation.md](./goals-12-command-suite-cleanup-and-goal-archive-automation.md) | `57153f15dbd5aabfaa286aa2f29a583a0a2ab24c49b815d7a1744c1d8473aff6` |

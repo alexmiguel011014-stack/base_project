@@ -72,7 +72,7 @@ test("Codex skill names have exact parity with all command sets", () => {
     path.join(repoRoot, "source", "opencode", "command-lite"),
     ".md",
   );
-  assert.equal(codex.length, 21);
+  assert.equal(codex.length, 20);
   assert.deepEqual(codex, claude);
   assert.deepEqual(codex, opencode);
   assert.deepEqual(codex, opencodeLite);
@@ -158,7 +158,7 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
     install(roots);
     install(roots);
 
-    assert.equal(names(path.join(roots.agents, "skills"), "", true).length, 21);
+    assert.equal(names(path.join(roots.agents, "skills"), "", true).length, 20);
     assert.deepEqual(names(path.join(roots.codex, "agents"), ".toml"), [
       "architect",
       "coder",

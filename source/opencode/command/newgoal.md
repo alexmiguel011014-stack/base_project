@@ -13,19 +13,10 @@ already reads as fully specified, not something already agreed through a prior c
 exchange in this same conversation. Producing the plan (or, for a pure `research`-type ask,
 the research deliverable) is the entire job; running it is exclusively `/execgoals`'s.
 
-**Two ways this runs.** Called directly (`/newgoal`), it is the user's explicit ask — narrate
-normally. Dispatched from `/newproject` (see that command's own step 6: whichever
-asynchronous/backgrounded subagent mechanism the session exposes, carrying these instructions
-as the prompt — or an explicit "no backgrounding available" if it doesn't), it must run as a
-real background agent and stay out of the conversation: no progress narration, no intermediate
-questions — only a short line when it starts and a short line with the file path when it's
-done. The point is depth in the file, not tokens in the chat.
-
-1. **Gather context without re-asking.** If `/newproject` already established the stack, kind
-   of project, and starting state in this session, reuse it — do not repeat the questions. If
-   invoked standalone with nothing established yet, ask the same brief round `/newproject` step
-   1 asks (stack/language, kind of project, greenfield vs. existing) — skip anything already
-   obvious from the current directory.
+1. **Gather context without re-asking.** If this session already established the stack, kind
+   of project, and starting state earlier in the conversation, reuse it — do not repeat the
+   questions. Otherwise ask one brief round: stack/language, kind of project, greenfield vs.
+   existing — skip anything already obvious from the current directory.
 
 2. **Read `~/.config/opencode/base_project/references/project-standards.md` first** — it's the
    shared definition of what a well-formed project looks like (identity, version control, secrets,
@@ -80,16 +71,14 @@ done. The point is depth in the file, not tokens in the chat.
    vague plan the user has to fill in themselves defeats the point of this command.
 
 4a. **If `/council` was invoked together with this command** (e.g. `/newgoal /council` in the
-    same message — this applies only to the direct, narrated mode above, never to the silent
-    background dispatch from `/newproject`, which cannot pause for the confirmation `/council`
-    requires): for each item where the choice is genuinely contested rather than a clear
+    same message): for each item where the choice is genuinely contested rather than a clear
     default (a real fork like monolith vs. microservices or SQL vs. NoSQL, not "which test
     runner" when the stack has one obvious pick), run `/council` on that specific decision —
     including its own confirmation gate — before writing the choice into `GOALS.md`. Record
     the President's verdict as the item, not the full 5-advisor transcript.
 
 4b. **If `/repertoire` was invoked together with this command** (e.g. `/newgoal /repertoire` in
-    the same message — same direct-mode-only restriction as 4a): let `/repertoire` finish first
+    the same message): let `/repertoire` finish first
     — it researches the project's actual subject matter (scientific/regulatory/cultural/media),
     not tech choices — and read the `REPERTOIRE.md` it produces before running this step's own
     research. `/repertoire` researches *what the project is about*; this step researches *how to
@@ -109,6 +98,20 @@ done. The point is depth in the file, not tokens in the chat.
    (GitHub renders Mermaid natively, and ordering mistakes in a large plan are far easier to
    spot in a graph than in a list). Keep it to area/subsystem-level nodes, not one node per
    checkbox — a node per item is noise past a handful of items.
+
+5a. **Annotate each module with a suggested model + effort**, right after that module's
+    flowchart: one line, `Suggested: <model> · <effort> — <one-clause reason>`. Pick `<model>`
+    from `{haiku, sonnet, opus}` and `<effort>` from `{low, medium, high, xhigh}` per that
+    module's own risk/complexity — never one fixed setting for the whole plan:
+    - **haiku / low** — mechanical, low-risk, fully-specified (boilerplate, config, doc edits).
+    - **sonnet / medium** — typical implementation work, normal verification needs.
+    - **sonnet / high** or **opus / high** — nontrivial logic, ambiguous scope, or a module
+      spanning multiple systems.
+    - **opus / xhigh** — irreversible or high-cost-of-failure work: migrations, auth/security,
+      infra, destructive operations, or anything `/execgoals` cannot safely retry.
+    This is a suggestion the user applies by hand (a session's model/effort is a user choice,
+    not something switched automatically mid-session) — it exists so a plan run end-to-end on
+    one setting can be dialed down for the modules that don't need it.
 
 6. **Never overwrite silently.** If `GOALS.md` already exists, read the active root file first
    and merge new findings rather than discarding them. If `dev/goals-archive/README.md` exists,

@@ -247,7 +247,7 @@ if ($prunedHookCount -gt 0) {
 # Same for the files themselves. Only deletes what carries the managed marker,
 # mirroring Sync-Managed - a file the user wrote by hand at the same path is
 # left alone even if the name matches.
-foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"))) {
+foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"), (Join-Path $claudeCommandsDir "newproject.md"), (Join-Path $opencodeCommandDir "newproject.md"))) {
     if (-not (Test-Path $staleCmd)) { continue }
     if ((Read-Utf8NoBom $staleCmd) -match 'base_project:managed') {
         Remove-Item $staleCmd -Force

@@ -97,6 +97,30 @@ function syncSkills() {
   ok(`${count} Codex skills synchronized`);
 }
 
+// Deleting a skill from source/codex/skills/ only stops it being *installed* — a machine
+// that installed an older base_project keeps the old skill directory on disk. Explicit,
+// named prune list, same pattern install.ps1/install.sh use for stale commands. Only
+// removes a skill dir whose SKILL.md still carries the managed marker, so a user's own
+// same-named skill is left alone.
+function pruneStaleSkills() {
+  const staleNames = ["newproject"];
+  for (const name of staleNames) {
+    const skillFile = path.join(agentsRoot, "skills", name, "SKILL.md");
+    if (!fs.existsSync(skillFile)) continue;
+    if (read(skillFile).includes("base_project:managed")) {
+      fs.rmSync(path.join(agentsRoot, "skills", name), {
+        recursive: true,
+        force: true,
+      });
+      ok(`removed stale Codex skill: ${name}`);
+    } else {
+      warn(
+        `Kept ${skillFile} - not managed by base_project (looks like your own file)`,
+      );
+    }
+  }
+}
+
 function syncAgents() {
   const source = path.join(sourceRoot, "codex", "agents");
   let count = 0;
@@ -224,6 +248,7 @@ function main() {
   }
   syncInstructionBlock();
   syncSkills();
+  pruneStaleSkills();
   syncAgents();
   syncReferences();
   syncCatalog();

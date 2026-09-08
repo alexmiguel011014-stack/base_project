@@ -31,7 +31,7 @@ never this command in the same turn.
    find), say so and suggest skipping instead of running anyway.
 
 1. **Figure out what's being researched.**
-   - If `/newproject`/`/newgoal` already established a project in this session and the ask
+   - If `/newgoal` already established a project in this session and the ask
      is about that project's real-world context, reuse it — don't re-ask.
    - If the ask names a topic, trend, claim, or practice on its own — independent of
      building anything right now — that's standalone topic research; skip straight to

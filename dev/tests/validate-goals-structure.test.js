@@ -10,18 +10,29 @@ const { check } = require("../scripts/validate-goals-structure.js");
 const { goalsFiles } = require("../../source/hooks/validate-goals.js");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
-const archivedPlans = [
-  [1, "goals-01-design-review-skill.md"],
-  [2, "goals-02-public-release-readiness.md"],
-  [3, "goals-03-repertoire-research-command.md"],
-  [4, "goals-04-design-review-calibration-upgrade.md"],
-  [5, "goals-05-contribution-diary-system.md"],
-  [6, "goals-06-multi-agent-expansion-platform-unification.md"],
-  [7, "goals-07-command-boundary-discipline.md"],
-  [9, "goals-09-unused-implementation-audit-cleanup.md"],
-  [10, "goals-10-reliability-harness-structural-guardrails.md"],
-  [11, "goals-11-architecture-integrity-context-economy.md"],
-];
+
+// Derived from dev/goals-archive/README.md's own table instead of a hand-maintained literal
+// list — a hardcoded array here silently desyncs the moment /execgoals (or a human) archives
+// a new plan, since nothing would remind you to also edit this file. See GOALS 12 / B.3+B.4.
+function loadArchivedPlans() {
+  const indexPath = path.join(repoRoot, "dev", "goals-archive", "README.md");
+  const index = fs.readFileSync(indexPath, "utf8");
+  const rows = [
+    ...index.matchAll(
+      /^\|\s*GOALS\s+(\d+)\s+—.*?\[([^\]]+\.md)\]\(\.\/[^)]+\)/gm,
+    ),
+  ];
+  return rows.map((m) => [Number(m[1]), m[2]]);
+}
+const archivedPlans = loadArchivedPlans();
+
+// Derived from GOALS.md's own "## Active plans" list (the `#goals-N-...` anchors) rather than
+// a literal expected number — same rationale as archivedPlans above.
+function loadActivePlanNumbers(goalsText) {
+  const section = goalsText.match(/^## Active plans\n([\s\S]*?)\n##/m);
+  const body = section ? section[1] : "";
+  return [...body.matchAll(/#goals-(\d+)-/g)].map((m) => Number(m[1]));
+}
 
 function fixture(content) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "bp-goals-"));
@@ -74,10 +85,14 @@ test("active GOALS.md stays structurally valid and contains only executable plan
   const goalsPath = path.join(repoRoot, "GOALS.md");
   const goals = fs.readFileSync(goalsPath, "utf8");
   assert.deepEqual(check(goalsPath), { ok: true, findings: [] });
-  assert.equal((goals.match(/^## GOALS /gm) || []).length, 1);
-  for (const number of [8]) {
-    assert.match(goals, new RegExp(`^## GOALS ${number} —`, "m"));
-  }
+  const headingNumbers = [...goals.matchAll(/^## GOALS (\d+) —/gm)].map((m) =>
+    Number(m[1]),
+  );
+  const activeNumbers = loadActivePlanNumbers(goals);
+  assert.deepEqual(
+    [...headingNumbers].sort((a, b) => a - b),
+    [...activeNumbers].sort((a, b) => a - b),
+  );
   for (const [number] of archivedPlans) {
     assert.doesNotMatch(goals, new RegExp(`^## GOALS ${number} —`, "m"));
   }

@@ -152,7 +152,6 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 
 | Comando | O que faz |
 |---|---|
-| `/newproject` | Planeja a estrutura de um projeto novo (stack, checklist inicial, plugins relevantes). Read-only, como `architect` — nunca cria arquivo sozinho. Dispara `/newgoal` em segundo plano ao final. |
 | `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
 | `/repertoire` | Pesquisa um assunto a fundo — o domínio real de um projeto (científico, regulatório/legal, cultural, mídia) alimentando o `/newgoal`, ou um tópico/tendência avulso que o usuário quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar; sempre confirma. |
 | `/execgoals` | Executa o `GOALS.md` ativo item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade e checa a estrutura após cada lote de edição. |
@@ -174,15 +173,13 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
 | `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
 
-### 4.1 `/newproject` → `/scanproject` / `/cleanproject` → `/fixproject`, e a referência compartilhada
+### 4.1 `/scanproject` / `/cleanproject` → `/fixproject`, e a referência compartilhada
 
 Os três comandos apontam pro mesmo arquivo — `references/project-standards.md` — em vez
 de cada um definir "projeto bem formado" à sua maneira. 9 categorias: identidade,
 controle de versão, segredos, dependências, testes, qualidade de código, CI, segurança
 básica, estrutura.
 
-- `/newproject` usa o checklist como **forma do plano** (o que criar primeiro, nessa
-  ordem). Read-only — nunca escreve arquivo, mesmo contrato do `architect`.
 - `/scanproject` usa o checklist como **critério de avaliação** — cada item vira
   `ok`/`missing`/`broken` com severidade e arquivo/linha, mesmo formato que `reviewer`
   já usa pra achado de revisão de código. Também read-only: garante que o resultado é
@@ -336,7 +333,6 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 | **architect** | subagente | Planeja mudança não-trivial. Só lê, nunca edita. |
 | **coder** | subagente | Aplica o plano com edição cirúrgica e escopada. |
 | **reviewer** | subagente | Roda lint/typecheck/teste do projeto, monta mensagem de commit, confere se a entrega bate com o pedido (régua de 4 níveis). Nunca commita sem pedido. |
-| **`/newproject`** | comando | Planeja a estrutura de um projeto novo contra `project-standards.md`. Read-only. |
 | **`/scanproject`** | comando | Avalia um projeto existente contra `project-standards.md`, reporta achados. Read-only. |
 | **`/cleanproject`** | comando | Avalia organização de arquivo/pasta (arquivo morto, estrutura, duplicação), propõe reorganização. Read-only. |
 | **`/fixproject`** | comando | Corrige os achados do `/scanproject` e/ou `/cleanproject`, com reverificação real de cada correção. |

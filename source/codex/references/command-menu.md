@@ -7,7 +7,6 @@ Fonte única do menu “o que você deseja fazer agora?”. Editar só aqui — 
 O que você deseja fazer agora?
 
 - `$bootstrap` — sincroniza o projeto e o armário unificado `~/.agents/`, detecta drift real e mapeia o código com repomix + graphify.
-- `$newproject` — planeja um projeto novo com a estrutura certa e inicia a pesquisa do `$newgoal` em segundo plano quando o ambiente permitir.
 - `$newgoal` — pesquisa e escreve o plano executável em `GOALS.md`; nunca implementa o plano.
 - `$repertoire` — pesquisa profundamente o domínio de um projeto ou um assunto avulso; declara limites e sempre confirma antes.
 - `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição.

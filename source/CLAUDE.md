@@ -99,3 +99,23 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
   artifact, not the chat. Give a short pointer instead: path + one-line summary of what's
   in it. Repeating file content in chat is pure duplication — say what's in it, not what it
   says.
+- Between tool calls, do not narrate what you're doing or why in prose — that narration is
+  billed output tokens like any other text, and it repeats every single step of a multi-step
+  task. When a task has a known step count (a numbered plan, a checklist, a todo list), emit
+  at most one short mechanical progress line per batch of tool calls — e.g. `3/12 steps done`
+  — instead of a sentence explaining the step. When there's no known total, skip the
+  in-progress line entirely and let the tool calls speak for themselves. Reserve prose
+  explanation (what was found, what changed, why) for the final response once the work is
+  done — never spend it mid-task.
+
+### Scope-drift awareness
+- Watch each new user message against the recent thread, not just the immediate request.
+  When it reads as a clearly different topic from what the conversation has been doing — not
+  a follow-up, a correction, or a natural next step in the same task — say so in one line and
+  suggest `/compact`, `/clear`, or a new session, before answering it. A genuinely new session
+  should start with `/bootstrap` (see that command) if the new topic is its own project or a
+  substantial new thread of work.
+- This is a judgment call from the shape of the conversation, not a topic classifier — don't
+  build one. When it's ambiguous whether the new message is a pivot or a continuation, treat
+  it as a continuation and just answer; false positives here are more annoying than a missed
+  one.

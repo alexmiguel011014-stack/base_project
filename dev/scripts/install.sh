@@ -266,7 +266,7 @@ fi
 #     Only removes what carries the managed marker, mirroring sync_managed - a
 #     file written by hand at the same path is left alone even if the name matches.
 # ---------------------------------------------------------------------
-for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md"; do
+for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md" "$CLAUDE_COMMANDS_DIR/newproject.md" "$OPENCODE_COMMAND_DIR/newproject.md"; do
     [ -f "$stale_cmd" ] || continue
     if grep -q 'base_project:managed' "$stale_cmd"; then
         rm -f "$stale_cmd"

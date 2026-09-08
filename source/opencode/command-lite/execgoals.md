@@ -16,6 +16,8 @@ STEP 3 — Work through unchecked items in the order they're written — don't r
 
 STEP 4 — Check items off only as verified, not as attempted. After completing an item, actually confirm it: the file exists, the test passes, the server starts. Update `GOALS.md` in place (`[ ]` → `[x]`) as you go. After a batch of edits to the same `GOALS.md` within one area, run `node ~/.claude/base_project/scripts/validate-goals-structure.js GOALS.md`; repair any finding and leave the affected item open before continuing.
 
+STEP 4a — Archive a section once every item under it is `[x]`: move its full body to `dev/goals-archive/goals-NN-<slug>.md` (kebab-case from the heading), compute its SHA-256, append a row to `dev/goals-archive/README.md`'s table, and remove the section (and its "Active plans" entry) from the root file. Auto-approved, repo-local, reversible — no separate confirmation needed beyond the run's own authorization. Re-run the structure validator after the move.
+
 STEP 5 — Run the project's own test/lint/typecheck after each area finishes, not only at the end.
 
 STEP 6 — If interrupted or partially done, resuming just works — read the current `[x]`/`[ ]` state and continue from the first open item. Never restart from zero, never redo something already checked off.

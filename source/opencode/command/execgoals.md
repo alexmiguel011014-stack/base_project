@@ -47,6 +47,16 @@ project, one ordered item at a time — with the same before/after verification 
    `node ~/.claude/base_project/scripts/validate-goals-structure.js GOALS.md`. If it reports a
    finding, repair the plan structure and leave the affected item open before continuing.
 
+4a. **Archive a section once every item under it is `[x]`.** When checking off an item leaves
+    every item in its `GOALS N` section checked, that section is done — move it out of the root
+    file: write its full body to `dev/goals-archive/goals-NN-<slug>.md` (kebab-case from the
+    heading, matching the existing archive's naming), compute its SHA-256 over the new file's
+    bytes, append one row to `dev/goals-archive/README.md`'s table (plan name, `completed`,
+    link, checksum), and remove the section — including its "Active plans" list entry — from
+    the root `GOALS.md`. This is auto-approved, repo-local, reversible work; it doesn't need
+    separate confirmation beyond the run's own authorization. Re-run
+    `validate-goals-structure.js` after the move, same as any other edit batch.
+
 5. **Run the project's own test/lint/typecheck after each area finishes**, not only at the very
    end — catch a broken area before three more areas get built on top of it.
 

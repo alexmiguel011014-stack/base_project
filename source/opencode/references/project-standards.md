@@ -1,7 +1,7 @@
 # base_project:managed
 
-Shared reference checklist for `/newproject`, `/scanproject` and `/fixproject` — what
-"a well-formed project" means to base_project. Edit only here; the 3 commands point at
+Shared reference checklist for `/scanproject` and `/fixproject` — what
+"a well-formed project" means to base_project. Edit only here; both commands point at
 this file instead of each repeating the list its own way, so they can't drift apart.
 
 Each item has: **what to check** and **why it matters**. Not every item applies to every

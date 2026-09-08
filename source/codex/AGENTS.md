@@ -45,3 +45,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Answer trivial questions directly. Use the full Plan → Implement → Review workflow for substantial work.
 - Be concise by default without weakening exact paths, numbers, code, or safety negations.
 - When a deliverable is written to a file, point to the file and summarize it briefly instead of duplicating its full contents in chat.
+- Between tool calls, skip prose narration of what you're doing — it costs output tokens on every step. If the task has a known step count, emit at most one short line per batch (e.g. `3/12 steps done`); otherwise emit nothing until the final response, which carries the explanation.
+
+### Scope-Drift Awareness
+- When a new message reads as a clearly different topic from the recent thread (not a follow-up or natural next step), say so in one line and suggest `/compact`, `/clear`, or a new session — a new session for a substantial new topic should start with `/bootstrap`. Judgment call, not a classifier; when ambiguous, treat it as a continuation.
