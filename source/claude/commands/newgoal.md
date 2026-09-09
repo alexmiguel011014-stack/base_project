@@ -121,9 +121,14 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
    `README.md`, not gitignored: it's project documentation the user keeps, not a regenerable
    artifact.
 
-7. Report only: the file path (or, for a standalone `research`-type deliverable, that file's
+7. Report: the file path (or, for a standalone `research`-type deliverable, that file's
    path instead), and — when this ran standalone, not backgrounded — a short outline of the
    sections written, not the full content (the file has that).
+   After the path/outline, add one sentence in the user's language recommending the model +
+   effort best suited to the plan's highest-complexity/highest-risk module, using the module-level
+   `Suggested:` lines already defined in the plan. State that this is a manual recommendation only
+   and does not switch the model or effort automatically. Then ask, in the user's language, whether
+   the user wants to proceed with `/execgoals` or adjust the plan first.
 
 8. **Never execute.** This command writes `GOALS.md` (or the standalone research deliverable)
    — full stop. It never edits other files, never runs installs/builds/scaffolding, and never

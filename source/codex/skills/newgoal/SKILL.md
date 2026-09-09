@@ -21,4 +21,9 @@ Produce `GOALS.md` at the project root as the researched input for `$execgoals`.
 6. Write the plan in English as ordered, checkable items grouped by the selected goal type's areas. Tag manual work explicitly and define “Done when” evidence. Put a small Mermaid dependency flowchart under each `GOALS N` heading, and right after it one line — `Suggested: <model> · <effort> — <reason>` — picking `<model>` from `{haiku, sonnet, opus}` and `<effort>` from `{low, medium, high, xhigh}` per that module's own risk/complexity (mechanical/low-risk → haiku/low; typical implementation → sonnet/medium; nontrivial or multi-system → sonnet/high or opus/high; irreversible or high-cost-of-failure like migrations/auth/infra/destructive ops → opus/xhigh). A suggestion applied by hand, never an automatic mid-session switch.
 7. If `GOALS.md` exists, read the active root file and merge; never overwrite prior plans silently. If `dev/goals-archive/README.md` exists, read its index too and open individual archived plans only when historic scope/evidence is relevant. Use unique section and item identifiers.
 8. For a purely research-only goal with no later implementation, follow `research.md` and write the standalone deliverable instead of ceremonial `GOALS.md` checkboxes.
-9. Report only the path and a short outline. Do not begin implementation.
+9. Report the path and a short outline. After the path/outline, add one sentence in the
+   user's language recommending the model + effort best suited to the plan's highest-complexity/
+   highest-risk module, using the module-level `Suggested:` lines already defined in the plan.
+   State that this is a manual recommendation only and does not switch the model or effort
+   automatically. Then ask, in the user's language, whether the user wants to proceed with
+   `$execgoals` or adjust the plan first. Do not begin implementation.
