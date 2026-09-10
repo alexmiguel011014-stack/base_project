@@ -2185,6 +2185,38 @@ avaliação live-model continua opcional e não faz parte desta entrega.
 
 ---
 
+## 51. Paridade da recomendação de modelo no `$newgoal` do Codex (2026-09-09)
+
+**Implementação**: GOALS 14 (M14.4, M14.5, M14.6, M14.9 e M14.10) atualizou
+`source/codex/skills/newgoal/SKILL.md`, `dev/tests/codex.test.js`, `README.md` e
+`source/codex/README.md`. O contrato usa `gpt-5.6-luna · low` para rotina,
+`gpt-5.6-terra · medium` para trabalho típico, `gpt-5.6-sol · high` para sistemas múltiplos e
+`gpt-6-astra · xhigh` para alto custo de falha, com fallback Astra → Sol → Terra → Luna e
+recomendação manual.
+
+**Limite**: os asserts de fonte e a instalação em raiz temporária provam o contrato estrutural e
+a projeção instalada, não a obediência de um modelo Codex ao vivo; M14.8 continua manual.
+
+---
+
+## 52. Relatório somente leitura de atualizações geridas (2026-09-09)
+
+**Implementação**: GOALS 15 adiciona `/updates` (e `$updates` no Codex) nas quatro projeções.
+O comando deriva o inventário de `package.json`/`package-lock.json`, instaladores,
+`source/opencode/mcp.json` e `source/plugins.json`, sem criar uma segunda lista para manter.
+Ele usa `npm outdated`, `uv`/`pipx`/`pip`, gerenciador do sistema e `npm view` apenas para
+consulta; diferencia versão instalada, MCP flutuante via `npx`, pacote opcional sem sinal e
+cobertura do Dependabot. `/update` continua sendo o fluxo separado que atualiza o próprio
+base_project após confirmação.
+
+**Limite**: catálogo opcional e ferramenta gerida pelo SO podem ficar `unknown` ou
+`unsupported`; o comando nunca instala, atualiza, faz pull, lê `.env` ou grava relatório. O
+histórico `dev/scripts/check-plugin-updates.js` continua sendo auxiliar de pins de plugin, não
+um verificador completo de dependências. A validação ao vivo após instalação permanece manual
+em U15.12.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

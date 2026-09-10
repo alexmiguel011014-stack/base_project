@@ -26,5 +26,6 @@ O que você deseja fazer agora?
 - `/status` — ver a versão do base_project e tudo que está ativo agora.
 - `/usagebp` — ver o que você instalou e realmente usa, o que nunca foi usado, e o que anda dando erro. Achados de zero-uso agora escalam sozinhos entre execuções, em vez de exigir que você lembre de checar de novo.
 - `/update` — checar se há uma versão nova do base_project e atualizar.
+- `/updates` — consulta atualizações disponíveis das dependências, ferramentas e MCPs do base_project, sem instalar ou atualizar nada.
 - `/uninstall` — remover o base_project desta máquina (com confirmação em etapas e verificação final protegida por marcadores).
 - Ou é só me contar o que você precisa, em português mesmo — eu decido as ferramentas certas.

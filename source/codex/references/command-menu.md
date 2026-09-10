@@ -25,5 +25,6 @@ O que você deseja fazer agora?
 - `$status` — mostra a versão e tudo que o base_project ativou no Codex.
 - `$usagebp` — mostra o que foi instalado, usado, nunca usado, lento ou está falhando.
 - `$update` — verifica e aplica uma atualização do próprio base_project após confirmação.
+- `$updates` — consulta atualizações disponíveis das dependências, ferramentas e MCPs do base_project, sem instalar ou atualizar nada.
 - `$uninstall` — remove a integração em camadas, com confirmação proporcional ao impacto e verificação final por marcadores.
 - Ou apenas descreva o que precisa em português; o Codex escolhe as ferramentas adequadas.

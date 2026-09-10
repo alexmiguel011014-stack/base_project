@@ -171,6 +171,7 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/status` | Mostra a versão do base_project e uma lista simples (só nomes) de tudo que está ativo agora — agentes, comandos, hooks, plugins instalados. |
 | `/usagebp` / `$usagebp` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando, além de uma fila priorizada de diagnóstico. Também compara dois baselines anotados, sem tratar menor consumo de token como sucesso isolado. Cobre Claude Code e Codex quando os hooks estão ativos; atividade do opencode não é rastreada. |
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
+| `/updates` | Consulta atualizações disponíveis para dependências, ferramentas, MCPs e componentes opcionais geridos pelo base_project. É somente leitura: nunca instala, atualiza, dá pull ou altera configuração. |
 | `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
 
 ### 4.1 `/scanproject` / `/cleanproject` → `/fixproject`, e a referência compartilhada
@@ -210,7 +211,7 @@ mesma fonte única que `plugins.json`/`project-standards.md`: um arquivo, todos 
 pontos de entrada (`CLAUDE.md`, `opencode-instructions.md`, `/wpp` e `$wpp`)
 apontam pra ele em vez de duplicar a lista.
 
-### 4.3 `/update` e `/uninstall` — ciclo de vida da própria instalação
+### 4.3 `/update`, `/updates` e `/uninstall` — ciclo de vida da própria instalação
 
 - **`/update`**: lê `~/.base_project/repo-path.txt` pra achar o repositório do
   base_project, confere `git status --porcelain` primeiro — **para sem fazer nada** se
@@ -218,6 +219,10 @@ apontam pra ele em vez de duplicar a lista.
   `git fetch` + compara `HEAD` com `@{u}`. Se houver novidade, mostra o log e só dá
   `git pull` (nunca `--force`) com confirmação explícita, seguido de rerodar o
   installer certo pro SO. Nunca dá push nem toca no remoto — só puxa.
+- **`/updates`**: resolve o mesmo repositório, mas só consulta as versões das dependências,
+  ferramentas, MCPs e componentes opcionais que o base_project gerencia. Nunca instala,
+  atualiza, executa `git pull` ou grava configuração; uma atualização de verdade exige tarefa
+  separada e autorização explícita.
 - **`/uninstall`**: inventário real primeiro (nunca por suposição), depois 3 tiers de
   confirmação **separados** por raio de impacto — Tier A (arquivos próprios do
   base_project, reversível reinstalando), Tier B (os 3 registros de hook em
@@ -373,6 +378,7 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 |---|---|---|
 | **`/plugins`** | comando | Recomenda e instala plugins do catálogo pro projeto atual, ou instala um perfil pronto. |
 | **`/update`** | comando | Confere e aplica atualização do base_project (`git pull` + reroda o installer), com confirmação. |
+| **`/updates`** | comando | Consulta atualizações das dependências, ferramentas, MCPs e catálogo do base_project, sem instalar ou atualizar nada. |
 | **`/uninstall`** | comando | Remove o que o base_project instalou globalmente, em 3 níveis de confirmação. |
 | **`/usagebp`** | comando | Lê o ledger de uso (hook `usage-log`), reporta uso real por projeto, falhas e uma fila priorizada de diagnóstico. Também compara dois baselines anotados, sem tratar menor consumo de token como sucesso isolado. Cobre Claude Code e Codex quando seus hooks estão ativos; opencode não é rastreado. |
 | **`install.ps1` / `install.sh`** | script | O instalador de verdade — copia tudo isso pra `~/.claude/`/`~/.config/opencode/`. Também sugere (nunca aplica sozinho) configurar `fallbackModel`. |

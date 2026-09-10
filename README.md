@@ -115,6 +115,8 @@ The installer also checks for (and installs if missing) the global CLI tools the
 
 **Codex invocation:** use `$scanproject`, `$newgoal`, `$ship`, `$wpp`, and so on. Enabled skills also appear in Codex's slash selector, but Codex does not support arbitrary custom top-level names like `/wpp`; custom prompt files would be namespaced under `/prompts:`. This is why the faithful Codex spelling is `$wpp`, not `/wpp`.
 
+**Runtime-specific `$newgoal` recommendations:** Codex uses its own `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`, and `gpt-6-astra` model vocabulary with matching effort guidance; Claude Code and opencode retain their native model vocabulary. In every runtime, the recommendation is manual only and never changes the active model, effort, or configuration automatically.
+
 **Codex hook trust:** Codex asks you to review and trust a newly installed or changed hook command before it runs. That review is intentional; base_project merges its hooks idempotently but never bypasses Codex's trust boundary.
 
 ### 🌐 Multi-Agent Support (Unified Layer — GOALS 6)
@@ -173,6 +175,7 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/status` | Shows the base_project version and a plain name-only list of everything currently active on this machine (agents, commands, hooks, plugins). No explanations. |
 | `/usagebp` | Reads the local usage ledger and reports what's actually being used: installed-but-never-touched tools, what's used and where, what's failing, what's slow, plus a prioritized diagnostic queue. It can compare two annotated baselines without treating lower token use as success by itself. Covers Claude Code and Codex when their hooks are active; opencode activity isn't tracked. |
 | `/update` | Checks whether base_project itself has a newer version on GitHub and, on confirmation, pulls it and re-runs the installer. Never touches an unrelated project. |
+| `/updates` | Reports available updates for base_project-managed dependencies, tools, MCPs, and detected optional components. Read-only: never installs, upgrades, pulls, or changes configuration. |
 | `/uninstall` | Cleanly removes everything base_project installed globally, with tiered confirmation — bigger-blast-radius items (hooks, MCP servers) confirmed separately. Never deletes the base_project repo itself. |
 | `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start and after a substantial task. |
 

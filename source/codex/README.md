@@ -24,3 +24,5 @@ This mapping follows Codex's documented extension model:
 - Shared JavaScript helpers remain in the existing `~/.claude/base_project/` namespace so the contribution diary keeps one uninterrupted ledger across Claude and Codex.
 
 The installer copies only files marked `base_project:managed` and replaces only the delimited base_project block in `AGENTS.md`; user-owned content outside that boundary is preserved.
+
+`$newgoal` recommendations are runtime-specific and manual: Codex uses `gpt-5.6-luna · low` for routine work, `gpt-5.6-terra · medium` for typical work, `gpt-5.6-sol · high` for difficult multi-system work, and `gpt-6-astra · xhigh` for high-cost-of-failure work. Claude Code and opencode keep their own model vocabulary; no runtime changes the active model, effort, or configuration automatically.

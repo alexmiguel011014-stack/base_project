@@ -80,6 +80,7 @@ jobs:
           test -f "$CLAUDE_HOME/commands/wpp.md"
           test -f "$CLAUDE_HOME/commands/status.md"
           test -f "$CLAUDE_HOME/commands/update.md"
+          test -f "$CLAUDE_HOME/commands/updates.md"
           test -f "$CLAUDE_HOME/commands/uninstall.md"
           test -f "$CLAUDE_HOME/commands/bootstrap.md"
           test -f "$CLAUDE_HOME/commands/audit.md"
@@ -108,6 +109,7 @@ jobs:
           test -f "$OPENCODE_HOME/command/wpp.md"
           test -f "$OPENCODE_HOME/command/status.md"
           test -f "$OPENCODE_HOME/command/update.md"
+          test -f "$OPENCODE_HOME/command/updates.md"
           test -f "$OPENCODE_HOME/command/uninstall.md"
           test -f "$OPENCODE_HOME/command/bootstrap.md"
           test -f "$OPENCODE_HOME/command/audit.md"
@@ -129,7 +131,8 @@ jobs:
           test -f "$BASE_PROJECT_CODEX_ROOT/hooks.json"
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/wpp/SKILL.md"
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/newgoal/SKILL.md"
-          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "20"
+          test -f "$BASE_PROJECT_AGENTS_ROOT/skills/updates/SKILL.md"
+          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
           node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1) process.exit(1)"
           node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
           echo "install.sh: all expected artifacts present and settings.json is valid JSON"
@@ -170,6 +173,7 @@ jobs:
             (Join-Path $claudeHome "commands\wpp.md"),
             (Join-Path $claudeHome "commands\status.md"),
             (Join-Path $claudeHome "commands\update.md"),
+            (Join-Path $claudeHome "commands\updates.md"),
             (Join-Path $claudeHome "commands\uninstall.md"),
             (Join-Path $claudeHome "commands\bootstrap.md"),
             (Join-Path $claudeHome "commands\audit.md"),
@@ -198,6 +202,7 @@ jobs:
             (Join-Path $opencodeHome "command\wpp.md"),
             (Join-Path $opencodeHome "command\status.md"),
             (Join-Path $opencodeHome "command\update.md"),
+            (Join-Path $opencodeHome "command\updates.md"),
             (Join-Path $opencodeHome "command\uninstall.md"),
             (Join-Path $opencodeHome "command\bootstrap.md"),
             (Join-Path $opencodeHome "command\audit.md"),
@@ -218,7 +223,8 @@ jobs:
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\goal-types\build.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json"),
             (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\wpp\SKILL.md"),
-            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\newgoal\SKILL.md")
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\newgoal\SKILL.md"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\updates\SKILL.md")
           )
           foreach ($path in $expected) {
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
@@ -229,7 +235,7 @@ jobs:
           $codexHooks = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json
           $codexGoalsGroups = @($codexHooks.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
           if ($codexGoalsGroups.Count -ne 1 -or $codexGoalsGroups[0].matcher -ne "apply_patch|Edit|Write|MultiEdit") { throw "Expected exactly one narrow Codex GOALS validation hook" }
-          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 20) { throw "Expected exactly 20 Codex skills" }
+          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 21) { throw "Expected exactly 21 Codex skills" }
           Write-Output "install.ps1: all expected artifacts present and settings.json is valid JSON"
 
       - name: Re-run installer to confirm it's idempotent (Linux/macOS)
@@ -262,6 +268,7 @@ jobs:
           export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           bash dev/scripts/install.sh --opencode-commands lite
           grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
+          test -f "$OPENCODE_HOME/command/updates.md"
           test "$(cat "$HOME/.base_project/opencode-command-profile.txt")" = "lite"
           # re-running with no flag must keep 'lite' (state-file default), not silently reset to dense
           bash dev/scripts/install.sh
@@ -282,6 +289,7 @@ jobs:
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands lite
           $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
           if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite ship.md missing '(lite)' marker" }
+          if (-not (Test-Path (Join-Path $opencodeHome "command\updates.md"))) { throw "lite updates.md missing" }
           $profileFile = Join-Path $HOME ".base_project\opencode-command-profile.txt"
           if ((Get-Content $profileFile -Raw).Trim() -ne "lite") { throw "profile state file did not persist 'lite'" }
           # re-running with no flag must keep 'lite' (state-file default), not silently reset to dense
