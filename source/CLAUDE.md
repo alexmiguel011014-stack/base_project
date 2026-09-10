@@ -42,6 +42,25 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
    the model case for human-in-the-loop: even a copied test database was external sensitive data,
    so it required explicit approval first.
 
+### Multi-agent branching & worktrees
+- Non-trivial work happens on its own `<agent-id>/<slug>` branch, never directly on `main` (or
+  the repository's actual default branch — resolve it the way `/ship` already does, never
+  assume it). `<agent-id>` is a short lowercase identifier for whichever AI is doing the work
+  (`claude`, `codex`, `opencode`, or another explicit identifier); `<slug>` is a short
+  kebab-case description of the task. This generalizes to any AI the same shape Claude Code's
+  own worktree feature already uses by default (`claude/<slug>`).
+- Prefer the native `EnterWorktree` tool (or the `--worktree` flag) over a manual
+  `git worktree add` — it already isolates file edits, blocks writes to the main checkout, and
+  handles cleanup. Fall back to a manual `git worktree add -b <agent-id>/<slug>` only where no
+  native equivalent exists.
+- Check the current branch before starting non-trivial work; if it's the default branch, create
+  or enter the right branch/worktree first instead of deferring that to the user.
+- `main` only receives reviewed, merged work through `/pr`; no AI pushes work-in-progress
+  directly to it. Once a branch merges, remove its worktree and branch (`git worktree remove`,
+  delete the branch) instead of leaving it to accumulate.
+- Why this exists: more than one AI editing the same project without this isolation is exactly
+  how a real incident (an ERP project) ended with colliding changes.
+
 ### Autonomy & Confirmations
 - Once the user has authorized a task, perform ordinary, reversible, in-scope implementation
   and verification steps without repeatedly asking permission.

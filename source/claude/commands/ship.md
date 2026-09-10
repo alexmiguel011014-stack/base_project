@@ -126,7 +126,10 @@ guiding through any blocker instead of failing silently or working around it.
    remote. This exact confusion has happened for real — flag it explicitly, every time,
    don't rely on the user already knowing how GitHub's default-branch view works. Mention
    `/pr` as the concrete next step to open the merge — do not run it unless asked; this
-   command's scope is shipping the branch, not merging it.
+   command's scope is shipping the branch, not merging it. Pushing the default branch directly
+   from an agent session is exactly the case `CLAUDE.md`'s "Multi-agent branching & worktrees"
+   rule exists to avoid — mention it, but this command still ships whatever branch it's asked
+   to; it does not block the push.
 
 10. Report: what was committed (message + file count), what was pushed (branch → remote,
     commit range), **whether the pushed branch is the repo's default branch — and if not,

@@ -25,6 +25,10 @@ Map the current project for token-efficient AI context:
        fails or conflicts, stop and report it verbatim — never resolve automatically.
      - Ahead of remote, or diverged: don't touch it — that decision belongs to `/ship` (or
        the user's own merge/rebase). Just note it in the final report.
+   - If the current branch is this repo's default branch and non-trivial work is about to
+     start, follow `AGENTS.md`'s "Multi-agent branching & worktrees" rule (create an
+     `<agent-id>/<slug>` branch/worktree) before editing — don't start substantive changes
+     directly on the default branch.
 2. Check this project's `.gitignore` for `graphify-out/` and `repomix-output.xml`. If either is missing, append
    it (create `.gitignore` if the project doesn't have one yet) — these are generated artifacts and must never
    be committed.

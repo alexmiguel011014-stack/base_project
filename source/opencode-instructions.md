@@ -42,6 +42,22 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
    the model case for human-in-the-loop: even a copied test database was external sensitive data,
    so it required explicit approval first.
 
+### Multi-agent branching & worktrees
+- Non-trivial work happens on its own `<agent-id>/<slug>` branch, never directly on `main` (or
+  the repository's actual default branch — resolve it the way `/ship` already does, never
+  assume it). `<agent-id>` is a short lowercase identifier for whichever AI is doing the work
+  (`claude`, `codex`, `opencode`, or another explicit identifier); `<slug>` is a short
+  kebab-case description of the task.
+- opencode has no native worktree tool, so create one manually before editing:
+  `git worktree add ../<repo>-<agent-id>-<slug> -b <agent-id>/<slug>`, then work inside that
+  directory — this keeps a concurrent AI (or a human) from editing the same working directory
+  or branch at once.
+- `main` only receives reviewed, merged work through `/pr`; no AI pushes work-in-progress
+  directly to it. Once a branch merges, remove its worktree and branch (`git worktree remove`,
+  delete the branch) instead of leaving it to accumulate.
+- Why this exists: more than one AI editing the same project without this isolation is exactly
+  how a real incident (an ERP project) ended with colliding changes.
+
 ### Autonomy & Confirmations
 - Once the user has authorized a task, perform ordinary, reversible, in-scope implementation
   and verification steps without repeatedly asking permission.

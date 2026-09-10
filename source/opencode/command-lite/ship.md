@@ -64,7 +64,10 @@ Compare `git log --oneline -1` locally against the remote tip (`git ls-remote`, 
 STEP 9 — Check the default branch.
 Find the repo's real default branch: `gh repo view --json defaultBranchRef` if `gh` is available, otherwise `git remote show origin`. Never assume it is `main` or `master`.
 If the branch just pushed is NOT the default branch: this needs a clear, visible warning, not a footnote. Tell the user plainly: GitHub's repo homepage shows the default branch, so this push will not show up there until the branch is merged. The push worked — it just is not visible on the main repo page yet.
-Mention `/pr` as the way to open that merge. Do not run `/pr` yourself.
+Mention `/pr` as the way to open that merge. Do not run `/pr` yourself. Pushing the default
+branch directly from an agent session is exactly the case `AGENTS.md`'s "Multi-agent branching
+& worktrees" rule exists to avoid — mention it, but still ship whatever branch was asked;
+this command does not block the push.
 
 STEP 10 — Report.
 State plainly:

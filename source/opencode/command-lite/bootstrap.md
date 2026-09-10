@@ -16,6 +16,9 @@ STEP 2 — Sync this project's own remote (a different repo from step 1):
   - Up to date → continue.
   - Behind, fast-forward possible → `git pull` (plain, no `--rebase`/`--force`). If it fails or conflicts, stop and show the error exactly.
   - Ahead of remote, or diverged → don't touch it, note it in the final report.
+- If the current branch is this repo's default branch and non-trivial work is about to start,
+  follow `AGENTS.md`'s "Multi-agent branching & worktrees" rule (create an `<agent-id>/<slug>`
+  branch/worktree) before editing.
 
 STEP 3 — Check this project's `.gitignore` for `graphify-out/` and `repomix-output.xml`. Add whichever is missing (create `.gitignore` first if the project has none).
 

@@ -28,6 +28,21 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 4. **Plan is not execution** — a planning or research skill such as `$newgoal` or `$repertoire` never implements its output in the same turn. `$execgoals`, or a separate explicit request, performs execution.
 5. **Tiered autonomy** — classify every action before taking it: **auto-approved** for routine, reversible work inside the current repository; **notify-and-proceed** for an in-scope, reversible change whose visible effect should be stated before continuing; and **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice, data/state outside base_project's own repository, sensitive data, credentials, or external publication. Decide from reversibility, scope of affected state, and data sensitivity — not from whether the action merely looks technically easy. The ERP database compatibility test is the model case for human-in-the-loop: even a copied test database was external sensitive data, so it required explicit approval first.
 
+### Multi-Agent Branching and Worktrees
+- Non-trivial work happens on its own `<agent-id>/<slug>` branch, never directly on `main` (or
+  the repository's actual default branch, resolved the same way `$ship` already does, never
+  assumed). `<agent-id>` is a short lowercase identifier for whichever AI is doing the work
+  (`claude`, `codex`, `opencode`, or another explicit identifier); `<slug>` is a short
+  kebab-case task description.
+- Codex has no native worktree tool, so create one manually before editing:
+  `git worktree add ../<repo>-<agent-id>-<slug> -b <agent-id>/<slug>`, then work inside that
+  directory, so a concurrent AI or human never edits the same working directory or branch.
+- `main` only receives reviewed, merged work through `$pr`; never push work-in-progress
+  directly to it. Once a branch merges, remove its worktree and branch (`git worktree remove`,
+  delete the branch) instead of leaving it to accumulate.
+- Why this exists: more than one AI editing the same project without this isolation is exactly
+  how a real incident (an ERP project) ended with colliding changes.
+
 ### Autonomy and Confirmations
 - Once the user authorizes a task, perform ordinary, reversible, in-scope implementation and verification without repeatedly asking permission.
 - Ask only when a choice materially changes scope, an action is destructive or difficult to recover, credentials or external publication are involved, or a workflow defines its own explicit safety gate such as `$council`, `$pr`, `$uninstall`, or destructive tiers of `$undo`.

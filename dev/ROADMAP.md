@@ -2217,6 +2217,39 @@ em U15.12.
 
 ---
 
+## 53. Política de branch/worktree por agente de IA (2026-09-10)
+
+**Problema**: o usuário teve um incidente real num projeto de ERP — mais de uma IA editou o
+mesmo projeto sem convenção de branch/worktree, e as mudanças colidiram. O pedido foi uma
+regra geral (não só para este repositório) para toda IA manter sua própria branch e,
+idealmente, seu próprio worktree físico.
+
+**Implementação**: GOALS 16 (B.1–B.10) adota `<agent-id>/<slug>` como convenção — `<agent-id>`
+identifica a IA (`claude`, `codex`, `opencode`, ou outro identificador explícito), `<slug>`
+descreve a tarefa. Isso generaliza o pedido original do usuário (uma branch persistente por IA,
+`Branch_<AIName>`) para o mesmo formato que o Claude Code já usa automaticamente
+(`claude/<slug>`) — confirmado ao vivo na documentação oficial durante o `/newgoal`: não existe
+hoje um jeito suportado de o `CLAUDE.md` sobrescrever esse nome automático
+([anthropics/claude-code#85998](https://github.com/anthropics/claude-code/issues/85998), ainda
+não implementado), então a regra não tenta brigar com isso — ela padroniza o mesmo formato para
+Codex/OpenCode, que não têm nenhum mecanismo nativo equivalente. A regra foi adicionada a
+`source/CLAUDE.md`, `source/opencode-instructions.md` e `source/codex/AGENTS.md` (nova seção
+"Multi-agent branching & worktrees", logo após "Workflow"/"Autonomy"), a
+`project-standards.md` (novo item em "Version control"), e referenciada — sem duplicar o texto
+— pelas 4 variantes de `bootstrap.md`/SKILL.md e pelas 4 variantes de `ship.md`/SKILL.md.
+`main` só recebe trabalho revisado via `/pr`; `/ship` continua enviando qualquer branch pedida,
+sem bloqueio novo — só um aviso quando a branch enviada é a branch padrão do repositório.
+
+**Validação**: `dev/tests/branch-worktree-policy.test.js` (5/5) cobre as três camadas de
+instrução global, o item novo do checklist, e a referência (não duplicação) nas 4+4 variantes
+de bootstrap/ship. `npm run verify` e `npm run test:harness` permanecem verdes.
+
+**Limite**: isto é texto de instrução, não código executável — nenhum teste prova que um
+modelo probabilístico vai de fato seguir a convenção em uma sessão real; essa é a mesma
+limitação já registrada para `/newgoal`/`/repertoire` (GOALS 7) e para H.3 (GOALS 8).
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

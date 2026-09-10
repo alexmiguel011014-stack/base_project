@@ -18,6 +18,9 @@ this is not a rigid ruler.
 - `.gitignore` covers generated artifacts, dependencies (`node_modules/`, `.venv/`,
   `dist/`, `graphify-out/`) and secrets (`.env`).
 - No real secret (API key, token, password) committed in the history.
+- If more than one AI/agent develops this project (concurrently or across sessions), each one
+  works on its own `<agent-id>/<slug>` branch/worktree instead of committing directly on
+  `main` — not every project needs this (a single-agent project has nothing to isolate from).
 
 ## 3. Secrets and configuration
 - Runtime secrets come from `.env` (gitignored), not hardcoded in the source.
