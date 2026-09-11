@@ -18,7 +18,15 @@ rewrite anything in this command.
      (build output, logs, `node_modules`, `__pycache__`, editor temp files), empty
      files/folders, files with no incoming reference (unimported module, orphaned
      script) — verify with a real grep for the filename before calling something dead,
-     don't infer from name alone.
+     don't infer from name alone. When `graphify-out/GRAPH_REPORT.md` exists, its
+     `## Knowledge Gaps` section (isolated nodes, thin communities) already lists
+     disconnected candidates — start there, then confirm with `graphify affected "<path>"`
+     (follows resolved graph edges, stronger proof than a text grep) before calling
+     something dead. An isolated node is a signal to verify, not proof: frameworks that
+     wire modules by convention or reflection (DI containers, ORM folder auto-discovery,
+     dynamic imports, config-driven routing) won't show edges the extractor can resolve —
+     name the specific isolated node/community from the report rather than claiming "looks
+     disconnected". Fall back to grep alone when Graphify or `graphify-out/` isn't available.
    - **Misplaced structure**: files sitting at the project root that belong in a
      subfolder by the language/framework's own convention, or a subfolder whose contents
      don't match its name.
@@ -29,8 +37,9 @@ rewrite anything in this command.
      kebab-case/camelCase/snake_case across sibling files without a reason).
 
 3. For each finding, state the concrete evidence (the grep that found zero references,
-   the two files that are near-duplicates, the path that breaks convention) — not a
-   vague "this looks messy". Severity is about impact on navigability, not correctness:
+   the `graphify affected` trace that found no dependents, the Knowledge Gaps entry it
+   matches, the two files that are near-duplicates, the path that breaks convention) — not
+   a vague "this looks messy". Severity is about impact on navigability, not correctness:
    use `high` (actively misleading or duplicated logic), `medium` (clutter that slows
    down finding things), `low` (cosmetic, e.g. naming).
 

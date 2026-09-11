@@ -54,6 +54,12 @@ this is not a rigid ruler.
   arbitrary mix that makes navigation harder).
 - No giant file doing everything once the project has grown enough to justify splitting
   it (a judgement of scale, not a fixed size rule).
+- When `graphify-out/GRAPH_REPORT.md` exists, its `## Knowledge Gaps` section is the
+  preferred deterministic check for this item — cite the specific isolated nodes/thin
+  communities named there instead of eyeballing the tree. An isolated node is a signal to
+  verify, not proof of dead code: frameworks that wire modules by convention or reflection
+  (DI containers, ORM folder auto-discovery, dynamic imports, config-driven routing) won't
+  show edges the extractor can resolve.
 
 ---
 

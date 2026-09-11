@@ -25,6 +25,14 @@ never edit files in this command.
    - Note: `/audit` goes deeper on the security axis (gitleaks/trufflehog/strix for
      secret scanning, outdated packages). §8 here is a quick pass — run `/audit`
      separately if you want the full picture.
+   - For §9 (Structure): when `graphify-out/GRAPH_REPORT.md` exists, read its
+     `## Knowledge Gaps` section (isolated nodes, thin communities) and cite the specific
+     ones named there instead of eyeballing the tree; also check its "Graph Freshness"
+     section — if `built_at_commit` doesn't match `git rev-parse HEAD`, note that the
+     structural finding may be based on a stale graph and suggest `/bootstrap` first. An
+     isolated node is a signal to verify, not proof: convention/reflection-based wiring (DI
+     containers, ORM folder auto-discovery, dynamic imports) won't show as a graph edge.
+     Falls back to manual tree inspection when `graphify-out/` is absent.
 
 3. Score each checklist item as `ok` / `missing` / `broken`, with severity (`critical` /
    `medium` / `low`) and file/line when applicable — same shape `reviewer` already uses

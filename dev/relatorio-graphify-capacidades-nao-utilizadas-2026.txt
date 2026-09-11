@@ -1,0 +1,300 @@
+================================================================================
+RELATORIO - O QUE O GRAPHIFY PODE NOS DIZER (E O QUE NAO ESTAMOS USANDO)
+Pesquisa: setembro/2026
+Gatilho: rodou /bootstrap no projeto ERP e viu varias "pastinhas sem
+         conectividade" no graph.html - isso e sinal de lixo acumulado
+         ou de estrutura mal desenhada?
+================================================================================
+
+Documento de pesquisa (tipo "research" do /newgoal). Nao ha GOALS.md associado
+de proposito: o pedido foi "entender e listar", nao "construir algo" - se
+depois de ler isso a decisao for agir sobre algum item, isso vira um /newgoal
+separado (tipicamente tipo feature ou process) apontando para a secao 3 abaixo.
+
+Nada aqui foi implementado. E um mapa do que a ferramenta ja sabe fazer.
+
+
+================================================================================
+0. METODOLOGIA / FONTES
+================================================================================
+
+Nao existe um projeto "ERP" neste repositorio para inspecionar diretamente -
+o pedido descreve uma sessao anterior, em outro projeto, rodando /bootstrap.
+Este relatorio responde com base em duas fontes verificadas nesta maquina:
+
+(a) `graphify --help` (binario resolvido via `uv tool` em
+    C:\Users\<user>\.local\bin\graphify, versao 0.9.58 - e o binario que
+    fica no PATH e que os comandos do base_project chamam).
+
+(b) Leitura do codigo-fonte do pacote `graphifyy` (copia pip 0.9.32 em
+    site-packages\graphify - ver nota no item 4.9 sobre essa duplicata),
+    em particular: report.py, cluster.py, analyze.py, detect.py, serve.py,
+    hooks.py, reflect.py, benchmark.py, tree_html.py, callflow_html.py,
+    affected.py, prs.py, pg_introspect.py, global_graph.py. Referencias de
+    linha abaixo apontam para esses arquivos.
+
+(c) grep em source/ deste repositorio (bootstrap.md, cleanproject.md,
+    scanproject SKILL.md, architect.md/toml) para confirmar o que o
+    base_project hoje realmente pede para o modelo fazer com o Graphify -
+    e, por omissao, o que nunca e mencionado em nenhum comando.
+
+(d) Confirmado que o `graphify-mcp` (servidor MCP do Graphify) nao esta
+    registrado nem em ~/.claude nem em ~/.config/opencode/mcp.json nesta
+    maquina - ou seja, e uma capacidade zero-uso, nao so subutilizada.
+
+
+================================================================================
+1. PERGUNTA PRECISA QUE ESTE RELATORIO RESPONDE
+================================================================================
+
+Duas perguntas, tratadas juntas porque a segunda explica a primeira:
+
+  1.1) Quando o graph.html mostra "pastinhas" (nos/comunidades) sem linhas
+       ligando ao resto do grafo, o que isso siginifica tecnicamente - e o
+       que isso permite concluir sobre a saude estrutural de um projeto?
+
+  1.2) Das dezenas de subcomandos e artefatos que o Graphify sabe gerar,
+       quais o base_project (bootstrap/cleanproject/scanproject/architect)
+       usa hoje, e quais ficam parados - especialmente os uteis para
+       responder exatamente ao tipo de pergunta em 1.1?
+
+
+================================================================================
+2. RESPOSTA - O QUE UMA "PASTINHA SEM CONECTIVIDADE" REALMENTE SIGNIFICA
+================================================================================
+
+2.1 Como o grafo decide o que e "conectado"
+--------------------------------------------
+
+O Graphify nao usa a estrutura de pastas para decidir conectividade. Ele
+constroi um grafo de ARESTAS EXTRAIDAS: imports, chamadas de funcao,
+heranca, referencias semanticas (LLM), etc. Depois roda deteccao de
+comunidade (Leiden via graspologic, ou Louvain do networkx como fallback -
+cluster.py:22-77) para agrupar nos densamente conectados em "comunidades".
+Uma pasta so aparece "isolada" no grafo se os ARQUIVOS dentro dela nao tem
+nenhuma aresta real (extraida ou inferida) ligando a qualquer outro arquivo
+do resto do projeto.
+
+O GRAPH_REPORT.md que o `graphify cluster-only` gera ja tem uma secao
+dedicada a exatamente isso - "## Knowledge Gaps" (report.py:252-278) -
+com duas categorias:
+
+  - "isolated node(s)": qualquer no com grau <= 1 (excluindo nos que sao so
+    "arquivo" ou "conceito" genericos) - ou seja, quase nenhuma relacao com
+    o resto do grafo (report.py:255-261).
+  - "thin communities": comunidades com menos de `min_community_size`
+    (default 3) nos reais - pequenos bolsoes que o Louvain/Leiden isolou
+    do resto porque tem poucas ou nenhuma aresta cruzando a fronteira
+    (report.py:262-266, 275-276).
+
+Isso ja existe hoje, gerado automaticamente por `graphify cluster-only .`
+(chamado pelo /bootstrap) - so nao e algo que os comandos do base_project
+leem ou reportam para o usuario. O sinal ja esta la, sub-aproveitado.
+
+2.2 O que isso significa na pratica - "e lixo" ou "e so cego"?
+-----------------------------------------------------------------
+
+As duas coisas sao possiveis, e o grafo sozinho nao decide qual:
+
+  SINAL REAL DE LIXO/ESTRUTURA RUIM, quando a pasta isolada e:
+  - codigo/modulo legado que ninguem mais chama (feature descontinuada,
+    versao antiga mantida "por seguranca").
+  - scaffolding gerado por um gerador de projeto (CLI de framework, wizard
+    de IDE) que nunca foi de fato ligado ao resto do app.
+  - copia duplicada de algo que existe em outro lugar do repo (o Graphify
+    tem ate um pipeline de deduplicacao de entidades - dedup.py - que
+    existe justamente porque isso acontece com frequencia: mesma classe
+    extraida de dois arquivos por causa de copy-paste ou symlink).
+
+  FALSO POSITIVO (a pasta e usada, o Graphify so nao "ve" a ligacao):
+  - modulos carregados por convencao/reflexao (plugin loader, DI container,
+    ORM que escaneia uma pasta inteira por nome de convencao) - MUITO
+    comum em ERPs organizados em modulos de negocio (Financeiro/, RH/,
+    Faturamento/) descobertos em runtime, nao por import estatico.
+  - imports dinamicos (`require(variavel)`, `importlib.import_module`,
+    rotas registradas via arquivo de config) que o extrator AST nao
+    resolve como aresta.
+  - pasta de docs/assets/config legitima, que tem poucas arestas de codigo
+    por natureza (nao e um problema, so um no fraco no grafo).
+
+Conclusao pratica: uma pasta isolada e um SINAL A INVESTIGAR, nao uma prova
+de lixo. O numero de pastas isoladas listadas em "Knowledge Gaps" e uma
+metrica legitima de saude estrutural (relaciona direto com o item 9 -
+"Structure" - do checklist project-standards.md que /scanproject usa), mas
+cada uma precisa de uma checagem de 30 segundos antes de qualquer decisao
+de apagar algo.
+
+2.3 Workflow concreto para investigar cada pasta isolada do projeto ERP
+--------------------------------------------------------------------------
+
+Sequencia de comandos (todos ja instalados, nenhum precisa de LLM exceto
+onde marcado):
+
+  1. Abrir a secao "## Knowledge Gaps" do graphify-out/GRAPH_REPORT.md -
+     lista pronta dos nos/comunidades isoladas (ja gerada, nunca lida).
+  2. `graphify explain "<nome_do_arquivo_ou_pasta>"` - explicacao em
+     linguagem natural do no e vizinhos (nao usado hoje por nenhum comando
+     do base_project).
+  3. `graphify affected "<arquivo>"` - trace reverso: o que quebraria se
+     esse arquivo fosse removido (affected.py). Se a resposta for "nada",
+     e evidencia a favor de remocao segura.
+  4. `graphify god-nodes --top 20` - contraste: ver quais arquivos SAO os
+     hubs centrais ajuda a calibrar visualmente o que "conectado" parece
+     nesse grafo especifico, antes de julgar o que esta isolado.
+  5. So depois de 2-4 apontarem "sem uso real", tratar como candidato a
+     limpeza via /cleanproject (que hoje decide isso so por leitura manual
+     de imports, nao por essas ferramentas deterministicas).
+
+
+================================================================================
+3. INVENTARIO - CAPACIDADES DO GRAPHIFY QUE O BASE_PROJECT NAO USA HOJE
+================================================================================
+
+O que o base_project usa hoje, confirmado por grep em source/ (item 0c):
+apenas `graphify .` (extracao completa), `graphify cluster-only .` (gera
+GRAPH_REPORT.md + graph.html quando faltam) e abrir o graph.html no
+navegador. So isso, em bootstrap.md. cleanproject.md e scanproject/SKILL.md
+so dizem "olhe para graphify-out/ em vez de escanear tudo" - nunca citam
+um subcomando especifico. E o fim da lista de uso atual.
+
+Abaixo, tudo que fica parado, agrupado por tipo, do mais barato/imediato
+para o mais estrutural. (fonte: `graphify --help`, v0.9.58)
+
+3.1 Comandos de analise sobre o grafo que JA EXISTE (custo zero de LLM)
+--------------------------------------------------------------------------
+  - `graphify god-nodes` - hubs mais conectados (arquitetura real vs a
+    pretendida). Direto aplicavel a pergunta "o projeto foi bem
+    estruturado?" do pedido original.
+  - `graphify query "<pergunta>" --budget N` - busca BFS no grafo com
+    teto de tokens - e literalmente a promessa de "contexto eficiente em
+    tokens" que bootstrap.md anuncia, mas nenhum comando chama isso; hoje
+    o modelo so le graph.json/GRAPH_REPORT.md inteiro.
+  - `graphify affected "X"` - trace reverso de impacto (usado no workflow
+    do item 2.3, mas seria igualmente util em /execgoals e /fixproject
+    antes de qualquer edicao arriscada).
+  - `graphify path "A" "B"` - menor caminho entre dois nos.
+  - `graphify explain "X"` - explicacao em linguagem natural de um no.
+  - `graphify diagnose multigraph` - relatorio de risco de colapso de
+    arestas paralelas (diagnostics.py) - relevante antes de confiar
+    demais em contagens de grau (o "isolated node" do item 2 pode estar
+    levemente errado se o grafo tiver esse problema).
+
+3.2 Formatos de saida gerados a partir do MESMO graph.json, nunca pedidos
+--------------------------------------------------------------------------
+  - `graphify tree` - view em arvore D3 colapsavel (tree_html.py) -
+    complementa o graph.html force-directed, mais facil de navegar por
+    pasta do que por forca-fisica quando o objetivo e justamente auditar
+    estrutura de diretorios.
+  - `graphify export callflow-html` - HTML com diagramas Mermaid de
+    arquitetura/call-flow (callflow_html.py) - poderia alimentar direto o
+    ARCHITECTURE.md do projeto ou os flowcharts que /newgoal ja pede para
+    cada secao do GOALS.md, em vez do modelo desenhar o Mermaid de cabeca.
+  - `graphify export obsidian` / `export wiki` - vira nota por comunidade
+    + artigos estilo wikipedia navegaveis por um agente (wiki.py) - uso
+    direto como "documentacao viva" gerada, nao escrita a mao.
+  - `graphify export svg` / `graphml` / `neo4j` / `falkordb` - formatos
+    para levar o grafo a outra ferramenta (Neo4j Browser, Gephi, etc.).
+
+3.3 Frescor do grafo - hoje depende 100% de rodar /bootstrap de novo
+--------------------------------------------------------------------------
+  - `graphify update <path>` - re-extracao incremental SEM custo de LLM
+    (so re-roda o parser AST) - mais barato que o `graphify .` completo
+    que bootstrap.md chama toda vez.
+  - `graphify watch <path>` - reconstroi o grafo sozinho a cada mudanca de
+    arquivo, em background.
+  - `graphify check-update <path>` - flag "precisa re-extrair" barata,
+    segura para rodar em cron (watch.py).
+  - `graphify hook install` - hooks de git post-commit/post-checkout que
+    mantêm o graphify-out/ sempre atualizado sozinho (hooks.py) - resolve
+    de vez o problema de "o grafo ficou desatualizado entre bootstraps"
+    sem precisar lembrar de rodar nada.
+
+3.4 Interface viva - hoje so existem arquivos estaticos
+--------------------------------------------------------------------------
+  - `graphify-mcp` (`graphify serve`) - servidor MCP expondo o grafo como
+    ferramentas que um agente chama ao vivo: query_graph, get_node,
+    get_neighbors, get_community, god_nodes, graph_stats, shortest_path,
+    list_prs, get_pr_impact, triage_prs (serve.py:1349-1457). CONFIRMADO
+    ausente da config MCP do Claude Code e do OpenCode nesta maquina (item
+    0d) - e a unica capacidade desta lista com uso zero, nao so baixo. Hoje
+    o modelo le um JSON estatico inteiro; com isso registrado, poderia
+    fazer perguntas pontuais sem carregar o grafo inteiro no contexto.
+
+3.5 Memoria entre sessoes - existe um loop de aprendizado pronto e ocioso
+--------------------------------------------------------------------------
+  - `graphify save-result --outcome useful|dead_end|corrected` - registra
+    se uma resposta baseada no grafo foi util, um beco sem saida, ou
+    precisou de correcao (querylog.py / reflect.py).
+  - `graphify reflect` - agrega isso num LESSONS.md deterministico, que o
+    proprio GRAPH_REPORT.md ja sabe exibir numa secao "## Work-memory
+    lessons" quando existe (report.py:280-285, ja implementado, so nunca
+    alimentado). Isso e conceitualmente irmao do sistema de memoria do
+    proprio base_project (~/.claude/.../memory/) - hoje sao dois sistemas
+    de memoria paralelos que nao se falam.
+
+3.6 Introspeccao de banco de dados e outros repos - relevante para um ERP
+--------------------------------------------------------------------------
+  - `graphify extract --postgres DSN` - mapeia schema de um Postgres vivo
+    (tabelas, views, funcoes, FKs) direto pro grafo (pg_introspect.py).
+    Um ERP quase certamente tem um banco relacional real por tras - hoje
+    o grafo dele so teria codigo, nunca o schema que o codigo manipula.
+  - `graphify extract --cargo` - deps crate-a-crate para workspaces Rust.
+  - `graphify merge-graphs` / `graphify global add|list` - grafo unico
+    cruzando varios repositorios (util se o ERP for multi-repo/
+    microservicos, ou para cruzar o grafo do ERP com o do base_project).
+
+3.7 Outros achados pontuais
+--------------------------------------------------------------------------
+  - `graphify prs` - dashboard de PRs (estado de CI/review, mapeamento de
+    worktree, e quais COMUNIDADES do grafo cada PR toca) - o base_project
+    ja tem convencao propria de worktrees por agente (<agent-id>/<slug>);
+    esse comando da uma visao de "raio de impacto estrutural" de cada PR
+    que hoje nenhum comando (/pr incluso) oferece.
+  - `graphify benchmark` - mede a reducao real de tokens do Graphify vs
+    escanear o repo inteiro (benchmark.py) - daria um numero concreto para
+    sustentar a regra "Token Economy" do CLAUDE.md, hoje uma afirmacao sem
+    medicao.
+
+3.8 Achado incidental (fora do escopo, so registrando)
+--------------------------------------------------------------------------
+  - Ha DUAS instalacoes do pacote `graphifyy` nesta maquina: uma via `uv
+    tool` (0.9.58, isolada, e a que o PATH usa) e uma via pip solta em
+    site-packages\graphify (0.9.32, mais antiga, sem nada apontando pra
+    ela). E exatamente o tipo de "pastinha sem conectividade" da pergunta
+    original, so que no ambiente Python local em vez de num repositorio -
+    nao afeta nada hoje, mas e peso morto. Remocao: `pip uninstall
+    graphifyy` (a copia pip, no ambiente global do sistema) - so quando o
+    usuario quiser, nao decidido aqui.
+
+
+================================================================================
+4. RECOMENDACAO (nao e um to-do - e o que eu priorizaria se virar goal)
+================================================================================
+
+Se o proximo passo for agir sobre isso (um /newgoal separado, tipo feature
+ou process, nao deste documento), a ordem de impacto/esforco que eu
+recomendaria:
+
+  1. (mais barato, maior retorno) Ensinar bootstrap.md e cleanproject.md a
+     LER a secao "## Knowledge Gaps" do GRAPH_REPORT.md que ja e gerada
+     hoje, em vez de ignora-la - zero mudanca no Graphify, so no que o
+     comando reporta ao usuario.
+  2. Trocar `graphify .` completo por `graphify update .` (sem custo de
+     LLM) quando o grafo ja existe e so o codigo mudou - bootstrap fica
+     mais rapido e mais barato sem perder informacao.
+  3. `graphify hook install` dentro do fluxo de instalacao, para o grafo
+     nunca ficar desatualizado entre bootstraps.
+  4. Registrar `graphify-mcp` como servidor MCP (mesmo nivel de "so
+     sugerir, nunca instalar sozinho" que o catalogo de plugins do
+     base_project ja usa) - e a maior mudanca de capacidade da lista.
+  5. O resto (exports alternativos, --postgres, prs, benchmark) sao
+     ganhos reais mas de nicho - vale mencionar, nao vale priorizar antes
+     dos 4 acima.
+
+Resposta direta a pergunta que abriu esta pesquisa: nao, "ter varias
+pastinhas sem conectividade" nao prova por si so que o projeto ERP esta
+acumulando lixo - prova que aquelas pastas nao tem relacao EXTRAIDA com o
+resto do codigo, o que e um sintoma compativel tanto com lixo real quanto
+com wiring dinamico que o extrator nao ve. O proprio Graphify ja calcula e
+reporta essa lista (item 2.1); o passo que falta e olhar para ela e
+aplicar o crivo do item 2.3 antes de concluir qualquer coisa.

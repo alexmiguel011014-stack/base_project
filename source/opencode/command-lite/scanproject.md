@@ -14,6 +14,7 @@ STEP 2 — Check each section for real, don't assume from the stack alone:
 - Run the project's own lint/typecheck/test commands if they exist. Read the real output.
 - For dangerous code patterns (unsanitized `eval`, remote-exec pipes, obfuscated strings, zero-width Unicode): run `node ~/.config/opencode/base_project/scripts/scan-skill.js .`. If the script is missing, grep manually for `eval(`, `child_process` exec with string interpolation, and `curl | sh` patterns.
 - `/audit` goes deeper on security (gitleaks/trufflehog/strix, outdated packages) — mention it as a follow-up, this pass is a quick check only.
+- For structure: when `graphify-out/GRAPH_REPORT.md` exists, read its Knowledge Gaps section (isolated nodes, thin communities) and cite the specific ones named there instead of eyeballing the tree; check its Graph Freshness section too — if `built_at_commit` doesn't match `git rev-parse HEAD`, suggest `/bootstrap` first. An isolated node is a signal to verify, not proof — convention/reflection-based wiring won't show as a graph edge. Falls back to manual tree inspection when `graphify-out/` is absent.
 
 STEP 3 — Score each item `ok` / `missing` / `broken`, with severity `critical` / `medium` / `low`, and file/line when applicable.
 

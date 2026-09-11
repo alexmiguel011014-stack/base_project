@@ -8,7 +8,7 @@ This is the active execution context for `/execgoals`. Completed plan bodies liv
 4. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
-The completed bodies for GOALS 1–7, 9–11, and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
+The completed bodies for GOALS 1–7, 9–11, 13, and 16 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
 

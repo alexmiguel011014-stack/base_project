@@ -2217,6 +2217,33 @@ em U15.12.
 
 ---
 
+## 53. Sinais de lacuna estrutural do Graphify em `/cleanproject` e `/scanproject` (2026-09-11)
+
+**Implementação**: GOALS 16 ensina as duas auditorias a ler a seção `## Knowledge Gaps` que
+`graphify cluster-only` (já chamado pelo `/bootstrap`) grava em todo `GRAPH_REPORT.md`, em vez
+de nunca consultá-la. `/cleanproject` passa a checar essa seção primeiro e confirmar com
+`graphify affected "<path>"` (traço reverso sobre o grafo resolvido, mais forte que grep) antes
+de chamar algo de morto; `/scanproject` passa a citar os nós/comunidades isolados nomeados ali
+como evidência do item 9 (Estrutura) de `project-standards.md`, e a checar a seção "Graph
+Freshness" do relatório antes de confiar nele. As quatro projeções de cada comando (Claude,
+OpenCode denso/lite, Codex) e as duas cópias de `project-standards.md` foram atualizadas juntas,
+com teste de contrato (`dev/tests/graphify-structure-signals.test.js`) garantindo paridade e que
+o contrato "somente leitura" de cada variante continua intacto. Verificação manual rodou
+`graphify extract . --code-only --no-cluster` + `graphify cluster-only . --no-label --no-viz`
+neste próprio repositório: a seção Knowledge Gaps saiu não-vazia (410 nós isolados) e
+`graphify affected "indentWidth"` confirmou "No affected nodes found" para um candidato real.
+
+**Limite**: nem `/bootstrap` nem o CLI do Graphify mudaram — o sinal já existia, só não era lido.
+Ficaram de fora deste goal (candidatos registrados em
+`dev/relatorio-graphify-capacidades-nao-utilizadas-2026.txt` para um goal separado):
+`graphify-mcp` como servidor MCP, `graphify hook install`, trocar `graphify .` por
+`graphify update .` no `/bootstrap`, e o uso geral de `god-nodes`/`query`/`--postgres`/`prs`/
+`benchmark`. Um nó isolado continua sendo sinal a verificar, não prova de código morto —
+wiring por convenção/reflexão (DI, ORM por auto-descoberta, import dinâmico) não aparece como
+aresta no grafo, por isso o texto de cada comando carrega essa ressalva explicitamente.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto
