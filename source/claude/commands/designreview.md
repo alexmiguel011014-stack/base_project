@@ -21,7 +21,9 @@ generation via hook would add real latency/cost most of the time it isn't warran
    - Live URL or Claude's own just-produced artifact: use whatever browser/preview automation
      tooling is available in this session to open it, screenshot it at a few widths (desktop/
      tablet/mobile) to catch responsive breakage, and check the console for JS errors that
-     affect the experience. Critique the *rendered* result, not the source code — source-only
+     affect the experience (page captures from that browser/preview tooling — never desktop
+     screen control; if no such tooling is available, ask the user for screenshots at those
+     widths instead). Critique the *rendered* result, not the source code — source-only
      review misses overflow, broken responsive layout, and contrast that only shows up once
      painted. If no such tooling is available in this session, say so plainly and fall back to
      reviewing the source/markup directly rather than silently skipping the check.

@@ -322,6 +322,11 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
       (instructions.match(/<!-- base_project:start -->/g) || []).length,
       1,
     );
+    assert.equal(
+      (instructions.match(/### UI verification & screen control/g) || [])
+        .length,
+      1,
+    );
 
     const hooks = JSON.parse(
       fs.readFileSync(path.join(roots.codex, "hooks.json"), "utf8"),

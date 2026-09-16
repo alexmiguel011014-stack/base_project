@@ -2217,6 +2217,41 @@ em U15.12.
 
 ---
 
+## 53. Controle de tela como último recurso, aprovado explicitamente (2026-09-16)
+
+**Implementação**: GOALS 16 adiciona a seção `### UI verification & screen control` aos três
+blocos globais de regras (`source/CLAUDE.md`, `source/opencode-instructions.md`,
+`source/codex/AGENTS.md`), com texto idêntico byte a byte nos três (provado por
+`dev/tests/ui-verification-rule.test.js`, no mesmo estilo do teste de paridade "Batching and
+stopping"). Define três níveis: (1) testes/CLI/API/logs do próprio projeto primeiro; (2)
+tooling que dirige o app pelo DOM/árvore de acessibilidade (Browser pane + Claude in Chrome no
+Claude Code, `@Browser` + extensão Chrome no Codex, Playwright MCP no opencode) como modo
+padrão de teste de UI; (3) controle de tela desktop (`computer-use` MCP no Claude Code,
+Computer Use no Codex) como último recurso, só com justificativa explícita e aprovação do
+usuário para aquela tarefa específica — nunca como fallback de conveniência. Screenshots de
+desktop nunca são tiradas por iniciativa própria; o agente pede ao usuário, dizendo qual
+janela/estado/viewport precisa. Capturas de *página* feitas pelo próprio tooling de browser
+(ex.: `/designreview` em várias larguras) continuam automáticas — decisão confirmada com o
+dono do projeto via pergunta explícita antes da implementação (S16.4). O gate 4
+("Behavioral proof") dos três agentes `reviewer` e as quatro variantes de `/designreview` foram
+atualizados para não aceitar mais "a screenshot" isolado como prova, e o item "Tiered autonomy"
+dos três blocos globais passou a citar controle de tela como human-in-the-loop. CI
+(`install-test`) ganhou asserções de conteúdo (`grep -q` no Linux/macOS, `Select-String` no
+Windows) confirmando que a seção chega aos arquivos instalados de verdade, não só ao teste do
+instalador em raiz temporária.
+
+**Limite**: testes estruturais e de paridade provam que o texto existe e está posicionado
+corretamente nos três runtimes; não provam que um modelo ao vivo obedece a regra em sessão
+real — isso fica para uma checagem manual separada (S16.15, ainda não executada). Um hook
+`PreToolUse` que bloqueasse `mcp__computer-use__*` de forma determinística ficou fora de
+escopo de propósito (ver "Explicitly out of scope" em GOALS 16) — pode virar goal separado se
+a checagem ao vivo mostrar que a regra sozinha não é suficiente. Durante a execução, um erro
+não relacionado foi descoberto (não introduzido por este trabalho): 10 de 11 checksums
+gravados em `dev/goals-archive/README.md` não batem com o arquivo real — sinalizado como
+tarefa separada, não corrigido aqui.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

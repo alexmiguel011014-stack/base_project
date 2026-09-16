@@ -7,7 +7,7 @@ Run a design review on an external design (a mockup, screenshot, or URL the user
 
 STEP 1 — Identify the input.
 - Image or mockup → read it directly, no tooling needed.
-- Live URL or a UI just produced → use available browser/preview tooling to open it, screenshot it at a few widths (desktop/tablet/mobile), and check the console for JS errors. Critique the rendered result, not just the source — overflow, broken responsive layout, and contrast issues only show up once painted. If no such tooling is available, say so and review the source/markup directly instead.
+- Live URL or a UI just produced → use available browser/preview tooling to open it, screenshot it at a few widths (desktop/tablet/mobile), and check the console for JS errors (page captures from that browser/preview tooling — never desktop screen control; if no such tooling is available, ask the user for screenshots at those widths instead). Critique the rendered result, not just the source — overflow, broken responsive layout, and contrast issues only show up once painted. If no such tooling is available, say so and review the source/markup directly instead.
 
 STEP 2 — Run the deterministic pre-check for any text/background color pair and any tappable element size visible in the input:
 ```

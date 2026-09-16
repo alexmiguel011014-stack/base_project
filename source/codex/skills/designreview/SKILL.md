@@ -6,7 +6,7 @@ description: Review a screenshot, mockup, URL, or newly built interface against 
 
 Critique the actual rendered design, not only source code.
 
-1. Resolve the artifact: attached image, local screenshot, design file, or live URL. If the interface can run locally, use the browser/preview capability and inspect representative viewport sizes.
+1. Resolve the artifact: attached image, local screenshot, design file, or live URL. If the interface can run locally, use the browser/preview capability and inspect representative viewport sizes (page captures from that browser/preview tooling — never desktop screen control; if no such tooling is available, ask the user for screenshots at those widths instead).
 2. Establish the intended audience, task, and constraints from existing context. Ask only for missing information that would materially change the review.
 3. Evaluate visual hierarchy, typography, spacing, alignment, color/contrast, responsive behavior, states and feedback, accessibility, content clarity, consistency, and implementation feasibility.
 4. Use `node ~/.claude/base_project/scripts/contrast-check.js --fg <hex> --bg <hex> [--large]` and `--target <widthxheight>` when objective color or target-size checks apply. The helper path remains shared so existing installations and diaries are not split.
