@@ -482,6 +482,10 @@ Codex reutilizam esse caminho compartilhado.
   toque usadas por `/designreview`
 - `codex.test.js` — paridade nominal 21/21, frontmatter das skills, instalação
   idempotente e preservação de hooks/skills do usuário
+- `ui-verification-rule.test.js` — paridade byte a byte da seção `### UI verification &
+  screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
+  e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
+  isolado como prova
 
 Escopo deliberado: testa lógica de instalador/hook/script, não "qualidade" de skill —
 mesmo princípio que a pesquisa achou no próprio ECC (maior projeto do gênero, só testa 2

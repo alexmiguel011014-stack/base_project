@@ -2,15 +2,255 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
-1. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
-2. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
-3. [**Harness & Loop Engineering Adoption**](#goals-8-harness--loop-engineering-adoption-base_project-feature) — deterministic contract coverage is complete; live-model evaluation remains optional and separately scoped.
-4. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
+1. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
+2. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
+3. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
+4. [**Harness & Loop Engineering Adoption**](#goals-8-harness--loop-engineering-adoption-base_project-feature) — deterministic contract coverage is complete; live-model evaluation remains optional and separately scoped.
+5. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
 The completed bodies for GOALS 1–7, 9–11, and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
+
+---
+
+<a id="goals-16-screen-control-last-resort-and-app-driven-ui-verification"></a>
+## GOALS 16 — Screen-Control Last Resort & App-Driven UI Verification (base_project feature)
+
+No shipped rule says anything about *how* an agent may look at or drive a running app. Both
+runtimes now ship two very different modes: **screen control** (Claude Code's `computer-use`
+MCP server / Codex **Computer Use** — capture the screen, click and type by pixel coordinates,
+take over the foreground) and **app-driving tooling** (Claude Code's Browser pane and Claude in
+Chrome / Codex `@Browser` and its Chrome extension, plus Playwright MCP — drive the app through
+its DOM/accessibility tree with typed inputs and read state back as text, console, and network).
+The owner's experience is that screen control rarely resolves anything while the app-driving
+mode is genuinely useful. This goal adds one shared rule section to the three global rule blocks
+(Claude Code, opencode, Codex) so every runtime tests UIs through the app-driving tooling by
+default, treats screen control as an approval-gated last resort, and asks the user for a
+screenshot instead of capturing the desktop — then aligns the reviewer agents and `/designreview`
+wording, proves parity and installer projection with tests, and registers the change.
+
+```mermaid
+flowchart TD
+    Audit[Audit rule blocks, reviewer agents, designreview wording] --> Design[Fix the three-tier vocabulary and the canonical rule text]
+    Design --> Rules[Add the shared section to the three global rule blocks]
+    Rules --> Agents[Align reviewer agents and the four designreview variants]
+    Agents --> Tests[Parity test, installer projection test, CI content assertions]
+    Tests --> Register[Roadmap entry, README safety row, ARCHITECTURE test list]
+    Register --> Sync[Manual installer sync and fresh-session behavior check]
+```
+
+Suggested: sonnet · high — the edits are text-only, but the block must stay byte-identical across three runtimes, every existing parity test must stay green, and the wording has to be precise enough that a live model actually picks the browser tooling over screen control (Codex equivalent: gpt-5.6-sol · high).
+
+### Design rationale
+
+- [x] **S16.1 Fix the three-tier vocabulary before touching any file** (`architect`) — every
+  later item, test, and doc reuses exactly these names; no synonyms.
+  - **Tier 0 — non-visual proof:** the project's own tests and CLI output, direct HTTP/API calls
+    (`curl`), logs. Always first.
+  - **Tier 1 — app-driving tooling** (the default for any UI check): tools that drive the running
+    app through its DOM/accessibility tree with typed inputs and read state back as text.
+    *Claude Code:* the Browser pane (`preview_start` with `.claude/launch.json`, `navigate`,
+    `find`, `read_page`, `get_page_text`, `form_input`, `computer` with element `ref`s,
+    `read_console_messages`, `read_network_requests`), Claude in Chrome
+    (`mcp__claude-in-chrome__*`), the Playwright MCP from the `/plugins` catalog (entry
+    `playwright`: accessibility tree, no vision), and the iOS Simulator pane. *Codex:* `@Browser`
+    (the desktop app's built-in Browser — documented as unavailable in Codex CLI and the IDE
+    extension), the Browser extension for Chrome, Playwright MCP. *opencode:* Playwright MCP plus
+    the project's test runner.
+  - **Tier 2 — screen control** (last resort, approval-gated): desktop computer use — screen
+    capture, clicks/typing by pixel coordinates, foreground takeover. *Claude Code:* the
+    `computer-use` MCP server (`mcp__computer-use__*`: `screenshot`, `left_click`, `type`, `key`,
+    `open_application`, `request_access`), enabled via Desktop **Settings > General > Computer
+    use** or CLI `/mcp`. *Codex:* **Computer Use** (Plugins > Computer Use; Settings > Computer
+    use; "Always-allowed apps"; macOS since April 2026, Windows since May 2026, foreground
+    takeover on Windows). *opencode:* any desktop-control MCP.
+  **Done when:** the architect confirmed the tiers and the per-runtime mapping above and every
+  later item cites them by these names.
+- [x] **S16.2 Adopt the canonical rule text** (`architect`) — the block below is the research
+  deliverable; S16.5 copies it verbatim. Bullets are single unwrapped lines on purpose: the
+  existing "Batching and stopping" parity test proves a shared block by exact string match across
+  the three global files, and this block is tested the same way (S16.8). No runtime-specific name
+  appears inside it — those go in the per-runtime bullet that follows it (S16.5).
+
+  ```markdown
+  ### UI verification & screen control
+  - Verify behavior through the most precise channel first: the project's own tests and CLI output, direct HTTP/API calls, and logs; then app-driving tooling that drives the running app through its DOM/accessibility tree — typed inputs, form fills, element references, page text, console and network reads. That tooling is the default way to test a UI: drive the flow end to end with it before considering anything else.
+  - Screen control (desktop computer use: capturing the screen and clicking or typing by pixel coordinates, taking over the foreground) is a last resort, not a testing tool — it rarely produces a reliable result. Use it only when the target is a native app with no DOM, API, CLI, or test path, and only after stating why nothing else can reach it and getting the user's explicit go-ahead for that specific task in chat; never because it is available or looks quicker, and never as a fallback when the app-driving tooling reports a problem.
+  - Never take desktop screenshots on your own initiative. When a visual check is genuinely needed (layout, rendering, what the user actually sees), ask the user for a screenshot and say exactly which window, state, and viewport it should show; keep working from tests, DOM, text, and console evidence meanwhile. Page captures produced by the app-driving tooling itself are not screen control, but take them only when the check is visual by nature (a design review at several viewport widths) or the user asked for one — otherwise read the state as text.
+  ```
+
+  **Done when:** the architect confirmed the block states exactly the three rules the owner asked
+  for (app-driving tooling is the testing default; screen control only when entirely necessary
+  and explicitly approved; screenshots are requested from the user) and nothing else, and that
+  no `/`- or `$`-spelled command name is inside the shared block (it would break exact parity
+  between Claude/opencode and Codex spellings).
+- [x] **S16.3 Decide placement and the single cross-reference** (`architect`) — the section
+  goes immediately after `### Self-Correction` and before `### Task Sizing & Response
+  Discipline` in all three files (it is a verification rule, so it sits next to the rule that
+  says "run the project's own tests"). One cross-reference only: in the **Tiered autonomy**
+  bullet of each file, extend the human-in-the-loop list "sensitive data, credentials, or
+  external publication" to "sensitive data, credentials, external publication, or screen control
+  (see *UI verification & screen control*)". No other existing sentence is reworded.
+  **Done when:** the three files show the same section order and the same cross-reference, and
+  `git diff` touches no other section.
+- [x] **S16.4 Confirm the "screenshots → ask the user" interpretation** (`manual`) — assumption
+  taken by this plan: *desktop* captures are never taken by the agent; *page captures* produced
+  inside the app-driving tooling (Browser pane / `@Browser` rendering a page at a viewport width)
+  stay allowed only when the check is visual by nature (`/designreview` at several widths) or the
+  user asked for one. This keeps `/designreview` working as designed. If the owner wants page
+  captures gated behind asking too, drop the last sentence of the third bullet in S16.2 (in all
+  three files) and change S16.7's clause to "ask the user for screenshots at those widths".
+  **Done when:** the owner's answer is recorded on this item before S16.5 starts. **Proof:** asked via AskUserQuestion on 2026-09-16; owner chose "Continuar automático (recomendado)" — desktop screenshots are always requested from the user, page captures produced by the app-driving tooling itself (e.g. `/designreview` at several widths) stay automatic. S16.2's third bullet and S16.7's clause are implemented as originally drafted, no rewording needed.
+
+### Implementation
+
+- [x] **S16.5 Add the shared section to the three global rule blocks** (`coder`) — files:
+  `source/CLAUDE.md`, `source/opencode-instructions.md`, `source/codex/AGENTS.md`. Insert the
+  S16.2 block verbatim at the S16.3 position, then one runtime-specific bullet directly under it
+  (outside the exact-parity string), then apply the S16.3 cross-reference (note the Claude and
+  opencode sentence is hard-wrapped across two lines; Codex's is one line):
+  - `source/CLAUDE.md`: `- In Claude Code, app-driving tooling means the Browser pane (`preview_start` with `.claude/launch.json`, `navigate`, `find`, `read_page`, `get_page_text`, `form_input`, `computer` with element refs, `read_console_messages`, `read_network_requests`), Claude in Chrome, a Playwright MCP from `/plugins`, and the iOS Simulator pane; screen control means the `computer-use` MCP server (`mcp__computer-use__*`, Desktop **Settings > General > Computer use**, CLI `/mcp`). Ask for screenshots as an image pasted or dropped into the prompt.`
+  - `source/opencode-instructions.md`: `- In opencode, app-driving tooling means a Playwright MCP from `/plugins` (accessibility tree, no vision) plus the project's own test runner; any desktop-control MCP is screen control. Ask for screenshots as an image attached to the prompt.`
+  - `source/codex/AGENTS.md`: `- In Codex, app-driving tooling means `@Browser` (the desktop app's built-in Browser), the Browser extension for Chrome, and a Playwright MCP from `$plugins`; in Codex CLI, where `@Browser` is unavailable, fall back to Playwright MCP or the project's tests — not to Computer Use. Screen control means **Computer Use** (Plugins > Computer Use, Settings > Computer use, Always-allowed apps). Ask for screenshots as an attached image (`codex -i <file>` in the CLI).`
+  Keep Codex's `$` spelling and Claude/opencode's `/` spelling in the runtime bullets only. Kimi
+  Code CLI receives the Claude block unchanged through `~/.kimi/AGENTS.md`, as it does for every
+  other rule — no Kimi-specific wording.
+  **Done when:** `### UI verification & screen control` occurs exactly once in each file, the
+  shared block is found exactly once per file by the same `split(block).length - 1 === 1`
+  technique the Batching test uses, the runtime bullet follows it, and the existing parity tests
+  (`Batching and stopping`, `quality-per-token`) still pass. **Proof:** verified programmatically — block-count 1 in all three files, correct Self-Correction→UI verification→Task Sizing ordering, human-in-the-loop list mentions "screen control" in all three; `node --test dev/tests/codex.test.js dev/tests/usage-envelope.test.js` passed 21/21 including "Batching and stopping guidance has exact parity" and "global instruction layers share the quality-per-token policy".
+- [x] **S16.6 Align the reviewer agents' behavioral-proof wording** (`coder`) — the gate today
+  lists "a screenshot" as acceptable proof, which the new rule would contradict.
+  `source/claude/agents/reviewer.md` and `source/opencode/agent/reviewer.md` (gate 4): replace
+  "(a passing test, a real command's output, a screenshot)" with "(a passing test, a real
+  command's output, a state read through the app-driving tooling, or a screenshot the user
+  provided — never one taken by screen control)". `source/codex/agents/reviewer.toml`: extend
+  the "Behavioral proof" line with the same evidence list. **Done when:** no reviewer definition
+  lists a bare "screenshot" as proof and the three files carry the same evidence list. **Proof:** all three reviewer definitions (`source/claude/agents/reviewer.md`, `source/opencode/agent/reviewer.md`, `source/codex/agents/reviewer.toml`) now contain "screenshot the user provided" and no longer contain a bare "a screenshot)" as proof; `node --test dev/tests/codex.test.js` still passed 6/6.
+- [x] **S16.7 Make `/designreview`'s capture step explicitly browser-tooling-only** (`coder`) —
+  the four variants already say "use browser/preview tooling to open it, screenshot it at a few
+  widths"; make the boundary explicit so a runtime with Computer Use enabled cannot read it as
+  permission to control the screen. `source/claude/commands/designreview.md` (step 1),
+  `source/opencode/command/designreview.md` (step 1), `source/opencode/command-lite/designreview.md`
+  (the Live URL bullet), `source/codex/skills/designreview/SKILL.md` (step 1): add "(page
+  captures from that browser/preview tooling — never desktop screen control; if no such tooling
+  is available, ask the user for screenshots at those widths instead)". **Done when:** all four
+  variants carry the clause, the four still describe the same procedure, and the existing
+  `dev/tests/codex.test.js` skill/menu assertions and `npm run test:harness` still pass. **Proof:** all four designreview variants (Claude, OpenCode dense, OpenCode lite, Codex skill) contain "never desktop screen control" (line-wrapped in the two dense variants, verified whitespace-insensitively); `node --test dev/tests/codex.test.js` passed 6/6.
+
+### Tests
+
+- [x] **S16.8 Add `dev/tests/ui-verification-rule.test.js`** (`coder`) — `node:test`, same
+  style as the "Batching and stopping" test: (a) the exact S16.2 block occurs once in each of
+  `source/CLAUDE.md`, `source/opencode-instructions.md`, `source/codex/AGENTS.md`; (b) it sits
+  after `### Self-Correction` and before `### Task Sizing` in each file (index comparison);
+  (c) runtime vocabulary is present — Claude file matches `/computer-use/`, `/Browser pane/`,
+  `/Claude in Chrome/`; Codex file matches `/@Browser/`, `/Computer Use/`, `/Browser extension/`;
+  opencode file matches `/Playwright MCP/`; (d) the human-in-the-loop list in all three files
+  mentions "screen control"; (e) the three reviewer definitions no longer match
+  `/a real command's output, a screenshot\)/` and do match `/screenshot the user provided/`;
+  (f) all four designreview variants match `/never desktop screen control/`.
+  **Done when:** the test fails if the block is removed or reworded in any one file, if a
+  runtime bullet goes missing, or if a reviewer/designreview file regresses — and passes on the
+  edited tree. **Proof:** `dev/tests/ui-verification-rule.test.js` created with 6 assertions; `node --test dev/tests/ui-verification-rule.test.js` passed 6/6.
+- [x] **S16.9 Prove Codex projection in the installer test** (`coder`) — in
+  `dev/tests/codex.test.js` "Codex installer synchronizes native layers and is idempotent",
+  assert the installed temporary `AGENTS.md` contains `### UI verification & screen control`
+  exactly once while still containing exactly one `<!-- base_project:start -->` and the
+  `user rule` line. **Done when:** the temporary-root install proves the section reaches the
+  managed block without disturbing user-owned content. **Proof:** added a `### UI verification & screen control` exact-count-1 assertion to the existing installer idempotency test; `node --test dev/tests/codex.test.js` passed 6/6 including that test.
+- [x] **S16.10 Add CI content assertions for the real installers** (`coder`) —
+  `.github/workflows/ci.yml` `install-test` currently only checks that `$CLAUDE_HOME/CLAUDE.md`
+  and `$BASE_PROJECT_CODEX_ROOT/AGENTS.md` exist. Add, in the bash matrix step,
+  `grep -q "### UI verification & screen control" "$CLAUDE_HOME/CLAUDE.md"` and the same for
+  `"$BASE_PROJECT_CODEX_ROOT/AGENTS.md"`; in the PowerShell (windows) step, a
+  `Select-String -SimpleMatch` check on both files that fails the job when missing.
+  **Done when:** CI would fail if either installer stopped projecting the section on any OS,
+  and `dev/tests/ci-contract.test.js` still passes. **Proof:** added `grep -q` assertions to the bash install-test step (Linux/macOS) and `Select-String -SimpleMatch` checks that `throw` on missing content to the PowerShell (Windows) step, both against `$CLAUDE_HOME/CLAUDE.md` and the Codex `AGENTS.md`; `node --test dev/tests/ci-contract.test.js` still passed 1/1. Not run through actual GitHub Actions in this session — the assertions were verified by direct inspection of the workflow diff and match the existing steps' syntax exactly.
+- [x] **S16.11 Run the full local quality gate** (`reviewer`) — `npm run verify` (Biome,
+  typecheck, plugin schema, unused deps, full `node:test` suite, prod audit), `npm run
+  test:harness`, `node dev/scripts/validate-goals-structure.js GOALS.md`, `git diff --check`,
+  and the language-drift check from the project `CLAUDE.md`
+  (`grep -nE "\b(não|para|você|projeto|arquivo)\b" source/**/*.md` must still match only the
+  `command-menu.md` files and the `diario` example blocks). **Done when:** every check passes
+  and the outputs are recorded on this item. **Proof:** `npm run verify` — Biome (clean), typecheck (clean), plugin schema validation (clean), unused-dependency check (clean), `node --test dev/tests/*.test.js` 134/135 passed, `npm audit --omit=dev --audit-level=high` 0 vulnerabilities. `npm run test:harness` passed 12/12 artifacts and 16/16 scenarios. `node dev/scripts/validate-goals-structure.js GOALS.md` OK. `git diff --check` clean. Language-drift grep matched only `command-menu.md` (all three engines) and the two `diario.md` files, as expected. **One pre-existing, unrelated failure found and left as-is:** "completed GOALS archive preserves navigable bodies and recorded checksums" (`dev/tests/validate-goals-structure.test.js:101`) — 10 of 11 recorded SHA-256 checksums in `dev/goals-archive/README.md` (GOALS 1–11, all except GOALS 13) don't match their archived file's actual hash. `dev/goals-archive/` was never touched this session (confirmed via `git status`), so this predates GOALS 16 and is out of scope here; also found that GOALS.md itself was accidentally converted to CRLF by an earlier Python write step in this session (Windows text-mode default) and was normalized back to LF to match `.gitattributes`, which is what fixed the sibling "active GOALS.md stays structurally valid" test.
+
+### Registration
+
+- [x] **S16.12 Record the decision in the chronological roadmap** (`coder`) — `dev/ROADMAP.md`
+  item 53, in the file's own language: the three tiers, the files touched, the approval gate,
+  the screenshot rule, and the honest limits — structural tests do not prove live obedience, and
+  hook-based enforcement was deliberately left out (see out of scope). **Done when:** the entry
+  exists, links this goal, and does not claim live validation before S16.15 produced it. **Proof:** `dev/ROADMAP.md` item 53 added, describing the three tiers, files touched, the approval gate, the screenshot rule, the CI content assertions, and the honest limits (structural tests only, S16.15 still pending, hook enforcement out of scope, and the unrelated pre-existing checksum issue found and spun off separately).
+- [x] **S16.13 README safety row and ARCHITECTURE test list** (`coder`) — `README.md`
+  `## 🛡️ Safety` table: add the row **Screen control is a last resort** — "the global rules make
+  every runtime test UIs through DOM-driven browser tooling and the project's own tests; desktop
+  computer use needs your explicit per-task go-ahead, and screenshots are requested from you
+  rather than captured". `ARCHITECTURE.md` §8 test list: add `ui-verification-rule.test.js`.
+  **Done when:** both files mention it, checked directly, not assumed from the diff. **Proof:** `README.md`'s Safety table has the new "Screen control is a last resort" row; `ARCHITECTURE.md` §8's test list now includes `ui-verification-rule.test.js`; both verified by direct read after the edit.
+- [x] **S16.14 Sync the installed copies on this machine** (`manual`) — after the source edits,
+  run `dev\scripts\install.ps1` (the project's rule: editing `source/` alone changes nothing
+  installed), then verify `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` contain the heading
+  exactly once and `~/.config/opencode/opencode.jsonc` still references
+  `opencode-instructions.md`. Human-in-the-loop because it rewrites global config outside the
+  repository. **Done when:** the owner confirmed the run and the three checks pass. **Proof:** owner confirmed via AskUserQuestion on 2026-09-16; ran `dev\scripts\install.ps1` from this worktree (so the just-edited `source/` was the sync source) against the real `$HOME`; it completed with no errors (only pre-existing unrelated warnings: Kimi Code CLI not installed, MCP servers already registered). Verified directly: `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` each contain `### UI verification & screen control` exactly once and exactly one `<!-- base_project:start -->` marker each; `~/.config/opencode/opencode.jsonc` still references `opencode-instructions.md`.
+- [ ] **S16.15 Fresh-session behavior check in both runtimes** (`manual`) — in a new Claude
+  Code session and a new Codex session, on a disposable local web app with one button: (a) "test
+  the button flow" must be done through the Browser pane / `@Browser` (element refs, page text,
+  console) with no `request_access`/`screenshot` call from `computer-use` and no Computer Use
+  activation; (b) "does the header look right at mobile width?" must produce a request for a
+  screenshot (or, with the S16.4 carve-out kept, a page capture only inside the browser tooling),
+  never a desktop capture; (c) a request that only a native app could satisfy must produce a
+  stated reason and a question before any screen control. Record date, model, and the observed
+  tool calls; a mismatch is a wording defect to fix in S16.5, not a reason to add enforcement
+  silently. **Done when:** the observed behavior matches the rule, or a concrete runtime
+  limitation is recorded instead of claiming success.
+
+### Explicitly out of scope
+
+- Turning screen control off at the app level — Claude Desktop **Settings > General > Computer
+  use** / **Denied apps**, CLI `/mcp` disable; Codex Plugins > Computer Use toggle, Settings >
+  Computer use, admin `requirements.toml` `[features].computer_use = false`. These are the owner's
+  own settings, recorded here so the option is not lost; `/execgoals` never changes them.
+- Deterministic enforcement through a `PreToolUse` hook that denies `mcp__computer-use__*`
+  calls unless a consent marker exists. Stronger than a prompt rule, but it is a hook feature
+  with its own design (consent mechanism, Codex hook parity, escape hatch) — a separate goal if
+  S16.15 shows the rule alone is not obeyed.
+- Any change to what the app-driving tooling does, to `.claude/launch.json` generation, to the
+  Playwright catalog entry, to command count, menus, or `/status` output.
+- Treating a passing string/structure test as proof that a live model obeys the rule; S16.15
+  stays a separate manual check, as M14.8 did.
+
+### Sources consulted
+
+- [Let Claude use your computer from the CLI](https://code.claude.com/docs/en/computer-use) —
+  the `computer-use` MCP server, per-app session approval, screenshots + coordinate clicks, and
+  the documented tool order (MCP → Bash → Claude in Chrome → computer use; "screen control is
+  reserved for things nothing else can reach").
+- [Claude Code Desktop](https://code.claude.com/docs/en/desktop) — "Preview your app" (Browser
+  pane, `.claude/launch.json`, DOM inspection, clicks, forms), "Let Claude use your computer"
+  (**Settings > General > Computer use**, **Denied apps**), "App permissions" tiers, and the
+  iOS Simulator pane that replaces screen control for iOS.
+- [Codex Computer Use](https://learn.chatgpt.com/docs/computer-use) — screenshots, clicks and
+  typing, Windows foreground takeover, Plugins > Computer Use, Settings > Computer use,
+  "Always-allowed apps", `[features].computer_use = false`.
+- [Codex Browser extension](https://learn.chatgpt.com/docs/chrome-extension) and
+  [Codex Browser (`@Browser`)](https://developers.openai.com/codex/app/browser) — DOM-driven
+  browser use (open a local page, find a button, click it, verify the page text changed),
+  per-host approval, unavailable in Codex CLI/IDE extension.
+- [Codex CLI features](https://developers.openai.com/codex/cli/features) — image input via
+  `--image`/`-i` for user-provided screenshots.
+- Codex Computer Use on Windows shipped 2026-05-29 (Codex app 26.527), macOS in April 2026 —
+  [TechTimes](https://www.techtimes.com/articles/317531/20260601/openai-codex-computer-use-now-windows-foreground-takeover-europe-excluded.htm).
+- Repository: `source/CLAUDE.md`, `source/opencode-instructions.md`, `source/codex/AGENTS.md`
+  (no existing rule on the topic), `source/*/agents/reviewer.*` (gate 4 lists "a screenshot"),
+  the four `designreview` variants, `dev/tests/codex.test.js` ("Batching and stopping" exact
+  parity + installer projection pattern), `dev/tests/usage-envelope.test.js` (regex parity
+  pattern), `.github/workflows/ci.yml` (`install-test` existence-only assertions),
+  `dev/scripts/install.ps1` (`Sync-InstructionBlock`, Kimi projection),
+  `dev/scripts/install-codex.js` (managed block), `source/plugins.json` (`playwright` entry).
 
 ---
 

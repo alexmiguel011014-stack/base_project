@@ -27,8 +27,9 @@ stop at the first one that fails and report it instead of moving on:
 3. **Wired** — is it actually called/imported/registered somewhere, or does it just
    exist in isolation? Count real call-sites, not just the definition.
 4. **Behavioral proof** — for anything claiming to fix or produce a behavior, show it
-   actually happening (a passing test, a real command's output, a screenshot) rather
-   than asserting it from the code's shape alone.
+   actually happening (a passing test, a real command's output, a state read through
+   the app-driving tooling, or a screenshot the user provided — never one taken by
+   screen control) rather than asserting it from the code's shape alone.
 
 Prefer evidence gathered directly (reading the file, running the command) over any
 summary of what was supposedly done earlier in the conversation — if the two

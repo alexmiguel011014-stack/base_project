@@ -36,8 +36,9 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
    reversible work inside the current repository; **notify-and-proceed** for an in-scope,
    reversible change whose visible effect should be stated before continuing; and
    **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice,
-   data/state outside base_project's own repository, sensitive data, credentials, or external
-   publication. Decide from reversibility, scope of affected state, and data sensitivity — not
+   data/state outside base_project's own repository, sensitive data, credentials, external
+   publication, or screen control (see *UI verification & screen control*). Decide from
+   reversibility, scope of affected state, and data sensitivity — not
    from whether the action merely looks technically easy. The ERP database compatibility test is
    the model case for human-in-the-loop: even a copied test database was external sensitive data,
    so it required explicit approval first.
@@ -91,6 +92,12 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
 - After any code change, detect and run the project's own test/typecheck/lint commands from its manifest
   (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) — do not assume a specific stack or toolchain.
 - Fix failures before delivering the final response.
+
+### UI verification & screen control
+- Verify behavior through the most precise channel first: the project's own tests and CLI output, direct HTTP/API calls, and logs; then app-driving tooling that drives the running app through its DOM/accessibility tree — typed inputs, form fills, element references, page text, console and network reads. That tooling is the default way to test a UI: drive the flow end to end with it before considering anything else.
+- Screen control (desktop computer use: capturing the screen and clicking or typing by pixel coordinates, taking over the foreground) is a last resort, not a testing tool — it rarely produces a reliable result. Use it only when the target is a native app with no DOM, API, CLI, or test path, and only after stating why nothing else can reach it and getting the user's explicit go-ahead for that specific task in chat; never because it is available or looks quicker, and never as a fallback when the app-driving tooling reports a problem.
+- Never take desktop screenshots on your own initiative. When a visual check is genuinely needed (layout, rendering, what the user actually sees), ask the user for a screenshot and say exactly which window, state, and viewport it should show; keep working from tests, DOM, text, and console evidence meanwhile. Page captures produced by the app-driving tooling itself are not screen control, but take them only when the check is visual by nature (a design review at several viewport widths) or the user asked for one — otherwise read the state as text.
+- In Claude Code, app-driving tooling means the Browser pane (`preview_start` with `.claude/launch.json`, `navigate`, `find`, `read_page`, `get_page_text`, `form_input`, `computer` with element refs, `read_console_messages`, `read_network_requests`), Claude in Chrome, a Playwright MCP from `/plugins`, and the iOS Simulator pane; screen control means the `computer-use` MCP server (`mcp__computer-use__*`, Desktop **Settings > General > Computer use**, CLI `/mcp`). Ask for screenshots as an image pasted or dropped into the prompt.
 
 ### Task Sizing & Response Discipline
 - Gauge task size before reaching for heavier tooling. A trivial ask ("how do you say X",
