@@ -639,13 +639,11 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 }
 
 # ---------------------------------------------------------------------
-# 8e. Usage-report scripts and the unified canonical store (GOALS 6).
-#     /usagebp runs the two usage-* scripts from ~/.claude/base_project/scripts/.
-#     The unified-layer scripts are NOT copied: /bootstrap, /scanproject and
-#     /audit run them from the base_project clone recorded in
-#     ~/.base_project/repo-path.txt, and copies installed here could not find
-#     source/adapters.json (they saw 0 adapters and reported success). Copies
-#     left by older installs are pruned - only files carrying the managed marker.
+# 8e. Usage-report scripts. /usagebp runs the two usage-* scripts from
+#     ~/.claude/base_project/scripts/. The unified layer (GOALS 6) is parked:
+#     no command runs its scripts and the installer no longer initializes
+#     ~/.agents. Copies of its scripts left by older installs are pruned - only
+#     files carrying the managed marker.
 # ---------------------------------------------------------------------
 Write-Step "Syncing usage-report scripts..."
 foreach ($script in @("usage-envelope.js", "usage-baseline.js")) {
@@ -676,21 +674,6 @@ foreach ($staleCopy in $staleUnifiedCopies) {
 $staleAdaptersDir = Join-Path $claudeScriptsDir "adapters"
 if ((Test-Path $staleAdaptersDir) -and -not (Get-ChildItem $staleAdaptersDir -Force)) {
     Remove-Item $staleAdaptersDir -Force
-}
-Write-Step "Initializing unified canonical store (~/.agents)..."
-if (Get-Command node -ErrorAction SilentlyContinue) {
-    # Same root install-codex.js uses, so a test install with
-    # BASE_PROJECT_AGENTS_ROOT stays inside its scratch directory.
-    $previousAgentsHome = $env:AGENTS_HOME
-    if ($env:BASE_PROJECT_AGENTS_ROOT) { $env:AGENTS_HOME = $env:BASE_PROJECT_AGENTS_ROOT }
-    & node (Join-Path $repoRoot "dev\scripts\config-store.js") --init *> $null
-    $initExitCode = $LASTEXITCODE
-    $env:AGENTS_HOME = $previousAgentsHome
-    if ($initExitCode -eq 0) {
-        Write-Ok "canonical store initialized (~/.agents)"
-    } else {
-        Write-Warn "Could not initialize the canonical store (~/.agents) (exit $initExitCode)."
-    }
 }
 
 # ---------------------------------------------------------------------

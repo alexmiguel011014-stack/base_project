@@ -2311,6 +2311,46 @@ a recomendação); conjunto de MCPs sempre-ativos (`filesystem`/`git` com zero u
 Dependabot e tag `v1.2.0`. Execução no Windows/macOS das mudanças de instalador e da matriz de
 testes: confirmada no primeiro run de PR (R17.3).
 
+## 55. Decisões do dono no GOALS 17 (R17.22–R17.27) (2026-09-24)
+
+**Autorização**: "PODE EXECUTAR TUDO" — o dono aprovou executar as recomendações registradas
+nos itens `manual` do GOALS 17 (item 54).
+
+### Unified layer (GOALS 6) estacionada — R17.22
+
+**Decisão**: estacionar, como recomendado na auditoria (`dev/auditoria-2026-09-24.md`, F4 e
+§6.6): tirar a camada dos comandos, do menu, do README e do instalador até existir motivo real
+para redesenhá-la (demanda concreta por Cursor/Gemini/Windsurf, com adoção explícita por
+projeto). Motivos: só funcionava dentro deste repositório; projetava arquivos dentro dos
+projetos, contra a regra de zero pegada; 22 dos 31 adapters se resumiam a um `AGENTS.md` que
+essas ferramentas já leem; e partes eram stubs apresentados como funcionalidade (`secrets.js`
+"criptografa" com base64, `check-plugin-updates.js` lê um lock que nada gera, `detectAll()`
+assume tudo detectável).
+
+**O que saiu do caminho do usuário**: o passo 0 do `/bootstrap` (sync do `~/.agents` + drift),
+o passo de saúde da camada no `/scanproject` (doctor/drift) e o modo config do `/audit`
+(`--agent`), nas quatro variantes (Claude, opencode dense e lite, Codex); as linhas do menu nas
+três plataformas; a seção "Multi-Agent Support" do README; e o `config-store.js --init` dos dois
+instaladores. O CI agora exige que `~/.agents/rules` e `~/.agents/config.json` **não** sejam
+criados — `~/.agents/skills/` continua, porque é o diretório nativo de skills do Codex. O
+`/audit` voltou ao corpo só de segurança de antes da camada (`f9072ae^`).
+
+**O que ficou, por ora**: o código (`dev/scripts/paths.js`, `config-store.js`,
+`resolve-layers.js`, `adapters/`, `apply.js`, `drift.js`, `audit.js`, `doctor.js`,
+`lint-config.js`, `context.js`, `wizard.js`, `sync.js`, `tasks.js`, `history.js`, `snapshot.js`,
+`secrets.js`, `marketplace.js`, `check-plugin-updates.js`, `adapter-interface.md`), os schemas
+`dev/schemas/{adapters,config}.schema.json`, `source/adapters.json`,
+`source/{claude,opencode}/references/config-model.md` e os 11 testes correspondentes. A remoção
+física (mesmo padrão do dashboard, item 13) foi bloqueada pela política de permissões da sessão
+e espera aprovação explícita do dono — GOALS 17 R17.22b. Até lá o `config-model.md` continua
+sendo copiado para as pastas de referência instaladas, mas nenhum comando o lê.
+
+**Ponto de restauração**: commit `3d47516`, o último com a camada ligada nos comandos e no
+instalador. Um redesenho parte dele (`git show 3d47516:<arquivo>`), não da memória.
+
+**Dados do usuário**: nada que instalações antigas criaram em `~/.agents/` é apagado — é estado
+fora do repositório. O `/uninstall` (Tier D) continua oferecendo a remoção, com padrão manter.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
@@ -2318,6 +2358,8 @@ testes: confirmada no primeiro run de PR (R17.3).
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto
   onde o base_project é usado, tudo vive em `~/.claude/`/`~/.config/opencode/`. Isso é
   central à identidade do projeto, não é negociável só porque ECC faz diferente.
+- **Unified layer estacionada (item 55)** — não religar sem demanda real por outro agente e
+  sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

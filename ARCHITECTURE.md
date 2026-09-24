@@ -11,14 +11,13 @@ Para lições aprendidas com bugs reais, veja `CLAUDE.md` (regras deste repo) e
 ## 1. O que este projeto é, em uma frase
 
 Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `source/`
-para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/`, e projeta `~/.agents/` (unified layer) em 31
-agents — nada mais. Não é um servidor rodando o tempo todo, não é um pacote npm
-publicado, não escreve nada dentro de projetos que o usam. O "produto" real são os
-arquivos que acabam instalados: regras globais, 3 subagentes, **21 comandos**, um catálogo
-de plugins opcionais, 5 hooks com comportamento real, e o **unified config layer**
-(`~/.agents/` → 9 deep adapters + 22 generic, `global→agent→project`, ver
-`source/claude/references/config-model.md`). (O dashboard web existiu até o ROADMAP item
-13 — removido por completo, ver histórico lá.) Versão rastreada via `package.json`
+para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/` — nada mais.
+Não é um servidor rodando o tempo todo, não é um pacote npm publicado, não escreve nada
+dentro de projetos que o usam. O "produto" real são os arquivos que acabam instalados:
+regras globais, 3 subagentes, **21 comandos**, um catálogo de plugins opcionais e 5 hooks
+com comportamento real. (O dashboard web existiu até o ROADMAP item 13 — removido por
+completo, ver histórico lá. O unified config layer do GOALS 6 está estacionado desde a
+v1.2.0 — ver ROADMAP item 55.) Versão rastreada via `package.json`
 (`version`) + git tag — sem nenhum fluxo de release/publicação.
 
 ---
@@ -67,16 +66,16 @@ base_project/
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
 │   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md
 │   │   ├── goals-archive-index.js    ← CLI: --check/--write da coluna de checksums de dev/goals-archive/README.md
-│   │   ├── paths.js                  ← resolve CANONICAL_HOME (~/.agents) + TARGET_ROOT (GOALS 6)
-│   │   ├── config-store.js           ← CRUD de ~/.agents/config.json (projects map)
-│   │   ├── resolve-layers.js         ← global→agent→project resolver + merge
-│   │   ├── adapters/index.js         ← registry que lê source/adapters.json (os 31 adapters são dados, não um módulo por agente)
-│   │   ├── apply.js / drift.js / audit.js / doctor.js / lint-config.js / context.js / wizard.js / sync.js / tasks.js / history.js / snapshot.js / secrets.js / check-plugin-updates.js
+│   │   ├── paths.js, config-store.js, resolve-layers.js, adapters/, apply.js, drift.js, audit.js,
+│   │   │   doctor.js, lint-config.js, context.js, wizard.js, sync.js, tasks.js, history.js,
+│   │   │   snapshot.js, secrets.js, marketplace.js, check-plugin-updates.js, adapter-interface.md
+│   │   │                             ← unified layer (GOALS 6), ESTACIONADA: nenhum comando nem o
+│   │   │                               installer usa; fica até a remoção ser confirmada (ROADMAP 55)
 │   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
 │   ├── schemas/
 │   │   ├── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
-│   │   ├── config.schema.json  ← valida ~/.agents/config.json (projects map)
-│   │   └── adapters.schema.json← valida source/adapters.json (breadth tier)
+│   │   ├── config.schema.json  ← unified layer estacionada: ~/.agents/config.json
+│   │   └── adapters.schema.json← unified layer estacionada: source/adapters.json
 │   ├── tests/                  ← node:test, roda com `npm test`
 │   ├── goals-archive/          ← corpos imutáveis dos planos concluídos + índice com checksums
 │   └── ROADMAP.md              ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
@@ -109,7 +108,7 @@ precisa cobrir `source/hooks/**/*.js` (fora de `dev/`) e `dev/scripts/*.js`/
 regra é a raiz. `tsconfig.json` foi junto por consistência (o `tsc` em si não tem essa
 restrição, mas manter os dois configs de tooling no mesmo lugar evita confusão).
 
-**Camada unificada (GOALS 6, 2026-08-23)**: `~/.agents/` é o canonical unificado (padrão `dot-agents`), com `~/.base_project/` mantido para bookkeeping próprio (repo-path, diary-root, usage ledger). Ver `source/claude/references/config-model.md` para layout completo `global→agent→project`, merge semantics e `link_type` (hardlink só para Cursor). Overrides: `AGENTS_HOME`/`BASE_PROJECT_HOME` (centralizado em `dev/scripts/paths.js`).
+**Camada unificada (GOALS 6, 2026-08-23) — estacionada desde a v1.2.0**: nenhum comando a executa e o installer não inicializa mais `~/.agents/` (só `~/.agents/skills/`, que é o diretório nativo de skills do Codex). Ela só funcionava dentro deste repositório e projetava arquivos dentro dos projetos, contra a regra de zero pegada (`dev/auditoria-2026-09-24.md`, F4). O código (`dev/scripts/paths.js`, `config-store.js`, `apply.js`, `drift.js`, `doctor.js`, `adapters/`…), os testes e `source/adapters.json` continuam no repo até a remoção ser confirmada; decisão e ponto de restauração no ROADMAP item 55.
 
 **Regra de sincronização**: editar só `source/` não tem efeito imediato na máquina —
 `source/` é o "código-fonte", os arquivos instalados em `~/.claude/base_project/` são o
@@ -166,7 +165,7 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
 | `/pr` | Abre um pull request pra branch atual — rascunha título/corpo a partir do range de commits real contra a branch base, confirma antes de criar. O passo que o próprio `/ship` (passo 9) já menciona mas nunca executa. |
 | `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
-| `/audit` | Dois modos: (1) segurança (vuln scan) como antes; (2) **config audit** (`--agent cursor`) — qual camada `global→agent→project` se aplica a um projeto+agent (matches `dot-agents audit`). `context` é só `audit --json`. |
+| `/audit` | Varredura só de segurança, mais funda que o `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos. Usa o Strix quando instalado. |
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
 | `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. Sempre pede confirmação antes — custa ~6x uma resposta de passada única. |
 | `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
@@ -309,27 +308,11 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 |---|---|---|
 | **Supabase MCP** (`supabase`) | plugin (MCP) | Gerencia tabelas, roda SQL, lê config direto de um projeto Supabase. |
 
-### 🔄 Unified Layer — adapters (GOALS 6, sem comando novo no menu)
-| Agent | Tier | Link | Targets |
-|---|---|---|---|
-| claude-code | deep | symlink | `CLAUDE.md` → `~/.agents/rules/global/CLAUDE.md` |
-| opencode | deep | symlink | `AGENTS.md` |
-| codex | deep | symlink | `AGENTS.md` + `.codex/config.toml` (TOML) |
-| cursor | deep | **hardlink** | `.cursor/rules/*.mdc` (hardlink, EXDEV→copy) |
-| gemini-cli | deep | symlink | `GEMINI.md` |
-| continue | deep | symlink | `.continue/rules/` + YAML `mcpServers` |
-| windsurf | deep | symlink | `.windsurf/rules/` (6k limit, lossy) |
-| roo-code | deep | symlink | `.roo/rules/` |
-| cline | deep | symlink | `.clinerules` |
-| +22 generic | generic | symlink | `AGENTS.md` + `mcpServers`/`SKILL.md` onde suportado |
-
-Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `bootstrap` (inclui `sync` + `pr`); detalhe em `source/claude/references/config-model.md`. `explain` e `doctor`/`context` continuam como scripts em `dev/scripts/` mas não no menu (YAGNI).
-
 ### 🔒 Segurança
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **Strix** (`strix`) | plugin (CLI) | Pentest autônomo com prova de exploração real (não só lista estática), roda isolado em Docker. Usado por `/audit` quando instalado. |
-| **`/audit`** | comando | Dois modos: (1) segurança (vuln scan) + (2) config audit (`global→agent→project`) via `/audit --agent`. |
+| **`/audit`** | comando | Varredura só de segurança, mais funda que o `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos. Usa o Strix quando instalado. |
 | **`scan-skill.js`** | script interno | Varre uma skill de terceiro baixada em busca de padrão suspeito (comando remoto, Unicode escondido) antes de confiar nela. Roda sozinho dentro do `/plugins`. |
 
 ### 🧭 Navegador / teste de UI
@@ -507,9 +490,11 @@ Codex reutilizam esse caminho compartilhado.
   idempotência, posse dos MCPs, arquivo ilegível intocado
 - `command-paths.test.js` — nenhum comando distribuído roda `dev/scripts/*.js` relativo ao
   projeto do usuário (sempre via `<repo>` de `~/.base_project/repo-path.txt`)
-- `goals-archive-index.test.js` / `ledger-scale.test.js` / `sync.test.js` — checksums do
-  arquivo de GOALS, leitores do ledger acima do limite de argumentos do V8 (150 mil eventos),
-  e `sync.js` sem shell e com pull só fast-forward
+- `goals-archive-index.test.js` / `ledger-scale.test.js` — checksums do arquivo de GOALS e
+  leitores do ledger acima do limite de argumentos do V8 (150 mil eventos)
+- `adapters`, `audit`, `config-store`, `doctor`, `drift`, `lint-config`, `resolve-layers`,
+  `secrets`, `snapshot`, `sync`, `tasks` `.test.js` — cobrem a unified layer estacionada;
+  saem junto com ela
 
 Escopo deliberado: testa lógica de instalador/hook/script, não "qualidade" de skill —
 mesmo princípio que a pesquisa achou no próprio ECC (maior projeto do gênero, só testa 2

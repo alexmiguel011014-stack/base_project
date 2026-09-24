@@ -23,8 +23,7 @@ after confirmation. `/updates` never changes a version or configuration.
      `@biomejs/biome`, `typescript`, and Unix `jq`;
    - `source/opencode/mcp.json`: `@upstash/context7-mcp`,
      `@modelcontextprotocol/server-filesystem`, `mcp-git`;
-   - `source/plugins.json` under the scope rule. Do not present the historical
-     `<repo>/dev/scripts/check-plugin-updates.js` (in the resolved base_project clone) helper as a complete update checker.
+   - `source/plugins.json` under the scope rule.
 
 4. Run bounded, read-only checks and continue after unrelated failures. `npm outdated` exit
    code 1 with JSON output means updates were found, not that the check failed.

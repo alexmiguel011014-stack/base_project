@@ -16,7 +16,6 @@ STEP 2 — Build the inventory from its source files:
 - `source/opencode/mcp.json`: `@upstash/context7-mcp`, `@modelcontextprotocol/server-filesystem`, `mcp-git`;
 - `source/plugins.json`: only entries with a reliable installed signal by default. Literal `all`
   includes every catalog entry; otherwise unknown optional entries are `unknown`, not `not-installed`.
-Do not treat `<repo>/dev/scripts/check-plugin-updates.js` (in the resolved base_project clone) as a complete dependency update checker.
 
 STEP 3 — Run only these bounded read-only checks. An `npm outdated` exit code 1 with JSON is
 update data, not a failure.

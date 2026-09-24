@@ -23,8 +23,7 @@ only reports state and must never change it.
      `@biomejs/biome`, `typescript`, and Unix `jq`;
    - `source/opencode/mcp.json`: `@upstash/context7-mcp`,
      `@modelcontextprotocol/server-filesystem`, `mcp-git`;
-   - `source/plugins.json` under the selected scope. Do not represent the historical
-     `<repo>/dev/scripts/check-plugin-updates.js` (in the resolved base_project clone) helper as a complete update checker.
+   - `source/plugins.json` under the selected scope.
 
 4. Use only bounded, read-only native checks. Continue after independent failures. Interpret
    `npm outdated` exit code 1 with JSON output as updates found, not a failed check.

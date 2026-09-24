@@ -560,22 +560,6 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 8e. Unified canonical store (~/.agents) - the same non-destructive init as
-#     install.ps1 (it only creates what is missing). The unified-layer scripts
-#     themselves are not copied: /bootstrap, /scanproject and /audit run them
-#     from this clone, recorded in ~/.base_project/repo-path.txt below.
-# ---------------------------------------------------------------------
-step "Initializing unified canonical store (~/.agents)..."
-if command -v node &>/dev/null; then
-    if AGENTS_HOME="${BASE_PROJECT_AGENTS_ROOT:-${AGENTS_HOME:-$HOME/.agents}}" \
-        node "$SCRIPT_DIR/config-store.js" --init >/dev/null 2>&1; then
-        ok "canonical store initialized (~/.agents)"
-    else
-        warn "Could not initialize the canonical store (~/.agents)."
-    fi
-fi
-
-# ---------------------------------------------------------------------
 # 9. Record the repo path (used to check for base_project updates later)
 # ---------------------------------------------------------------------
 STATE_DIR="$HOME/.base_project"

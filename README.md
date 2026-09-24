@@ -112,7 +112,7 @@ The choice is remembered (`~/.base_project/opencode-command-profile.txt`) — re
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 
-21 workflows ship in total — see the Commands section below for the complete, current list (unified layer adds no new top-level workflow — `doctor` lives inside `/scanproject`, `sync` inside `/bootstrap`, `audit --agent`/`context` via `/audit`).
+21 workflows ship in total — see the Commands section below for the complete, current list.
 
 **Codex invocation:** use `$scanproject`, `$newgoal`, `$ship`, `$wpp`, and so on. Enabled skills also appear in Codex's slash selector, but Codex does not support arbitrary custom top-level names like `/wpp`; custom prompt files would be namespaced under `/prompts:`. This is why the faithful Codex spelling is `$wpp`, not `/wpp`.
 
@@ -120,24 +120,16 @@ The installer also checks for (and installs if missing) the global CLI tools the
 
 **Codex hook trust:** Codex asks you to review and trust a newly installed or changed hook command before it runs. That review is intentional; base_project merges its hooks idempotently but never bypasses Codex's trust boundary.
 
-### 🌐 Multi-Agent Support (Unified Layer — GOALS 6)
+### Unified config layer (GOALS 6) — parked
 
-One canonical source `~/.agents/` (with `~/.base_project/` kept for bookkeeping) projected into **31 agents** via per-agent adapters — 9 deep (verified transforms) + 22 generic (memory/MCP/`SKILL.md`). No new menu entry — inspect with `/audit --agent <id> --json` (config), check health via `/scanproject` (doctor), `bootstrap` já faz `sync` do `~/.agents/` se for repo git, e `context` é só `audit --json`.
-
-| Agent | Status | Config Files | Link Type |
-|---|---|---|---|
-| **Claude Code** | deep | `CLAUDE.md`, `.mcp.json`, `.claude/skills/` | symlink |
-| **OpenCode** | deep | `AGENTS.md`, `opencode.json` | symlink |
-| **Codex CLI** | deep | `AGENTS.md`, `.codex/config.toml` (TOML) | symlink |
-| **Cursor** | deep | `.cursor/rules/*.mdc`, `.cursor/mcp.json` | **hardlink** (Cursor doesn't follow symlinks) |
-| **Gemini CLI** | deep | `GEMINI.md`, `.gemini/settings.json` | symlink |
-| **Continue** | deep | `.continue/rules/`, `.continue/mcpServers/*.yaml` | symlink |
-| **Windsurf** | deep | `.windsurf/rules/`, `~/.codeium/windsurf/mcp_config.json` (global) | symlink |
-| **Roo Code** | deep | `.roo/rules/`, `.roo/mcp.json` | symlink |
-| **Cline** | deep | `.clinerules`, `~/.cline/mcp.json` | symlink |
-| *+ 22 generic* | generic | `AGENTS.md` (+ `mcpServers` JSON + `SKILL.md` where supported) | symlink |
-
-See `source/claude/references/config-model.md` for the `global→agent→project` layer model.
+The experimental `~/.agents/` layer — one canonical store projected into 31 agents through
+per-agent adapters — is parked since v1.2.0. No command runs it and the installer no longer
+initializes `~/.agents/rules/` or `~/.agents/config.json`; `~/.agents/skills/` is still used, but
+only as Codex's native skills directory. It only worked inside this repository, its projections
+wrote files into project repositories (breaking the promise at the top of this README), and the
+22 "generic" adapters came down to an `AGENTS.md` those tools already read natively
+(`dev/auditoria-2026-09-24.md`, F4). Its code and tests stay under `dev/scripts/` and `dev/tests/`
+until removal is confirmed; `dev/ROADMAP.md` item 55 records the decision and the restore point.
 
 ---
 
@@ -162,8 +154,8 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. It then recommends a model + effort for the plan's highest-complexity module and asks whether to execute or adjust the plan; the recommendation is manual and never switches the model automatically. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
 | `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
-| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure) **plus** unified-layer health (broken links, missing `~/.agents/` dirs) — the `doctor` checks now live here. Read-only — reports findings, never edits. **Start here.** |
-| `/audit` | Two modes: (1) security (vuln scan) como antes; (2) **config** (`audit --agent cursor`) — qual camada `global→agent→project` vale para um projeto+agent. |
+| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
+| `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
 | `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
 | `/undo` | Reverts the most recent batch of change — uncommitted edits, untracked new files, or the last commit — with confirmation tiered by risk. Never `git reset --hard` or force-push without a separate explicit gate; a pushed commit is undone with `git revert`, never rewritten. |
@@ -291,7 +283,7 @@ In Codex, replace `/` with `$` for the workflow rows above.
 - Audit remediation (GOALS 17, `dev/auditoria-2026-09-24.md`): CI green again and unit tests run on Linux, Windows and macOS
 - Hook warnings now reach the model (`additionalContext`); auto-format no longer goes through `npx` and only runs on edits
 - `opencode.jsonc` is merged, not replaced: your own instructions, MCP servers and comments survive; unparseable files are left untouched
-- `/bootstrap`, `/scanproject` and `/audit --agent` work in any project, not only inside the base_project clone
+- Unified config layer (GOALS 6) parked: `/bootstrap`, `/scanproject` and `/audit` no longer run it, and the installer no longer initializes `~/.agents` (it only worked inside the base_project clone)
 - `/usagebp` no longer crashes on large ledgers; the ledger masks secrets before writing
 - `/uninstall` keeps your usage history, diaries and `~/.agents` content unless you explicitly delete them (new Tier D)
 - Catalog: removed the Postgres and SQLite MCP entries (unpatched SQL injection / nonexistent package) and a test fixture

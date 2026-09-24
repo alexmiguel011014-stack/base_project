@@ -23,8 +23,7 @@ base_project repository itself; `/updates` only reports versions and never chang
      `repomix`, `@biomejs/biome`, `typescript`, and Unix `jq`;
    - `source/opencode/mcp.json`: `@upstash/context7-mcp`,
      `@modelcontextprotocol/server-filesystem`, and `mcp-git`;
-   - `source/plugins.json` only under the scope rule above. The historical
-     `<repo>/dev/scripts/check-plugin-updates.js` (in the resolved base_project clone) helper is not a complete dependency update checker.
+   - `source/plugins.json` only under the scope rule above.
 
 4. Use only read-only, bounded native checks; continue independently when one is unavailable.
    Treat `npm outdated` exit code 1 with JSON output as update data, not a failure.

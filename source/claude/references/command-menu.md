@@ -8,12 +8,12 @@ arquivo, não redigitar a lista de memória.
 
 O que você deseja fazer agora?
 
-- `/bootstrap` — botão de inicialização: sincroniza o projeto com o remoto (`git pull` se atrás) **e** o armário unificado `~/.agents/` (`sync pull` só fast-forward, se for repo git — nunca faz push), aponta drift real da camada unificada — não simples não-adoção — sem precisar do `/scanproject`, depois mapeia o projeto (repomix + graphify) e abre o HTML. Se falhar, guia passo a passo.
+- `/bootstrap` — botão de inicialização: sincroniza o projeto com o remoto (`git pull` se atrás), depois mapeia o projeto (repomix + graphify) e abre o mapa visual HTML. Se falhar, guia passo a passo.
 - `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
 - `/repertoire` — pesquisa um assunto a fundo: o domínio real de um projeto (científico, regulatório, cultural, midiático) antes do `/newgoal` planejar, **ou** um tópico/tendência avulso que você ouviu falar e quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar. Sempre confirma. Combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho.
 - `/execgoals` — executa o `GOALS.md` ativo gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade e checando a estrutura do plano após lotes de edição.
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
-- `/audit` — dois modos: (1) **segurança** (vuln scan) — aprofunda só a parte de segurança do `/scanproject`; (2) **config** (`--agent` flag) — mostra qual camada unificada (`global→agent→project`) realmente se aplica a um projeto+agent (`audit --agent cursor`).
+- `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
 - `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`, com contrato determinístico de escopo, decisão do usuário e verificação.
 - `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.

@@ -28,7 +28,6 @@ const requiredInventory = [
   "@modelcontextprotocol/server-filesystem",
   "mcp-git",
   "source/plugins.json",
-  "check-plugin-updates.js",
 ];
 
 const requiredChecks = [

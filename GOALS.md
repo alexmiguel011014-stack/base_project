@@ -219,11 +219,18 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Owner decisions (manual — stay open until decided)
 
-- [ ] **R17.22 Decide the unified layer's future** (`manual`) — park it (recommended: 22 of its 31
+- [x] **R17.22 Decide the unified layer's future** (`manual`) — park it (recommended: 22 of its 31
   adapters reduce to an `AGENTS.md` those tools already read, and projecting files into projects
   contradicts the zero-footprint rule) or redesign it as explicit per-project adoption. Unwired
   scripts (`wizard`, `marketplace`, `history`, `tasks`, `snapshot`, `secrets`, `lint-config`,
-  `context`) follow this decision.
+  `context`) follow this decision. **Decided: parked** (ROADMAP item 55). `/bootstrap`,
+  `/scanproject` and `/audit` no longer run it in any of the four variants, the menus and README
+  no longer offer it, both installers stopped initializing `~/.agents`, and CI now asserts that
+  `~/.agents/rules` and `~/.agents/config.json` are not created. Restore point: `3d47516`.
+- [ ] **R17.22b Remove the parked code from the tree** (`manual`) — the scripts, schemas,
+  `source/adapters.json`, both `config-model.md` references and their 11 tests stay until the owner
+  approves the deletion (the session's permission policy blocked it); then add stale-copy pruning
+  for the installed `config-model.md`, following the dashboard precedent (ROADMAP item 13).
 - [ ] **R17.23 Decide the always-on MCP set** (`manual`) — `filesystem` and `git` showed zero calls
   in GOALS 9; `git` is `mcp-git@0.0.4` (individual maintainer, last release April 2025); all three
   run through unpinned `npx -y`. Options: keep only `context7`, pin versions, or both.

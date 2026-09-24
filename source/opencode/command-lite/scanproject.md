@@ -17,18 +17,10 @@ STEP 2 — Check each section for real, don't assume from the stack alone:
 
 STEP 3 — Score each item `ok` / `missing` / `broken`, with severity `critical` / `medium` / `low`, and file/line when applicable.
 
-STEP 4 — Also check the unified `~/.agents/` health. `<repo>` here is the base_project clone recorded in `~/.base_project/repo-path.txt` — the unified-layer scripts run from that clone, never from the current project; if the file is missing, report this check as unavailable instead of guessing a path:
-- Broken symlinks/hardlinks (Cursor `~/.cursor/rules/*.mdc` hardlink inode check; warn on `EXDEV` fallback copy).
-- Missing canonical dirs (`~/.agents/rules/global`, `mcp`, `skills`, `commands`).
-- Stale hooks in `~/.claude/settings.json` containing `dashboard/`.
-- Legacy formats (`.cursorrules` → `.cursor/rules/`).
-- Sync drift for `~/.agents/` if it's a git repo (`git status --porcelain` in canonical) — suggest `node <repo>/dev/scripts/sync.js push`.
-Run `node <repo>/dev/scripts/doctor.js --project . --json` and `node <repo>/dev/scripts/drift.js --project . --json` for evidence. Only `drift` is repairable; `missing` means never adopted, and `not_applicable` means a self-host projection is deliberately disabled — never suggest `apply --fix` for either one.
+STEP 4 — Order the report by severity, critical first. For each finding: what's wrong, and the exact evidence (the command run, the line read).
 
-STEP 5 — Order the report by severity, critical first. For each finding: what's wrong, and the exact evidence (the command run, the line read).
+STEP 5 — End with one line: total critical/medium/low findings, and whether `/fixproject` makes sense next.
 
-STEP 6 — End with one line: total critical/medium/low findings, and whether `/fixproject` makes sense next.
-
-STEP 7 — Do not fix anything in this command, even a trivial one-line fix.
+STEP 6 — Do not fix anything in this command, even a trivial one-line fix.
 
 $ARGUMENTS
