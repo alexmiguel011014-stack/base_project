@@ -1,8 +1,14 @@
 // base_project:managed
+// @ts-check
 
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const {
+  loadCurrent,
+  loadPrevious,
+  mergeCodexConfig,
+} = require("./mcp-servers.js");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 const sourceRoot = path.join(repoRoot, "source");
@@ -27,8 +33,10 @@ function ok(message) {
   process.stdout.write(`  OK  ${message}\n`);
 }
 
+// Warnings go to stdout on purpose, as in install-opencode.js: Windows PowerShell with
+// ErrorActionPreference=Stop can turn a native command's stderr into a terminating error.
 function warn(message) {
-  process.stderr.write(`  !!  ${message}\n`);
+  process.stdout.write(`  !!  ${message}\n`);
 }
 
 function read(file) {
@@ -257,6 +265,24 @@ function syncHooks() {
   ok("Codex hooks merged; existing unrelated hooks preserved");
 }
 
+// MCP servers in config.toml. Used to be appended by each shell installer from ~/.codex,
+// append-only: a pinned or retired server never reached an existing install, and a test
+// install could not be redirected. Now one implementation, rooted where Codex reads it.
+function syncMcpServers() {
+  const destination = path.join(codexRoot, "config.toml");
+  const original = fs.existsSync(destination) ? read(destination) : "";
+  const result = mergeCodexConfig(original, loadCurrent(), loadPrevious());
+  for (const message of result.warnings) warn(message);
+  for (const message of result.notes) ok(message);
+  if (!result.changed) {
+    ok("Codex MCP servers already up to date in config.toml");
+    return;
+  }
+  if (original) fs.copyFileSync(destination, `${destination}.bak`);
+  write(destination, result.text);
+  ok("Codex config.toml updated; other settings left byte for byte");
+}
+
 function main() {
   if (!fs.existsSync(codexRoot)) {
     warn(
@@ -271,6 +297,7 @@ function main() {
   syncReferences();
   syncCatalog();
   syncHooks();
+  syncMcpServers();
 }
 
 main();

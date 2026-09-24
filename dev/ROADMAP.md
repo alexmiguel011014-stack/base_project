@@ -2252,11 +2252,186 @@ tarefa separada, não corrigido aqui.
 
 ---
 
+## 54. Auditoria geral e remediação (GOALS 17) (2026-09-24)
+
+**Origem**: auditoria completa em `dev/auditoria-2026-09-24.md` (14 achados, F1–F14), feita
+com execução real — suíte, instalador num `HOME` descartável, benchmarks dos hooks e dos
+leitores do ledger — e conferência na documentação oficial do Claude Code e do Codex. O plano
+executável virou o GOALS 17; os itens sem decisão de produto foram executados, os que dependem
+do dono ficaram abertos como `manual`.
+
+**O que mudou** (um commit por área, todos com teste de regressão que falha no código antigo):
+- **CI verde de novo**: estava vermelho desde o run #21 (24/08) — 20 runs seguidos, PR #6
+  mergeado vermelho, PRs do Dependabot travados e o harness de contrato (GOALS 8, H.2) nunca
+  executado no CI. Causas: teste do `doctor` dependente de plataforma (passava no Windows por
+  cair num ramo de fallback) e checksums do arquivo de GOALS reintroduzidos errados por
+  `0710eb5` (tinham sido corrigidos em `20b8acf`). Agora `npm test` roda nos 3 SOs e
+  `dev/scripts/goals-archive-index.js` recalcula a coluna de checksums. O validador de GOALS
+  nunca checava os itens reais (só `**A.1**` isolado em qualquer lugar do texto); agora checa
+  as definições de checklist nos dois formatos de ID. GOALS 8 arquivado.
+- **Hooks**: `loop-detect` e `validate-goals` escreviam em stderr com exit 0 — canal que o
+  Claude Code manda só para o log de debug e que o Codex ignora; o aviso do incidente do
+  `git checkout --` nunca chegava ao modelo. Agora saem como `additionalContext` no stdout.
+  `post-edit-format` deixou o `npx` (~500 ms por edição; sem Biome, consultava o registro npm e
+  resolvia o `biome@0.3.3` fantasma): usa o `@biomejs/biome` do projeto a partir do diretório da
+  config, ~130 ms, e nada sem config. No Claude Code, format/goals ganharam matcher de edição
+  (antes subiam em todo `Read`/`Bash`). Diffstat do início de sessão limitado a 20 arquivos.
+- **Instalador**: o merge do `opencode.jsonc` substituía `instructions` e `mcp` inteiros (MCPs
+  do usuário sumiam, sem backup) e recriava o arquivo do zero se houvesse um comentário. Novo
+  `dev/scripts/install-opencode.js` (sem dependências, chamado pelos dois instaladores): JSONC
+  tolerante, edição pontual que preserva comentários, posse dos MCPs registrada em
+  `~/.base_project/opencode-managed-mcp.json`, arquivo ilegível intocado.
+- **Unified layer** (sem decidir o futuro dela): comandos rodavam `node dev/scripts/*.js`
+  relativo ao projeto do usuário — só funcionavam dentro deste repo. Agora resolvem `<repo>`
+  por `repo-path.txt` (teste de contrato impede regressão). O `install.ps1` parou de copiar 17
+  scripts que, instalados, enxergavam 0 adapters; os dois instaladores inicializam o
+  `~/.agents` do mesmo jeito. Adapter do Claude Code agora projeta MCP em `.mcp.json` (o
+  arquivo que o Claude Code lê). `sync.js` sem shell (o `$(...)` numa mensagem de commit
+  executava) e pull só fast-forward.
+- **Ledger**: `/usagebp` quebrava acima de ~125–130 mil eventos (`Math.min(...dates)`); um
+  ledger sintético de 4 meses que quebrava agora roda em ~3 s. Segredos conhecidos (tokens,
+  `Authorization`, credenciais em URL, `key=valor`) são mascarados antes de gravar.
+- **`/uninstall`**: o ledger estava no namespace que o Tier A chamava de "reversível
+  reinstalando" — é a única fonte do `/diario`. Nova Tier D (dados do usuário, padrão manter),
+  inventário de todos os engines e do formato atual do `opencode.jsonc`, com contrato no harness.
+- **Catálogo**: removidos `marketplace-demo` (fixture de teste), `sqlite` (o pacote npm não
+  existe; o servidor oficial Python tem SQL injection sem correção) e `postgres` (pacote
+  deprecado com SQL injection que fura o read-only). Isso reabre, com motivo novo, a decisão
+  "manter catalogado" do GOALS 9 (U.3a): o custo deixou de ser zero.
+- **Docs e regra distribuída**: README/ARCHITECTURE/menu/regras alinhados ao comportamento real
+  (MCP em `opencode.jsonc`, suporte a Kimi, `/uninstall`, testes e CI). A regra de autonomia
+  distribuída pedia aprovação humana para "data/state outside base_project's own repository" —
+  num projeto do usuário, literalmente tudo; corrigido para "the current repository". O exemplo
+  de um projeto pessoal (ERP) virou um exemplo genérico.
+
+**Em aberto (decisão do dono, GOALS 17 R17.22–R17.27)**: futuro da unified layer (estacionar é
+a recomendação); conjunto de MCPs sempre-ativos (`filesystem`/`git` com zero uso medido,
+`mcp-git@0.0.4` sem versão fixada); substitutos para os MCPs de banco; política de typecheck
+(`checkJs: false` não verifica nada); retenção do ledger; proteção do `main`, merge dos PRs do
+Dependabot e tag `v1.2.0`. Execução no Windows/macOS das mudanças de instalador e da matriz de
+testes: confirmada no primeiro run de PR (R17.3).
+
+## 55. Decisões do dono no GOALS 17 (R17.22–R17.27) (2026-09-24)
+
+**Autorização**: "PODE EXECUTAR TUDO" — o dono aprovou executar as recomendações registradas
+nos itens `manual` do GOALS 17 (item 54).
+
+### Unified layer (GOALS 6) estacionada — R17.22
+
+**Decisão**: estacionar, como recomendado na auditoria (`dev/auditoria-2026-09-24.md`, F4 e
+§6.6): tirar a camada dos comandos, do menu, do README e do instalador até existir motivo real
+para redesenhá-la (demanda concreta por Cursor/Gemini/Windsurf, com adoção explícita por
+projeto). Motivos: só funcionava dentro deste repositório; projetava arquivos dentro dos
+projetos, contra a regra de zero pegada; 22 dos 31 adapters se resumiam a um `AGENTS.md` que
+essas ferramentas já leem; e partes eram stubs apresentados como funcionalidade (`secrets.js`
+"criptografa" com base64, `check-plugin-updates.js` lê um lock que nada gera, `detectAll()`
+assume tudo detectável).
+
+**O que saiu do caminho do usuário**: o passo 0 do `/bootstrap` (sync do `~/.agents` + drift),
+o passo de saúde da camada no `/scanproject` (doctor/drift) e o modo config do `/audit`
+(`--agent`), nas quatro variantes (Claude, opencode dense e lite, Codex); as linhas do menu nas
+três plataformas; a seção "Multi-Agent Support" do README; e o `config-store.js --init` dos dois
+instaladores. O CI agora exige que `~/.agents/rules` e `~/.agents/config.json` **não** sejam
+criados — `~/.agents/skills/` continua, porque é o diretório nativo de skills do Codex. O
+`/audit` voltou ao corpo só de segurança de antes da camada (`f9072ae^`).
+
+**O que ficou, por ora**: o código (`dev/scripts/paths.js`, `config-store.js`,
+`resolve-layers.js`, `adapters/`, `apply.js`, `drift.js`, `audit.js`, `doctor.js`,
+`lint-config.js`, `context.js`, `wizard.js`, `sync.js`, `tasks.js`, `history.js`, `snapshot.js`,
+`secrets.js`, `marketplace.js`, `check-plugin-updates.js`, `adapter-interface.md`), os schemas
+`dev/schemas/{adapters,config}.schema.json`, `source/adapters.json`,
+`source/{claude,opencode}/references/config-model.md` e os 11 testes correspondentes. A remoção
+física (mesmo padrão do dashboard, item 13) foi bloqueada pela política de permissões da sessão
+e espera aprovação explícita do dono — GOALS 17 R17.22b. Até lá o `config-model.md` continua
+sendo copiado para as pastas de referência instaladas, mas nenhum comando o lê.
+
+**Ponto de restauração**: commit `3d47516`, o último com a camada ligada nos comandos e no
+instalador. Um redesenho parte dele (`git show 3d47516:<arquivo>`), não da memória.
+
+**Dados do usuário**: nada que instalações antigas criaram em `~/.agents/` é apagado — é estado
+fora do repositório. O `/uninstall` (Tier D) continua oferecendo a remoção, com padrão manter.
+
+### MCPs sempre-ativos: só o context7, com versão fixada — R17.23
+
+**Decisão**: as duas opções juntas — manter só o `context7` e fixar a versão
+(`@upstash/context7-mcp@4.1.1`). `filesystem` e `git` tiveram zero chamadas no GOALS 9 e os três
+agentes já têm arquivo e git nativos; o `git` era o `mcp-git@0.0.4`, de mantenedor individual, e
+todos rodavam via `npx -y` sem versão — uma publicação nova sob esses nomes passaria a rodar em
+toda máquina sem revisão. Os dois viraram entradas opcionais do catálogo, fixadas: `filesystem`
+(`@modelcontextprotocol/server-filesystem@2026.8.31`) e o `git` **oficial**
+(`mcp-server-git@2026.8.18`, via `uvx`), como a auditoria recomendou.
+
+**Instalações existentes**: só mudar o `mcp.json` não bastava — o Claude re-registra só os nomes
+atuais, o Codex era append-only (um `context7` antigo nunca ganharia a versão fixada) e o
+opencode sem arquivo de estado tratava entradas antigas como do usuário. Agora
+`source/opencode/mcp-previous.json` lista toda definição já distribuída (incluindo `brave-search`
+e `github` com placeholder, de 08/2026) e `dev/scripts/mcp-servers.js` aposenta ou atualiza uma
+entrada **só enquanto ela ainda tem exatamente uma dessas definições** — qualquer edição do
+usuário a torna dele. O MCP do Codex saiu dos dois instaladores shell para o `install-codex.js`
+(uma implementação, testável, no `config.toml` da raiz que o Codex lê); a tabela editada, a
+chave pontilhada e a tabela inline nunca são duplicadas nem reescritas. O `/updates` passa a
+comparar a versão fixada com a do registro, e o `/uninstall` conhece os nomes aposentados.
+
+**Verificação**: os três servidores fixados respondem `initialize` via stdio; um `HOME` com
+instalação antiga (Claude, Codex e opencode) foi atualizado de ponta a ponta sem tocar em
+`my-db` nem em `model = ...`; cada regra nova tem teste que falha no código mutado.
+
+### MCPs de banco: MCP Toolbox do Google, com a fronteira no banco — R17.24
+
+**Decisão**: o MCP Toolbox for Databases do Google (`@toolbox-sdk/server@1.12.0`, Apache-2.0,
+mantido pelo `googleapis`; os binários vêm como pacotes npm por plataforma fixados na mesma
+versão, sem download em tempo de execução) volta a cobrir PostgreSQL e SQLite, como as entradas
+opcionais `toolbox-postgres` e `toolbox-sqlite`. Ids novos de propósito: um `postgres` antigo
+registrado com o pacote vulnerável nunca aparece como "instalado" para a entrada nova — e a
+entrada diz como removê-lo. O fork `@zeddotdev/postgres-context-server` foi descartado (sem
+`bin`, não roda por `npx`).
+
+**Testado ao vivo** (PostgreSQL 16 descartável, papel só-`SELECT`): 29 ferramentas; `SELECT`
+funciona; `INSERT` recusado pelo servidor (SQLSTATE 42501); o `COMMIT; DROP TABLE` que furava o
+servidor antigo é recusado (não aceita multi-comando). SQLite: `file:<db>?mode=ro` recusa
+`INSERT`, **mas `ATTACH DATABASE 'file:<db>?mode=rw'` grava no arquivo original** — então não é
+fronteira. As duas entradas dizem que `execute_sql` roda o que o papel/arquivo permitir e
+colocam a proteção onde ela funciona: papel de menor privilégio no Postgres, cópia do arquivo no
+SQLite. Lição registrada no `dev/scripts/NPInstructions.md` (erro #8).
+
+### Typecheck progressivo, com TypeScript 7 — R17.25
+
+**Decisão**: ligar aos poucos, não remover o passo. O `checkJs` continua `false` no global e cada
+arquivo entra com `// @ts-check`: os cinco hooks (todo hook novo também — o
+`ci-contract.test.js` exige) e os três helpers que editam config do usuário
+(`install-opencode.js`, `install-codex.js`, `mcp-servers.js`). `strict` com
+`noImplicitAny: false`: com ele ligado seriam 139 erros de parâmetro sem anotação, quase todos
+ruído; sem ele sobraram 8 erros em cinco pontos — lacunas de inferência (tupla virando união,
+`catch` como `unknown`, estado inicializado com `null`) —, corrigidos com JSDoc ou um
+`instanceof Error`, sem mudar comportamento. Um
+`state.cnt` digitado errado num hook agora falha o `tsc`; antes passava. `@types/node` fixado na
+major do Node do CI (22), contado como usado pelo `check-unused-deps` por estar em
+`compilerOptions.types`.
+
+**TypeScript 7 (PR #3 do Dependabot)**: o `tsc` nativo 7.0.2 checou o mesmo conjunto sem
+diferença de configuração, em ~0,5 s; achou um sexto ponto que o 5.9 não via (também
+corrigido). Adotado neste PR, o que torna o #3 redundante.
+
+### Retenção do ledger: manter por padrão, podar só a pedido — R17.26
+
+**Decisão**: nenhuma poda automática. O ledger é a única fonte do `/diario` para horas passadas,
+e o `/uninstall` já o trata como dado do usuário (Tier D, padrão manter); uma janela automática
+apagaria algo que não volta sem o usuário escolher. Para quem quer aparar, o
+`dev/scripts/ledger-prune.js` (`--keep-days <N>` ou `--before <YYYY-MM-DD>`) é dry run por
+padrão, apaga só com `--apply`, trabalha com arquivos inteiros (o ledger já é um arquivo por dia
+UTC e sessão, então nunca reescreve um arquivo), mantém o próprio dia do corte, ignora tudo que
+não é `YYYY-MM-DD-*.jsonl` (inclusive o `.zero-use-tracking.json` do `/usagebp`) e diz a partir
+de quando o `/diario` deixa de conseguir reconstruir horas.
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto
   onde o base_project é usado, tudo vive em `~/.claude/`/`~/.config/opencode/`. Isso é
   central à identidade do projeto, não é negociável só porque ECC faz diferente.
+- **Unified layer estacionada (item 55)** — não religar sem demanda real por outro agente e
+  sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

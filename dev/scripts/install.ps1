@@ -266,7 +266,9 @@ foreach ($staleDir in @((Join-Path $ClaudeHome "base_project\dashboard"), (Join-
 # Loop-detection, auto-format, and GOALS validation hooks are synchronous (not
 # async) so their warning/output lands before the next tool call. None ever
 # throws or blocks — see the scripts themselves for the swallow-all-errors
-# guarantee.
+# guarantee. Format and GOALS validation only act on edits, so they carry an
+# edit-tool matcher instead of starting a node process on every Read/Grep/Bash
+# call; loop-detect needs every call.
 $loopDetectPath   = (Join-Path $claudeHooksDir "loop-detect.js") -replace '\\', '/'
 $loopDetectMarker = "base_project/hooks/loop-detect.js"
 $loopDetectCommand = "node `"$loopDetectPath`""
@@ -284,6 +286,7 @@ $postEditFormatPath   = (Join-Path $claudeHooksDir "post-edit-format.js") -repla
 $postEditFormatMarker = "base_project/hooks/post-edit-format.js"
 $postEditFormatCommand = "node `"$postEditFormatPath`""
 $ourFormatEntry = [PSCustomObject]@{
+    matcher = "Edit|Write|MultiEdit"
     hooks = @(
         [PSCustomObject]@{ type = "command"; command = $postEditFormatCommand; async = $false }
     )
@@ -297,6 +300,7 @@ $validateGoalsPath   = (Join-Path $claudeHooksDir "validate-goals.js") -replace 
 $validateGoalsMarker = "base_project/hooks/validate-goals.js"
 $validateGoalsCommand = "node `"$validateGoalsPath`""
 $ourGoalsValidationEntry = [PSCustomObject]@{
+    matcher = "Edit|Write|MultiEdit"
     hooks = @(
         [PSCustomObject]@{ type = "command"; command = $validateGoalsCommand; async = $false }
     )
@@ -358,56 +362,21 @@ if (-not $settingsObj.PSObject.Properties['fallbackModel']) {
 }
 
 # ---------------------------------------------------------------------
-# 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
+# 4. opencode.jsonc - merge base_project's instructions path and MCP servers
+#    into the user's config instead of replacing it. One Node implementation
+#    (shared with install.sh) parses JSONC, edits only what base_project owns,
+#    keeps the user's own entries and comments, and leaves an unparseable file
+#    untouched instead of recreating it.
 # ---------------------------------------------------------------------
 Write-Step "Updating $OpencodeHome\opencode.jsonc..."
-
-$opencodeConfigPath  = Join-Path $OpencodeHome "opencode.jsonc"
-$instructionsPath    = (Join-Path $sourceDir "opencode-instructions.md") -replace '\\', '/'
-$mcpSrcPathForConfig = Join-Path $sourceDir "opencode\mcp.json"
-
-$configObj = $null
-if (Test-Path $opencodeConfigPath) {
-    try {
-        $configObj = Read-Utf8NoBom $opencodeConfigPath | ConvertFrom-Json
-    } catch {
-        $backupPath = "$opencodeConfigPath.bak"
-        Copy-Item $opencodeConfigPath $backupPath -Force
-        Write-Warn "opencode.jsonc could not be parsed (comments or invalid JSON) - backed up to $backupPath and starting fresh"
-        $configObj = $null
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    & node (Join-Path $repoRoot "dev\scripts\install-opencode.js") --opencode-home $OpencodeHome
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "opencode.jsonc was left untouched - fix the problem reported above, then re-run this script."
     }
+} else {
+    Write-Warn "Node.js not found - skipped the opencode.jsonc merge. Install Node.js (https://nodejs.org), then re-run this script."
 }
-if ($null -eq $configObj) {
-    $configObj = [PSCustomObject]@{ '$schema' = "https://opencode.ai/config.json" }
-}
-
-# opencode's schema wants "instructions" as an array of paths, and "mcp" as a map of
-# server name -> { type: "local", command: [...] } | { type: "remote", url, headers },
-# defined inline - not a pointer to an external file (that "mcp.file" shape doesn't
-# exist in opencode's config schema and fails validation on startup).
-$configObj | Add-Member -NotePropertyName instructions -NotePropertyValue @($instructionsPath) -Force
-
-$mcpSourceConfig = Read-Utf8NoBom $mcpSrcPathForConfig | ConvertFrom-Json
-$mcpForOpencode = [PSCustomObject]@{}
-foreach ($name in $mcpSourceConfig.mcpServers.PSObject.Properties.Name) {
-    $server = $mcpSourceConfig.mcpServers.$name
-    if ($server.type -eq 'remote') {
-        $entry = [PSCustomObject]@{ type = 'remote'; url = $server.url }
-        if ($server.headers) {
-            $entry | Add-Member -NotePropertyName headers -NotePropertyValue $server.headers
-        }
-    } else {
-        $entry = [PSCustomObject]@{ type = 'local'; command = @($server.command) + @($server.args) }
-        if ($server.env) {
-            $entry | Add-Member -NotePropertyName environment -NotePropertyValue $server.env
-        }
-    }
-    $mcpForOpencode | Add-Member -NotePropertyName $name -NotePropertyValue $entry
-}
-$configObj | Add-Member -NotePropertyName mcp -NotePropertyValue $mcpForOpencode -Force
-
-Write-Utf8NoBom -Path $opencodeConfigPath -Content ($configObj | ConvertTo-Json -Depth 10)
-Write-Ok "opencode.jsonc (instructions + mcp servers inlined, other keys preserved)"
 
 # ---------------------------------------------------------------------
 # 5. Copy managed agent/command files (skip anything not ours)
@@ -489,56 +458,29 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
             Write-Warn "Could not auto-register '$name'. Add manually: $manualHint"
         }
     }
+    # Servers earlier versions registered and no longer ship (source/opencode/mcp-previous.json)
+    # are removed only while they still have base_project's exact definition.
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $retiredNames = @(& node (Join-Path $repoRoot "dev\scripts\mcp-servers.js") --claude-retirements)
+        foreach ($retiredName in $retiredNames) {
+            if (-not $retiredName) { continue }
+            try {
+                & claude mcp remove $retiredName --scope user *> $null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Ok "retired '$retiredName' (no longer shipped; it still had base_project's definition)"
+                }
+            } catch {}
+        }
+    }
 } else {
     Write-Warn "'claude' CLI not found on PATH - skipping Claude Code MCP registration. Re-run this script after installing Claude Code."
 }
 
 # ---------------------------------------------------------------------
-# 6b. MCP servers for Codex CLI - appended as [mcp_servers.NAME] tables to
-#     ~/.codex/config.toml. Append-only and guarded by an existence check: this
-#     script has no TOML parser, so it must never rewrite a file it can't fully
-#     understand. A table appended at the end of a TOML file cannot alter the
-#     tables above it, which is what makes append the safe operation here - and
-#     why an already-present server is skipped rather than "updated".
+# 6b. MCP servers for Codex CLI are merged into config.toml by install-codex.js
+#     (step 8d-2): one implementation for both installers that upgrades or retires
+#     only tables still holding a definition base_project wrote.
 # ---------------------------------------------------------------------
-$codexHome = Join-Path $HOME ".codex"
-if ((Test-Path $codexHome) -and (Test-Path $mcpSrcPath)) {
-    Write-Step "Registering MCP servers with Codex CLI..."
-    $codexConfig = Join-Path $codexHome "config.toml"
-    $codexExisting = if (Test-Path $codexConfig) { Read-Utf8NoBom $codexConfig } else { "" }
-    $mcpForCodex = Read-Utf8NoBom $mcpSrcPath | ConvertFrom-Json
-    $appended = @()
-    foreach ($name in $mcpForCodex.mcpServers.PSObject.Properties.Name) {
-        $server = $mcpForCodex.mcpServers.$name
-        if ($codexExisting -match [regex]::Escape("[mcp_servers.$name]")) {
-            Write-Ok "'$name' already in config.toml - left as is"
-            continue
-        }
-        # Remote (url-based) servers use a different key set; only stdio servers are
-        # emitted here, since that is the shape verified against Codex's docs.
-        if (-not $server.command) {
-            Write-Warn "'$name' is a remote MCP server - add it to $codexConfig manually (url-based syntax not emitted here)."
-            continue
-        }
-        $argsToml = ($server.args | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ", "
-        $block = "`n[mcp_servers.$name]`ncommand = `"$($server.command)`"`nargs = [$argsToml]`n"
-        if ($server.env) {
-            $block += "[mcp_servers.$name.env]`n"
-            foreach ($envName in $server.env.PSObject.Properties.Name) {
-                $block += "$envName = `"$($server.env.$envName)`"`n"
-            }
-        }
-        $appended += $block
-        Write-Ok "queued '$name' for config.toml"
-    }
-    if ($appended.Count -gt 0) {
-        $header = "`n# --- base_project managed MCP servers (safe to edit; re-added if removed) ---"
-        Write-Utf8NoBom -Path $codexConfig -Content ($codexExisting.TrimEnd() + $header + ($appended -join ""))
-        Write-Ok "config.toml ($($appended.Count) server(s) appended, existing keys untouched)"
-    }
-} elseif (-not (Test-Path $codexHome)) {
-    Write-Warn "Codex CLI not detected ($codexHome missing) - skipped its MCP registration."
-}
 
 # ---------------------------------------------------------------------
 # 6c. MCP servers for Kimi Code CLI. Kimi reads a standard mcpServers JSON via
@@ -670,38 +612,41 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 }
 
 # ---------------------------------------------------------------------
-# 8e. Unified layer scripts (GOALS 6) - config-store, resolvers, adapters, doctor, etc.
+# 8e. Usage-report scripts. /usagebp runs the two usage-* scripts from
+#     ~/.claude/base_project/scripts/. The unified layer (GOALS 6) is parked:
+#     no command runs its scripts and the installer no longer initializes
+#     ~/.agents. Copies of its scripts left by older installs are pruned - only
+#     files carrying the managed marker.
 # ---------------------------------------------------------------------
-Write-Step "Syncing unified-layer scripts..."
-$unifiedScripts = @(
-    "paths.js", "config-store.js", "resolve-layers.js", "apply.js", "drift.js",
-    "secrets.js", "lint-config.js", "doctor.js", "audit.js", "context.js",
-    "wizard.js", "sync.js", "tasks.js", "history.js", "snapshot.js",
-    "marketplace.js", "check-plugin-updates.js", "usage-envelope.js", "usage-baseline.js"
-)
-foreach ($script in $unifiedScripts) {
+Write-Step "Syncing usage-report scripts..."
+foreach ($script in @("usage-envelope.js", "usage-baseline.js")) {
     $src = Join-Path $repoRoot "dev\scripts\$script"
     if (Test-Path $src) {
         Sync-Managed -SrcFile $src -DestFile (Join-Path $claudeScriptsDir $script)
     }
 }
-$adaptersSrcDir = Join-Path $repoRoot "dev\scripts\adapters"
-$adaptersDestDir = Join-Path $claudeScriptsDir "adapters"
-if (Test-Path $adaptersSrcDir) {
-    New-Item -ItemType Directory -Force -Path $adaptersDestDir | Out-Null
-    Get-ChildItem $adaptersSrcDir -Filter *.js | ForEach-Object {
-        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $adaptersDestDir $_.Name)
+$staleUnifiedCopies = @(
+    "paths.js", "config-store.js", "resolve-layers.js", "apply.js", "drift.js",
+    "secrets.js", "lint-config.js", "doctor.js", "audit.js", "context.js",
+    "wizard.js", "sync.js", "tasks.js", "history.js", "snapshot.js",
+    "marketplace.js", "check-plugin-updates.js"
+) | ForEach-Object { Join-Path $claudeScriptsDir $_ }
+$staleUnifiedCopies += @(
+    (Join-Path $claudeScriptsDir "adapters\index.js"),
+    (Join-Path $ClaudeHome "base_project\adapters.json"),
+    (Join-Path $OpencodeHome "base_project\adapters.json")
+)
+foreach ($staleCopy in $staleUnifiedCopies) {
+    if (-not (Test-Path $staleCopy)) { continue }
+    $staleContent = Read-Utf8NoBom $staleCopy
+    if (($staleContent -match 'base_project:managed') -or ($staleContent -match '"_managed_by":\s*"base_project"')) {
+        Remove-Item $staleCopy -Force
+        Write-Ok "removed stale unified-layer copy: $staleCopy"
     }
 }
-$adaptersJsonSrc = Join-Path $repoRoot "source\adapters.json"
-if (Test-Path $adaptersJsonSrc) {
-    Sync-Managed -SrcFile $adaptersJsonSrc -DestFile (Join-Path $ClaudeHome "base_project\adapters.json")
-    Sync-Managed -SrcFile $adaptersJsonSrc -DestFile (Join-Path $OpencodeHome "base_project\adapters.json")
-}
-Write-Step "Initializing unified canonical store (~/.agents)..."
-if (Get-Command node -ErrorAction SilentlyContinue) {
-    & node (Join-Path $repoRoot "dev\scripts\config-store.js") --init *> $null
-    if ($LASTEXITCODE -eq 0) { Write-Ok "canonical store initialized (~/.agents)" }
+$staleAdaptersDir = Join-Path $claudeScriptsDir "adapters"
+if ((Test-Path $staleAdaptersDir) -and -not (Get-ChildItem $staleAdaptersDir -Force)) {
+    Remove-Item $staleAdaptersDir -Force
 }
 
 # ---------------------------------------------------------------------

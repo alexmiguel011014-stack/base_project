@@ -58,6 +58,46 @@ test("validate-goals-structure rejects duplicate bold item IDs", () => {
   }
 });
 
+test("validate-goals-structure checks titled and plan-numbered item definitions", () => {
+  const item = fixture(
+    [
+      "- [ ] **H.1 Titled item** (`coder`) — body",
+      "- [x] **S16.1 First** step",
+      "  - [ ] **S16.1 Second** duplicate, indented",
+      "- [ ] **S16.10 Distinct** — not a prefix clash",
+      "- [ ] **H.1** duplicate of the titled item",
+    ].join("\n"),
+  );
+  try {
+    const result = check(item.file);
+    assert.equal(result.ok, false);
+    assert.deepEqual(
+      result.findings.map((finding) => [finding.id, finding.line]),
+      [
+        ["S16.1", 3],
+        ["H.1", 5],
+      ],
+    );
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
+test("validate-goals-structure ignores item IDs mentioned in prose", () => {
+  const item = fixture(
+    [
+      "- [ ] **R17.4 Validator** — a duplicated `**S16.1**` must be reported;",
+      "  see **S16.1** and **R17.4** above, which are mentions, not definitions.",
+      "- [ ] **S16.1 The only definition**",
+    ].join("\n"),
+  );
+  try {
+    assert.deepEqual(check(item.file), { ok: true, findings: [] });
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
 test("validate-goals-structure rejects an unclosed Mermaid fence", () => {
   const item = fixture("```mermaid\nflowchart TD\n  A --> B\n");
   try {
@@ -109,7 +149,7 @@ test("completed GOALS archive preserves navigable bodies and recorded checksums"
       .update(fs.readFileSync(archivePath))
       .digest("hex");
     assert.match(body, new RegExp(`^## GOALS ${number} —`, "m"));
-    assert.doesNotMatch(body, /^- \[ \] \*\*[A-Z]\./m);
+    assert.doesNotMatch(body, /^\s*- \[ \] \*\*[A-Z]\d*\./m);
     assert.ok(index.includes(`[${file}](./${file})`));
     assert.match(index, new RegExp(`\`${hash}\``));
   }
@@ -148,8 +188,46 @@ test("validate-goals hook warns for a malformed GOALS.md without failing the edi
       }),
     });
     assert.equal(result.status, 0);
-    assert.match(result.stderr, /GOALS\.md structure warning/);
-    assert.match(result.stderr, /Duplicate item ID \*\*A\.1\*\*/);
+    // stdout JSON is the channel the model actually receives; exit-0 stderr is debug-only.
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.hookSpecificOutput.hookEventName, "PostToolUse");
+    assert.match(
+      output.hookSpecificOutput.additionalContext,
+      /GOALS\.md structure warning/,
+    );
+    assert.match(
+      output.hookSpecificOutput.additionalContext,
+      /Duplicate item ID \*\*A\.1\*\*/,
+    );
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
+test("validate-goals hook stays silent for a well-formed GOALS.md and for other files", () => {
+  const item = fixture("- [ ] **A.1** first\n- [x] **A.2** second\n");
+  const hook = path.join(
+    __dirname,
+    "..",
+    "..",
+    "source",
+    "hooks",
+    "validate-goals.js",
+  );
+  try {
+    for (const filePath of ["GOALS.md", "README.md"]) {
+      const result = spawnSync(process.execPath, [hook], {
+        encoding: "utf8",
+        input: JSON.stringify({
+          cwd: item.directory,
+          hook_event_name: "PostToolUse",
+          tool_name: "Edit",
+          tool_input: { file_path: filePath },
+        }),
+      });
+      assert.equal(result.status, 0);
+      assert.equal(result.stdout, "");
+    }
   } finally {
     fs.rmSync(item.directory, { recursive: true, force: true });
   }

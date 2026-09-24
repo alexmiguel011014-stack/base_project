@@ -89,6 +89,21 @@ const KNOWN_CLI_DEPS = new Set([
   "semantic-release",
 ]);
 
+// Type declaration packages are never imported: tsc loads the ones tsconfig.json names in
+// compilerOptions.types, so those count as used.
+function typesFromTsconfig(root) {
+  try {
+    const tsconfig = JSON.parse(
+      fs.readFileSync(path.join(root, "tsconfig.json"), "utf8"),
+    );
+    return new Set(
+      (tsconfig.compilerOptions?.types || []).map((name) => `@types/${name}`),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 function main() {
   const pkgPath = findPackageJson(process.cwd());
   if (!pkgPath) {
@@ -98,6 +113,7 @@ function main() {
 
   const deps = getPackageDeps(pkgPath);
   const imports = getAllImports(path.dirname(pkgPath));
+  const declaredTypes = typesFromTsconfig(path.dirname(pkgPath));
 
   const builtins = new Set([
     "fs",
@@ -178,6 +194,7 @@ function main() {
   for (const dep of deps) {
     if (builtins.has(dep)) continue;
     if (KNOWN_CLI_DEPS.has(dep)) continue;
+    if (declaredTypes.has(dep)) continue;
 
     let used = false;
     for (const imp of imports) {
@@ -205,4 +222,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { getAllImports, getPackageDeps };
+module.exports = { getAllImports, getPackageDeps, typesFromTsconfig };

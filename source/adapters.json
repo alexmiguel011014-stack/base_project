@@ -8,7 +8,7 @@
       "link_type": "symlink",
       "targets": {
         "memory": { "source": "rules/global/CLAUDE.md", "destination": "CLAUDE.md", "type": "symlink" },
-        "mcp": { "source": "mcp/mcp.json", "destination": ".claude.json", "type": "copy" },
+        "mcp": { "source": "mcp/mcp.json", "destination": ".mcp.json", "type": "copy" },
         "skills": { "source": "skills", "destination": ".claude/skills", "type": "symlink-contents" }
       }
     },

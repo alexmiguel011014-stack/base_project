@@ -13,6 +13,8 @@ Exit 0 healthy, 1 with actionable fixes
 `);
 }
 
+// Fix hints print absolute script paths: commands run doctor from the base_project clone
+// while the user's shell sits in their own project, where `dev/scripts/` does not exist.
 function checkHealth({ projectPath, home }) {
   const h = home || canonicalHome();
   const issues = [];
@@ -30,7 +32,7 @@ function checkHealth({ projectPath, home }) {
       issues.push({
         level: "error",
         message: `missing canonical dir ${d}`,
-        fix: `node dev/scripts/config-store.js --init`,
+        fix: `node "${path.join(__dirname, "config-store.js")}" --init`,
       });
     }
   }
@@ -43,7 +45,7 @@ function checkHealth({ projectPath, home }) {
       path.join(abs, "AGENTS.md"),
       path.join(abs, "GEMINI.md"),
       path.join(abs, ".cursor", "rules", "agentsync.mdc"),
-      path.join(abs, ".claude.json"),
+      path.join(abs, ".mcp.json"),
     ];
     for (const p of candidates) {
       try {
@@ -57,7 +59,7 @@ function checkHealth({ projectPath, home }) {
             issues.push({
               level: "error",
               message: `broken symlink ${p} -> ${target}`,
-              fix: `node dev/scripts/apply.js --project ${abs} --fix`,
+              fix: `node "${path.join(__dirname, "apply.js")}" --project "${abs}" --fix`,
             });
           }
         } else if (stat.isFile()) {

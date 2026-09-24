@@ -51,7 +51,12 @@ function readLedger(dir) {
   for (const file of fs.readdirSync(dir)) {
     if (!file.endsWith(".jsonl")) continue;
     try {
-      lines.push(...fs.readFileSync(path.join(dir, file), "utf8").split("\n"));
+      // A loop, not push(...lines): a spread overflows V8's argument limit past ~125k lines.
+      for (const line of fs
+        .readFileSync(path.join(dir, file), "utf8")
+        .split("\n")) {
+        lines.push(line);
+      }
     } catch {
       // Unreadable file: skip it, keep the rest.
     }
@@ -330,6 +335,7 @@ if (require.main === module) main();
 
 module.exports = {
   parseLedgerLines,
+  readLedger,
   resolveProjectRoot,
   isContainerOnly,
   projectName,

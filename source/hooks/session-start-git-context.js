@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // SessionStart hook: injects a compact git-state summary (branch, uncommitted
 // changes, recent commits) directly into context at the start of a session —
 // so Claude Code or Codex doesn't spend tool calls rediscovering "what was I doing"
@@ -13,6 +14,22 @@
 // session would be noise, not help.
 
 const { execFileSync } = require("node:child_process");
+
+// A dirty tree with hundreds of changed files would otherwise dump its whole
+// `git diff --stat` into every session's context.
+const MAX_DIFFSTAT_FILES = 20;
+
+function capDiffStat(diffStat) {
+  const lines = diffStat.split("\n").filter((line) => line.trim() !== "");
+  if (lines.length <= MAX_DIFFSTAT_FILES + 1) return lines.join("\n");
+  const summary = lines[lines.length - 1];
+  const files = lines.slice(0, -1);
+  return [
+    ...files.slice(0, MAX_DIFFSTAT_FILES),
+    ` ... and ${files.length - MAX_DIFFSTAT_FILES} more file(s)`,
+    summary,
+  ].join("\n");
+}
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -62,7 +79,7 @@ function formatGitContext({
     const fileCount = statusPorcelain.trim().split("\n").length;
     lines.push(`- ${fileCount} file(s) with uncommitted changes:`);
     if (diffStat) {
-      lines.push(diffStat);
+      lines.push(capDiffStat(diffStat));
     }
   }
 
@@ -145,4 +162,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { formatGitContext, buildContext };
+module.exports = { formatGitContext, buildContext, capDiffStat };

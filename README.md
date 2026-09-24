@@ -86,7 +86,7 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/CLAUDE.md` | `~/.claude/CLAUDE.md` (delimited block) | Global rules for Claude Code |
 | `source/opencode-instructions.md` | Linked from `~/.config/opencode/opencode.jsonc` | Global rules for opencode |
 | `source/claude/agents/*.md` | `~/.claude/agents/` | `architect`, `coder`, `reviewer` subagents |
-| `source/claude/commands/*.md` | `~/.claude/commands/` | `/bootstrap`, `/audit`, `/plugins`, `/council`, `/status` |
+| `source/claude/commands/*.md` | `~/.claude/commands/` | All 21 workflows — see the Commands section below |
 | `source/opencode/agent/*.md` | `~/.config/opencode/agent/` | Same trio, opencode format |
 | `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format (`dense` profile, default) |
 | `source/opencode/command-lite/*.md` | `~/.config/opencode/command/` | Same 21 commands, flat checklist rewrite for weaker/free LLM backends (`lite` profile, opt-in — see below) |
@@ -94,9 +94,10 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/codex/skills/*/SKILL.md` | `~/.agents/skills/` | The same 21 workflows as native Codex skills (`$scanproject`, `$wpp`, etc.) |
 | `source/codex/agents/*.toml` | `~/.codex/agents/` | The same `architect`, `coder`, `reviewer` roles in Codex's native format |
 | `source/codex/references/` + shared references | `~/.codex/base_project/references/` | Codex menu plus shared standards and goal types |
-| `source/opencode/mcp.json` | `~/.config/opencode/mcp.json` + registered via `claude mcp add` | Context7, filesystem, git (always on — no credentials needed). GitHub moved to the optional catalog (`/plugins`) since it needs a real personal access token, which can't be an always-on default. |
+| `source/opencode/mcp.json` | Merged into the `mcp` section of `~/.config/opencode/opencode.jsonc`, registered via `claude mcp add --scope user`, and merged into `~/.codex/config.toml` | Context7 only, pinned to an exact version (always on — no credentials needed). Filesystem and git left the always-on set in v1.2.0 (zero measured use, unpinned) and are optional in `/plugins`, like GitHub, which needs a real personal access token. Re-running the installer retires them only where they still have the definition base_project wrote (`source/opencode/mcp-previous.json`). |
 | `source/plugins.json` | Engine `base_project/plugins.json` namespaces | Optional catalog read by `/plugins` or `$plugins` |
-| `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, GOALS structural validation, git-context injection, shared usage ledger |
+| `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, GOALS structural validation, git-context injection, shared usage ledger (secrets masked before writing) |
+| `source/CLAUDE.md` + `source/opencode/mcp.json` | `~/.kimi/AGENTS.md` (delimited block) + `~/.kimi/mcp.json` | Kimi Code CLI, only when `~/.kimi/` already exists; start it with `kimi --mcp-config-file ~/.kimi/mcp.json` |
 
 **opencode command profile.** By default the installer copies the `dense` command set (the same rich, multi-step instructions Claude Code gets). If you're running opencode against a weaker or free LLM backend and it struggles to follow the dense commands, switch to `lite` — flatter, less-branchy versions of the same 21 commands, same names, no functionality removed:
 
@@ -111,7 +112,7 @@ The choice is remembered (`~/.base_project/opencode-command-profile.txt`) — re
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 
-21 workflows ship in total — see the Commands section below for the complete, current list (unified layer adds no new top-level workflow — `doctor` lives inside `/scanproject`, `sync` inside `/bootstrap`, `audit --agent`/`context` via `/audit`).
+21 workflows ship in total — see the Commands section below for the complete, current list.
 
 **Codex invocation:** use `$scanproject`, `$newgoal`, `$ship`, `$wpp`, and so on. Enabled skills also appear in Codex's slash selector, but Codex does not support arbitrary custom top-level names like `/wpp`; custom prompt files would be namespaced under `/prompts:`. This is why the faithful Codex spelling is `$wpp`, not `/wpp`.
 
@@ -119,24 +120,16 @@ The installer also checks for (and installs if missing) the global CLI tools the
 
 **Codex hook trust:** Codex asks you to review and trust a newly installed or changed hook command before it runs. That review is intentional; base_project merges its hooks idempotently but never bypasses Codex's trust boundary.
 
-### 🌐 Multi-Agent Support (Unified Layer — GOALS 6)
+### Unified config layer (GOALS 6) — parked
 
-One canonical source `~/.agents/` (with `~/.base_project/` kept for bookkeeping) projected into **31 agents** via per-agent adapters — 9 deep (verified transforms) + 22 generic (memory/MCP/`SKILL.md`). No new menu entry — inspect with `/audit --agent <id> --json` (config), check health via `/scanproject` (doctor), `bootstrap` já faz `sync` do `~/.agents/` se for repo git, e `context` é só `audit --json`.
-
-| Agent | Status | Config Files | Link Type |
-|---|---|---|---|
-| **Claude Code** | deep | `CLAUDE.md`, `.claude.json`, `.claude/skills/` | symlink |
-| **OpenCode** | deep | `AGENTS.md`, `opencode.json` | symlink |
-| **Codex CLI** | deep | `AGENTS.md`, `.codex/config.toml` (TOML) | symlink |
-| **Cursor** | deep | `.cursor/rules/*.mdc`, `.cursor/mcp.json` | **hardlink** (Cursor doesn't follow symlinks) |
-| **Gemini CLI** | deep | `GEMINI.md`, `.gemini/settings.json` | symlink |
-| **Continue** | deep | `.continue/rules/`, `.continue/mcpServers/*.yaml` | symlink |
-| **Windsurf** | deep | `.windsurf/rules/`, `~/.codeium/windsurf/mcp_config.json` (global) | symlink |
-| **Roo Code** | deep | `.roo/rules/`, `.roo/mcp.json` | symlink |
-| **Cline** | deep | `.clinerules`, `~/.cline/mcp.json` | symlink |
-| *+ 22 generic* | generic | `AGENTS.md` (+ `mcpServers` JSON + `SKILL.md` where supported) | symlink |
-
-See `source/claude/references/config-model.md` for the `global→agent→project` layer model.
+The experimental `~/.agents/` layer — one canonical store projected into 31 agents through
+per-agent adapters — is parked since v1.2.0. No command runs it and the installer no longer
+initializes `~/.agents/rules/` or `~/.agents/config.json`; `~/.agents/skills/` is still used, but
+only as Codex's native skills directory. It only worked inside this repository, its projections
+wrote files into project repositories (breaking the promise at the top of this README), and the
+22 "generic" adapters came down to an `AGENTS.md` those tools already read natively
+(`dev/auditoria-2026-09-24.md`, F4). Its code and tests stay under `dev/scripts/` and `dev/tests/`
+until removal is confirmed; `dev/ROADMAP.md` item 55 records the decision and the restore point.
 
 ---
 
@@ -161,8 +154,8 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. It then recommends a model + effort for the plan's highest-complexity module and asks whether to execute or adjust the plan; the recommendation is manual and never switches the model automatically. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
 | `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
-| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure) **plus** unified-layer health (broken links, missing `~/.agents/` dirs) — the `doctor` checks now live here. Read-only — reports findings, never edits. **Start here.** |
-| `/audit` | Two modes: (1) security (vuln scan) como antes; (2) **config** (`audit --agent cursor`) — qual camada `global→agent→project` vale para um projeto+agent. |
+| `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
+| `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
 | `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
 | `/undo` | Reverts the most recent batch of change — uncommitted edits, untracked new files, or the last commit — with confirmation tiered by risk. Never `git reset --hard` or force-push without a separate explicit gate; a pushed commit is undone with `git revert`, never rewritten. |
@@ -189,11 +182,13 @@ Not every project needs every tool — a Next.js app doesn't need Supabase MCP, 
 you> /plugins
 ai > This looks like a Next.js + Supabase project.
      Recommended: Supabase MCP, Playwright MCP.
-     Also in the catalog: Strix, Headroom, Ponytail, Skill UI bundle, Postgres MCP, SQLite MCP.
+     Also in the catalog: Strix, Headroom, Ponytail, Skill UI bundle, GitHub MCP.
      Install the recommended two, more, or none?
 ```
 
-**Currently cataloged:** Playwright MCP, Supabase MCP, Postgres MCP, SQLite MCP, Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline).
+**Currently cataloged:** Playwright MCP, Supabase MCP, GitHub MCP (needs your own token), PostgreSQL and SQLite (Google's MCP Toolbox), Filesystem and Git MCPs (formerly always on), Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline), and more design and orchestration skills — `source/plugins.json` is the full list.
+
+The Postgres and SQLite MCP entries were removed in GOALS 17: the official reference servers they pointed to are archived with unpatched SQL-injection flaws (the Postgres one bypasses its read-only mode), and the SQLite npm package never existed. Choosing a maintained replacement is an open decision, not a silent swap.
 
 ### Claude Code vs. Codex vs. opencode
 
@@ -214,8 +209,9 @@ Append an entry to `source/plugins.json` (id, kind, summary, `recommend_if`, ins
 | Principle | Description |
 |-----------|-------------|
 | **Never overwrites your own customizations** | Every file this project installs is tagged with a `base_project:managed` marker. If a file already exists at the destination without that marker (i.e. you made it yourself), the installer skips it and warns you instead of overwriting it. |
-| **Merges, doesn't clobber** | `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.codex/hooks.json`, and `~/.config/opencode/opencode.jsonc` keep everything you already had — base_project only owns marked blocks/entries. |
-| **Secrets stay out of git** | `mcp.json` lives in your global config directory, never inside a project repo, so API keys you add there are never at risk of being committed. |
+| **Merges, doesn't clobber** | `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.codex/hooks.json`, `~/.codex/config.toml`, and `~/.config/opencode/opencode.jsonc` keep everything you already had — base_project only owns marked blocks/entries. In `opencode.jsonc` your own instructions, MCP servers and comments survive; if the file can't be parsed, it is left untouched rather than recreated. An MCP entry you edited is yours: the installer updates or retires only entries that still have the exact definition it wrote. |
+| **Secrets stay out of git** | MCP configuration lives in your global config (Claude Code user scope, `opencode.jsonc`, `~/.codex/config.toml`), never inside a project repo, so API keys you add there are never at risk of being committed. The local usage ledger masks well-known token shapes before writing. |
+| **Your usage history is yours** | The local usage ledger (`~/.claude/base_project/usage/`) is kept until you decide otherwise — it is the only source `/diario` has for past hours. To trim it, `node <base_project clone>/dev/scripts/ledger-prune.js --keep-days 180` shows what would go (dry run, deletes nothing); add `--apply` to delete those whole-day files. `/uninstall` asks separately before touching it. |
 | **Nothing is installed per-project** | If you ever stop using base_project, delete the managed block from `~/.claude/CLAUDE.md` and the marked files from the global directories — your projects were never touched. |
 | **Screen control is a last resort** | The global rules make every runtime test UIs through DOM-driven browser tooling and the project's own tests; desktop computer use needs your explicit per-task go-ahead, and screenshots are requested from you rather than captured. |
 
@@ -223,7 +219,7 @@ Append an entry to `source/plugins.json` (id, kind, summary, `recommend_if`, ins
 
 ## 🧪 Testing the Installer Without Touching Your Real Config
 
-Both scripts accept overrides so you can dry-run into a scratch directory:
+Both scripts accept overrides that redirect the Claude Code, opencode, Codex and `~/.agents` directories into a scratch location. They are not a full sandbox: the installer still installs missing global CLI tools, registers MCP servers through the real `claude mcp add --scope user`, writes its state to `~/.base_project/`, and touches `~/.kimi/` when it exists. Run it with a throwaway `HOME` (as CI does) when you need complete isolation:
 
 #### PowerShell
 ```powershell
@@ -275,7 +271,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 | Manage plugins | `/plugins` |
 | Pressure-test a decision | `/council` |
 | Map project context | `/bootstrap` |
-| View this menu | `/status` or `/wpp` |
+| View this menu | `/wpp` |
+| See what's installed and active | `/status` |
 
 In Codex, replace `/` with `$` for the workflow rows above.
 
@@ -283,7 +280,23 @@ In Codex, replace `/` with `$` for the workflow rows above.
 
 ## 📬 Changelog
 
-### v1.0.0 (current)
+### v1.2.0 (unreleased — tag pending)
+- Audit remediation (GOALS 17, `dev/auditoria-2026-09-24.md`): CI green again and unit tests run on Linux, Windows and macOS
+- Hook warnings now reach the model (`additionalContext`); auto-format no longer goes through `npx` and only runs on edits
+- `opencode.jsonc` is merged, not replaced: your own instructions, MCP servers and comments survive; unparseable files are left untouched
+- Unified config layer (GOALS 6) parked: `/bootstrap`, `/scanproject` and `/audit` no longer run it, and the installer no longer initializes `~/.agents` (it only worked inside the base_project clone)
+- `/usagebp` no longer crashes on large ledgers; the ledger masks secrets before writing, and `dev/scripts/ledger-prune.js` trims it on request (dry run by default)
+- `/uninstall` keeps your usage history, diaries and `~/.agents` content unless you explicitly delete them (new Tier D)
+- Catalog: removed the Postgres and SQLite MCP entries (unpatched SQL injection / nonexistent package) and a test fixture; PostgreSQL and SQLite come back through Google's MCP Toolbox, pinned, with least-privilege guidance verified against a live database
+- Type checking that checks something: hooks and installer helpers opt in with `// @ts-check` on TypeScript 7 (before, `tsc` checked no file at all)
+- Always-on MCPs: only Context7, pinned to an exact version; filesystem and git moved to the optional catalog (git now the official server) and are retired from existing installs only where base_project's own definition is still there
+- Since v1.1.0: native Codex support, opencode `lite` profile, unified config layer (experimental), `/repertoire`, `/diario`, `/pr`, `/undo`, `/updates`, `/usagebp`, typed `/newgoal`, deterministic contract harness, screen-control-as-last-resort rule
+
+### v1.1.0
+- `/ship`, `/designreview`, `/execgoals`; `/goals` renamed to `/newgoal`; `/council` confirmation gate
+- Usage ledger and multi-engine support; public release preparation
+
+### v1.0.0
 - Initial release with full agent/command/MCP suite
 - Cross-engine support (Claude Code + Codex + opencode)
 - Plugin catalog system

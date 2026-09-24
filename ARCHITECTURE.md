@@ -11,14 +11,13 @@ Para lições aprendidas com bugs reais, veja `CLAUDE.md` (regras deste repo) e
 ## 1. O que este projeto é, em uma frase
 
 Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `source/`
-para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/`, e projeta `~/.agents/` (unified layer) em 31
-agents — nada mais. Não é um servidor rodando o tempo todo, não é um pacote npm
-publicado, não escreve nada dentro de projetos que o usam. O "produto" real são os
-arquivos que acabam instalados: regras globais, 3 subagentes, **21 comandos**, um catálogo
-de plugins opcionais, 5 hooks com comportamento real, e o **unified config layer**
-(`~/.agents/` → 9 deep adapters + 22 generic, `global→agent→project`, ver
-`source/claude/references/config-model.md`). (O dashboard web existiu até o ROADMAP item
-13 — removido por completo, ver histórico lá.) Versão rastreada via `package.json`
+para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/` — nada mais.
+Não é um servidor rodando o tempo todo, não é um pacote npm publicado, não escreve nada
+dentro de projetos que o usam. O "produto" real são os arquivos que acabam instalados:
+regras globais, 3 subagentes, **21 comandos**, um catálogo de plugins opcionais e 5 hooks
+com comportamento real. (O dashboard web existiu até o ROADMAP item 13 — removido por
+completo, ver histórico lá. O unified config layer do GOALS 6 está estacionado desde a
+v1.2.0 — ver ROADMAP item 55.) Versão rastreada via `package.json`
 (`version`) + git tag — sem nenhum fluxo de release/publicação.
 
 ---
@@ -47,7 +46,9 @@ base_project/
 │   │   │                        instrução condicional densa; nunca os dois instalados juntos)
 │   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
 │   │                            formato opencode)
-│   │   └── mcp.json            → ~/.config/opencode/mcp.json + registrado via `claude mcp add`
+│   │   ├── mcp.json            → seção `mcp` do opencode.jsonc, `claude mcp add`, config.toml do
+│   │   │                          Codex e ~/.kimi/mcp.json (hoje só o context7, versão fixada)
+│   │   └── mcp-previous.json   → não instalado: definições já distribuídas, para aposentar/atualizar
 │   ├── codex/
 │   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
 │   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
@@ -59,21 +60,26 @@ base_project/
 ├── dev/                        ← ADMIN-ONLY. Nada aqui importa pra quem só USA o base_project.
 │   ├── scripts/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
+│   │   ├── install-codex.js          ← projeção nativa do Codex, chamada pelos dois instaladores
+│   │   ├── install-opencode.js       ← merge do opencode.jsonc (JSONC tolerante, edição pontual, preserva entradas/comentários do usuário), chamado pelos dois instaladores
+│   │   ├── ledger-prune.js           ← CLI opt-in: apaga dias antigos do ledger de uso (dry run por padrão)
+│   │   ├── mcp-servers.js            ← MCPs atuais + definições já distribuídas (source/opencode/mcp-previous.json): aposenta/atualiza só entradas que ainda são do base_project (Claude, Codex, opencode)
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
-│   │   ├── validate-goals-structure.js ← CLI: detecta IDs duplicados e fences Mermaid abertas em GOALS.md
-│   │   ├── paths.js                  ← resolve CANONICAL_HOME (~/.agents) + TARGET_ROOT (GOALS 6)
-│   │   ├── config-store.js           ← CRUD de ~/.agents/config.json (projects map)
-│   │   ├── resolve-layers.js         ← global→agent→project resolver + merge
-│   │   ├── adapters/                 ← um módulo por agente (claude-code, cursor, codex, gemini-cli, continue, windsurf, roo-code, cline, opencode) + index.js registry
-│   │   ├── apply.js / drift.js / audit.js / doctor.js / lint-config.js / context.js / wizard.js / sync.js / tasks.js / history.js / snapshot.js / secrets.js / check-plugin-updates.js
+│   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md
+│   │   ├── goals-archive-index.js    ← CLI: --check/--write da coluna de checksums de dev/goals-archive/README.md
+│   │   ├── paths.js, config-store.js, resolve-layers.js, adapters/, apply.js, drift.js, audit.js,
+│   │   │   doctor.js, lint-config.js, context.js, wizard.js, sync.js, tasks.js, history.js,
+│   │   │   snapshot.js, secrets.js, marketplace.js, check-plugin-updates.js, adapter-interface.md
+│   │   │                             ← unified layer (GOALS 6), ESTACIONADA: nenhum comando nem o
+│   │   │                               installer usa; fica até a remoção ser confirmada (ROADMAP 55)
 │   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
 │   ├── schemas/
 │   │   ├── plugins.schema.json ← JSON Schema draft-07 validando a forma de plugins.json
-│   │   ├── config.schema.json  ← valida ~/.agents/config.json (projects map)
-│   │   └── adapters.schema.json← valida source/adapters.json (breadth tier)
+│   │   ├── config.schema.json  ← unified layer estacionada: ~/.agents/config.json
+│   │   └── adapters.schema.json← unified layer estacionada: source/adapters.json
 │   ├── tests/                  ← node:test, roda com `npm test`
 │   ├── goals-archive/          ← corpos imutáveis dos planos concluídos + índice com checksums
 │   └── ROADMAP.md              ← histórico de decisões, o que foi feito e por quê, o que ficou de fora
@@ -106,7 +112,7 @@ precisa cobrir `source/hooks/**/*.js` (fora de `dev/`) e `dev/scripts/*.js`/
 regra é a raiz. `tsconfig.json` foi junto por consistência (o `tsc` em si não tem essa
 restrição, mas manter os dois configs de tooling no mesmo lugar evita confusão).
 
-**Camada unificada (GOALS 6, 2026-08-23)**: `~/.agents/` é o canonical unificado (padrão `dot-agents`), com `~/.base_project/` mantido para bookkeeping próprio (repo-path, diary-root, usage ledger). Ver `source/claude/references/config-model.md` para layout completo `global→agent→project`, merge semantics e `link_type` (hardlink só para Cursor). Overrides: `AGENTS_HOME`/`BASE_PROJECT_HOME` (centralizado em `dev/scripts/paths.js`).
+**Camada unificada (GOALS 6, 2026-08-23) — estacionada desde a v1.2.0**: nenhum comando a executa e o installer não inicializa mais `~/.agents/` (só `~/.agents/skills/`, que é o diretório nativo de skills do Codex). Ela só funcionava dentro deste repositório e projetava arquivos dentro dos projetos, contra a regra de zero pegada (`dev/auditoria-2026-09-24.md`, F4). O código (`dev/scripts/paths.js`, `config-store.js`, `apply.js`, `drift.js`, `doctor.js`, `adapters/`…), os testes e `source/adapters.json` continuam no repo até a remoção ser confirmada; decisão e ponto de restauração no ROADMAP item 55.
 
 **Regra de sincronização**: editar só `source/` não tem efeito imediato na máquina —
 `source/` é o "código-fonte", os arquivos instalados em `~/.claude/base_project/` são o
@@ -163,7 +169,7 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
 | `/pr` | Abre um pull request pra branch atual — rascunha título/corpo a partir do range de commits real contra a branch base, confirma antes de criar. O passo que o próprio `/ship` (passo 9) já menciona mas nunca executa. |
 | `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
-| `/audit` | Dois modos: (1) segurança (vuln scan) como antes; (2) **config audit** (`--agent cursor`) — qual camada `global→agent→project` se aplica a um projeto+agent (matches `dot-agents audit`). `context` é só `audit --json`. |
+| `/audit` | Varredura só de segurança, mais funda que o `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos. Usa o Strix quando instalado. |
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
 | `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. Sempre pede confirmação antes — custa ~6x uma resposta de passada única. |
 | `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
@@ -223,14 +229,19 @@ apontam pra ele em vez de duplicar a lista.
   ferramentas, MCPs e componentes opcionais que o base_project gerencia. Nunca instala,
   atualiza, executa `git pull` ou grava configuração; uma atualização de verdade exige tarefa
   separada e autorização explícita.
-- **`/uninstall`**: inventário real primeiro (nunca por suposição), depois 3 tiers de
-  confirmação **separados** por raio de impacto — Tier A (arquivos próprios do
-  base_project, reversível reinstalando), Tier B (os 3 registros de hook em
-  `settings.json` + `instructions`/`mcp.file` do `opencode.jsonc` — muda comportamento
-  de toda sessão futura), Tier C (os 4 registros de MCP server via `claude mcp remove
-  --scope user` — afeta todo projeto da máquina, não só quem usa base_project). Nunca
-  toca em arquivo sem o marcador `base_project:managed`, e **nunca apaga o repositório
-  do base_project em si**, só os efeitos instalados globalmente.
+- **`/uninstall`**: inventário real primeiro (nunca por suposição), em todos os engines
+  presentes (Claude Code, opencode, Codex, Kimi), depois 4 tiers de confirmação
+  **separados** por raio de impacto — Tier A (arquivos próprios do base_project,
+  reversível reinstalando), Tier B (os registros de hook em `~/.claude/settings.json` e
+  `~/.codex/hooks.json` + a entrada `instructions` do `opencode.jsonc` — muda
+  comportamento de toda sessão futura), Tier C (os MCPs globais: `claude mcp remove
+  --scope user`, as entradas do base_project no `mcp` do `opencode.jsonc`, as tabelas no
+  `~/.codex/config.toml` — afeta todo projeto da máquina) e **Tier D (dados do usuário:
+  ledger de uso, diários, `~/.agents/` — não voltam reinstalando, padrão é manter)**. Até o
+  GOALS 17 o ledger ficava dentro do namespace que o Tier A chamava de "reversível
+  reinstalando", mas é a única fonte do `/diario`. Nunca toca em arquivo sem o marcador
+  `base_project:managed`, e **nunca apaga o repositório do base_project em si**, só os
+  efeitos instalados globalmente.
 
 ### 4.4 Projeção nativa do Codex
 
@@ -242,7 +253,9 @@ os installers. Ele preserva conteúdo do usuário e instala seis superfícies co
 3. três subagentes TOML em `~/.codex/agents/`;
 4. referências e catálogo em `~/.codex/base_project/`;
 5. hooks mesclados em `~/.codex/hooks.json`;
-6. MCPs no `~/.codex/config.toml` pelo installer principal.
+6. MCPs no `config.toml` da mesma raiz do Codex (`CODEX_HOME`, padrão `~/.codex`), por
+   `dev/scripts/mcp-servers.js`: acrescenta os que faltam e atualiza/aposenta só tabelas que
+   ainda têm exatamente a definição que o base_project escreveu.
 
 Os hooks Codex apontam deliberadamente para os scripts já instalados em
 `~/.claude/base_project/hooks/`. Em especial, `usage-log.js` continua escrevendo no ledger
@@ -274,7 +287,7 @@ pelo CI (`npm run validate:plugins`).
 Campo raiz opcional: `{ "minimal": ["headroom", "ponytail"], "design": [...], "full": [...] }`.
 `/plugins <nome-do-perfil>` reconhece isso em `$ARGUMENTS` e pula direto pra instalação,
 sem passar pela recomendação interativa. `dependsOn` por entrada existe no schema mas
-**não está populado** — decisão deliberada: as 13 entradas atuais não têm dependência
+**não está populado** — decisão deliberada: as entradas atuais não têm dependência
 técnica real entre si (são MCPs/CLIs/skills independentes), popular seria dado falso.
 
 ---
@@ -300,30 +313,14 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **Supabase MCP** (`supabase`) | plugin (MCP) | Gerencia tabelas, roda SQL, lê config direto de um projeto Supabase. |
-| **Postgres MCP** (`postgres`) | plugin (MCP) | Consulta/inspeciona um Postgres local ou remoto. |
-| **SQLite MCP** (`sqlite`) | plugin (MCP) | Consulta/inspeciona um arquivo SQLite local. |
-
-### 🔄 Unified Layer — adapters (GOALS 6, sem comando novo no menu)
-| Agent | Tier | Link | Targets |
-|---|---|---|---|
-| claude-code | deep | symlink | `CLAUDE.md` → `~/.agents/rules/global/CLAUDE.md` |
-| opencode | deep | symlink | `AGENTS.md` |
-| codex | deep | symlink | `AGENTS.md` + `.codex/config.toml` (TOML) |
-| cursor | deep | **hardlink** | `.cursor/rules/*.mdc` (hardlink, EXDEV→copy) |
-| gemini-cli | deep | symlink | `GEMINI.md` |
-| continue | deep | symlink | `.continue/rules/` + YAML `mcpServers` |
-| windsurf | deep | symlink | `.windsurf/rules/` (6k limit, lossy) |
-| roo-code | deep | symlink | `.roo/rules/` |
-| cline | deep | symlink | `.clinerules` |
-| +22 generic | generic | symlink | `AGENTS.md` + `mcpServers`/`SKILL.md` onde suportado |
-
-Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `bootstrap` (inclui `sync` + `pr`); detalhe em `source/claude/references/config-model.md`. `explain` e `doctor`/`context` continuam como scripts em `dev/scripts/` mas não no menu (YAGNI).
+| **PostgreSQL** (`toolbox-postgres`) | plugin (MCP) | MCP Toolbox do Google, prebuilt `postgres` (29 ferramentas, incluindo `execute_sql`). Sem modo read-only próprio: a fronteira é o papel do banco — com um papel só-`SELECT`, escrita e o escape multi-comando que furava o servidor antigo são recusados pelo próprio Postgres (testado ao vivo). |
+| **SQLite** (`toolbox-sqlite`) | plugin (MCP) | MCP Toolbox do Google, prebuilt `sqlite` (`list_tables`, `execute_sql`). `file:<caminho>?mode=ro` evita escrita acidental, mas `ATTACH` reabre o arquivo para escrita (testado) — por isso a orientação é apontar para uma cópia. |
 
 ### 🔒 Segurança
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **Strix** (`strix`) | plugin (CLI) | Pentest autônomo com prova de exploração real (não só lista estática), roda isolado em Docker. Usado por `/audit` quando instalado. |
-| **`/audit`** | comando | Dois modos: (1) segurança (vuln scan) + (2) config audit (`global→agent→project`) via `/audit --agent`. |
+| **`/audit`** | comando | Varredura só de segurança, mais funda que o `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos. Usa o Strix quando instalado. |
 | **`scan-skill.js`** | script interno | Varre uma skill de terceiro baixada em busca de padrão suspeito (comando remoto, Unicode escondido) antes de confiar nela. Roda sozinho dentro do `/plugins`. |
 
 ### 🧭 Navegador / teste de UI
@@ -361,9 +358,9 @@ Comandos: `scanproject` (inclui `doctor`), `audit --agent` (inclui `context`), `
 | **`/bootstrap`** | comando | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
 | **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
 | **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão e ao fechar tarefa substancial — lista todos os comandos em linguagem simples. |
-| **context7** | MCP (sempre ativo) | Busca documentação atualizada de biblioteca/framework. |
-| **filesystem** | MCP (sempre ativo) | Acesso a arquivo fora do diretório de trabalho padrão. |
-| **git** | MCP (sempre ativo) | Operações git estruturadas. |
+| **context7** | MCP (sempre ativo, versão fixada) | Busca documentação atualizada de biblioteca/framework. |
+| **filesystem** | MCP opcional (`/plugins`) | Acesso a arquivo restrito aos diretórios passados. Saiu do conjunto sempre-ativo na v1.2.0 (zero uso medido; os agentes têm ferramentas de arquivo nativas). |
+| **git** | MCP opcional (`/plugins`) | Operações git estruturadas pelo servidor oficial (`mcp-server-git`, via `uvx`). Substitui o `mcp-git` sempre-ativo (mantenedor individual, sem versão fixada, zero uso medido). |
 | **github** | MCP opcional | Lê/escreve issues, PRs e código no GitHub quando o usuário fornece e configura um token pessoal. |
 
 ### 🛡️ Qualidade / comportamento automático
@@ -394,24 +391,34 @@ os disparou (tudo dentro de `try/catch` que engole erro).
 ### `source/hooks/loop-detect.js` (`PostToolUse`, síncrono)
 Mantém um contador por `session_id` (arquivo em `os.tmpdir()`, não em
 `~/.base_project/`) da assinatura `tool_name + JSON(tool_input)`. Se a mesma
-assinatura repetir 5x seguidas, escreve um aviso em stderr (nunca bloqueia). Existe
-porque um padrão assim precedeu um acidente real de perda de dados nesta mesma sessão de
-desenvolvimento (`git checkout --` repetido).
+assinatura repetir 5x seguidas, entrega o aviso **ao modelo** como JSON no stdout
+(`hookSpecificOutput.additionalContext`) e nunca bloqueia. Até o GOALS 17 o aviso ia
+para stderr com exit 0 — canal que o Claude Code manda só para o log de debug ("Claude
+never sees it", documentação oficial de hooks) e que o Codex também ignora; ou seja, o
+aviso existia mas ninguém o lia. Existe porque um padrão assim precedeu um acidente real
+de perda de dados nesta mesma sessão de desenvolvimento (`git checkout --` repetido).
 
 ### `source/hooks/post-edit-format.js` (`PostToolUse`, síncrono)
 Depois de `Edit`/`Write`/`MultiEdit` ou do `apply_patch` do Codex num arquivo
 `.js`/`.jsx`/`.ts`/`.tsx`/`.json`/`.css`,
 roda `biome format --write` **só nesse arquivo** — nunca o projeto inteiro. Escopo
 restrito é deliberado: um `biome format .` amplo já causou um incidente de reformatação
-não intencional nesta mesma sessão. Silenciosamente não faz nada se não houver
-`biome.json`/binário disponível no projeto alvo (não instala nada por conta própria).
+não intencional nesta mesma sessão. Procura o `biome.json(c)` subindo a partir do arquivo e
+roda o `@biomejs/biome` **do próprio projeto** com o binário atual do Node, a partir do
+diretório dessa config (o Biome resolve a config pelo diretório de trabalho). Sem config ou
+sem Biome local, não faz nada e não instala nada. Nunca usa `npx`: o
+`npx --no-install biome` anterior custava ~500 ms por edição e, em projeto sem Biome,
+consultava o registro npm e resolvia o pacote fantasma `biome@0.3.3` (o mesmo bug descrito no
+`CLAUDE.md` deste repo). No Claude Code e no Codex é registrado com matcher só de edição, então
+não sobe processo em `Read`/`Grep`/`Bash`.
 
 ### `source/hooks/validate-goals.js` (`PostToolUse`, síncrono)
 Depois de um `Edit`/`Write`/`MultiEdit` ou `apply_patch` que toca qualquer `GOALS.md`, chama o
 único verificador em `dev/scripts/validate-goals-structure.js` (instalado em
-`~/.claude/base_project/scripts/`). Ele detecta IDs de checklist em negrito duplicados e blocos
-Mermaid sem fechamento, escreve um aviso em stderr e sai com sucesso: é um poka-yoke
-observável, nunca um bloqueio que pudesse invalidar uma edição legítima. No Codex, o registro usa
+`~/.claude/base_project/scripts/`). Ele detecta IDs de item duplicados (nas linhas de checklist
+que os definem, nos formatos `H.1` e `S16.1`) e blocos Mermaid sem fechamento, entrega os achados
+ao modelo como `additionalContext` no stdout e sai com sucesso: é um poka-yoke observável, nunca
+um bloqueio que pudesse invalidar uma edição legítima. No Claude Code e no Codex, o registro usa
 matcher estreito só para ferramentas de edição; o filtro interno continua como defesa adicional.
 
 ### `source/hooks/session-start-git-context.js` (`SessionStart`, matcher `startup|resume|clear`)
@@ -422,8 +429,9 @@ tool calls). Mecanismo: stdout puro em exit 0 vira contexto automaticamente (sem
 wrapper JSON) — confirmado contra a documentação oficial do Claude Code antes de
 implementar, não assumido. **Fica em silêncio (zero stdout) se a árvore estiver limpa e
 sincronizada com o upstream** — decisão deliberada de economia de token: a maioria das
-aberturas de sessão não tem nada de novo pra reportar. Deliberadamente não registrado
-pros matchers `compact`/`fork` (não são cold start de verdade).
+aberturas de sessão não tem nada de novo pra reportar. O `git diff --stat` é limitado a 20
+arquivos + a linha de resumo, para uma árvore com centenas de mudanças não inundar o contexto.
+Deliberadamente não registrado pros matchers `compact`/`fork` (não são cold start de verdade).
 
 ### `source/hooks/usage-log.js` (`PostToolUse` + `UserPromptSubmit`, assíncrono)
 Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em
@@ -439,6 +447,13 @@ sub-reportava plugins que na verdade estavam em uso (ver `dev/scripts/NPInstruct
 Input grande é truncado pra um `Write` não inflar o ledger; sobrevive a input circular sem
 lançar exceção; cada entrada é uma linha só, então uma escrita corrompida não contamina as
 vizinhas.
+
+**Retenção**: o ledger é mantido indefinidamente por padrão — é a única fonte do `/diario` para
+horas passadas, então apagar histórico é decisão do usuário, nunca automática.
+`dev/scripts/ledger-prune.js --keep-days <N>` (ou `--before <YYYY-MM-DD>`) lista os arquivos
+`YYYY-MM-DD-<sessão>.jsonl` anteriores ao corte sem apagar nada; só com `--apply` apaga
+exatamente esses arquivos inteiros. Nada mais do diretório (`.zero-use-tracking.json`, uma nota
+do usuário) é tocado.
 
 **Importante**: editar esses arquivos em `source/hooks/` não muda o comportamento da sua
 sessão atual — o `settings.json` real só é atualizado rodando o installer de novo (ele
@@ -486,6 +501,20 @@ Codex reutilizam esse caminho compartilhado.
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
   e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
   isolado como prova
+- `install-opencode.test.js` — merge do `opencode.jsonc`: comentários, entradas do usuário,
+  idempotência, posse dos MCPs, arquivo ilegível intocado
+- `mcp-servers.test.js` — `config.toml` do Codex (formato antigo dos dois instaladores,
+  tabela editada pelo usuário intocada, CRLF, chave pontilhada/tabela inline sem duplicar),
+  aposentadoria no Claude só com a definição exata, e versão fixada nos MCPs distribuídos
+- `command-paths.test.js` — nenhum comando distribuído roda `dev/scripts/*.js` relativo ao
+  projeto do usuário (sempre via `<repo>` de `~/.base_project/repo-path.txt`)
+- `goals-archive-index.test.js` / `ledger-scale.test.js` — checksums do arquivo de GOALS e
+  leitores do ledger acima do limite de argumentos do V8 (150 mil eventos)
+- `ledger-prune.test.js` — retenção opt-in: dry run não apaga, o dia do corte fica, arquivos que
+  não são do ledger ficam, argumento inválido não apaga nada
+- `adapters`, `audit`, `config-store`, `doctor`, `drift`, `lint-config`, `resolve-layers`,
+  `secrets`, `snapshot`, `sync`, `tasks` `.test.js` — cobrem a unified layer estacionada;
+  saem junto com ela
 
 Escopo deliberado: testa lógica de instalador/hook/script, não "qualidade" de skill —
 mesmo princípio que a pesquisa achou no próprio ECC (maior projeto do gênero, só testa 2
@@ -497,15 +526,19 @@ coisas de conteúdo de skill em ~130 arquivos de teste).
 
 Dois jobs:
 
-1. **`validate`** (ubuntu-latest): `npm ci` → `npm run verify` (Biome, TypeScript, schema de
-   plugins, dependências não usadas, testes e auditoria de dependências de produção). Dependabot
+1. **`validate`** (ubuntu-latest): `npm ci` → `npm run verify` (Biome, TypeScript sobre os
+   arquivos com `// @ts-check` — hooks e helpers do instalador —, schema de plugins,
+   dependências não usadas, testes e auditoria de dependências de produção). Dependabot
    abre PRs semanais separados para npm e GitHub Actions; não há auto-merge.
 2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`/`macos-latest`): roda
    `dev/scripts/install.sh`/`install.ps1` de verdade contra um `$HOME` descartável (via
    os overrides `CLAUDE_HOME`/`OPENCODE_HOME` e
    `BASE_PROJECT_CODEX_ROOT`/`BASE_PROJECT_AGENTS_ROOT`),
    confere que os artefatos-chave existem e que `settings.json` é JSON válido, e roda o
-   installer uma 2ª vez pra confirmar idempotência.
+   installer uma 2ª vez pra confirmar idempotência. Desde o GOALS 17 também roda
+   `npm ci` + `npm test` em cada SO: até então os testes só rodavam no Ubuntu enquanto a
+   validação do dia a dia acontecia no Windows, e um teste dependente de plataforma ficou
+   vermelho no CI por um mês sem ninguém notar.
 
 `biome.json`/`tsconfig.json` (raiz — ver seção 2 sobre por que não estão em `dev/`)
 escopam `source/hooks/**/*.js`, `dev/scripts/*.js`, `dev/tests/**/*.js` — sem isso o

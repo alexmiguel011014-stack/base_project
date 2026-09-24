@@ -2,7 +2,7 @@
 // base_project:managed
 const fs = require("node:fs");
 const path = require("node:path");
-const { execSync } = require("node:child_process");
+const { execFileSync } = require("node:child_process");
 const { canonicalHome } = require("./paths");
 
 function help() {
@@ -12,12 +12,14 @@ Usage:
   node dev/scripts/sync.js status
   node dev/scripts/sync.js commit -m "msg"
   node dev/scripts/sync.js push
-  node dev/scripts/sync.js pull
+  node dev/scripts/sync.js pull      (fast-forward only)
 `);
 }
 
-function run(cmd, cwd) {
-  return execSync(cmd, {
+// git runs with an argument array, never through a shell: a commit message is data, and
+// building `git commit -m "<msg>"` as a shell string let `$(...)` in it execute.
+function git(args, cwd) {
+  return execFileSync("git", args, {
     cwd,
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
@@ -38,7 +40,7 @@ const sub = args[0];
 if (sub === "init") {
   fs.mkdirSync(home, { recursive: true });
   if (!fs.existsSync(path.join(home, ".git"))) {
-    run("git init", home);
+    git(["init"], home);
     // ensure .gitignore
     const gi = path.join(home, ".gitignore");
     if (!fs.existsSync(gi))
@@ -54,7 +56,7 @@ if (sub === "init") {
 }
 if (sub === "status") {
   try {
-    const out = run("git status --porcelain", home);
+    const out = git(["status", "--porcelain"], home);
     console.log(out || "(clean)");
     process.exit(0);
   } catch (e) {
@@ -66,8 +68,8 @@ if (sub === "commit") {
   const msgIdx = args.indexOf("-m");
   const msg = msgIdx !== -1 ? args[msgIdx + 1] : "sync";
   try {
-    run("git add -A", home);
-    run(`git commit -m "${msg.replace(/"/g, '\\"')}"`, home);
+    git(["add", "-A"], home);
+    git(["commit", "-m", msg], home);
     console.log(`sync commit: ${msg}`);
     process.exit(0);
   } catch (e) {
@@ -77,7 +79,7 @@ if (sub === "commit") {
 }
 if (sub === "push") {
   try {
-    const out = run("git push", home);
+    const out = git(["push"], home);
     console.log(out);
     process.exit(0);
   } catch (e) {
@@ -87,7 +89,9 @@ if (sub === "push") {
 }
 if (sub === "pull") {
   try {
-    const out = run("git pull", home);
+    // Fast-forward only, as /bootstrap promises: a diverged canonical store is reported,
+    // never merged or rebased behind the user's back.
+    const out = git(["pull", "--ff-only"], home);
     console.log(out);
     process.exit(0);
   } catch (e) {

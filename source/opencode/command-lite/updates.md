@@ -13,10 +13,9 @@ STEP 2 — Build the inventory from its source files:
 - root `package.json` and `package-lock.json`: `ajv`, `ajv-formats`, `@biomejs/biome`, `typescript`;
 - installer-managed Node/npm, Git, `gh`, `graphifyy`/`graphify`, `repomix`, `@biomejs/biome`,
   `typescript`, Unix `jq`;
-- `source/opencode/mcp.json`: `@upstash/context7-mcp`, `@modelcontextprotocol/server-filesystem`, `mcp-git`;
+- `source/opencode/mcp.json`: `@upstash/context7-mcp` (pinned to an exact version);
 - `source/plugins.json`: only entries with a reliable installed signal by default. Literal `all`
   includes every catalog entry; otherwise unknown optional entries are `unknown`, not `not-installed`.
-Do not treat `dev/scripts/check-plugin-updates.js` as a complete dependency update checker.
 
 STEP 3 — Run only these bounded read-only checks. An `npm outdated` exit code 1 with JSON is
 update data, not a failure.
@@ -27,8 +26,9 @@ update data, not a failure.
 - Windows: `winget list --upgrade-available`. macOS:
   `HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --json=v2`. Linux: `apt list --upgradable`.
   Filter each to managed tools. Missing checker = `unsupported`; failed available checker = `check-failed`.
-- MCP registry metadata: `npm view <package> version --json`. An `npx` MCP is
-  `floating/latest-on-use` unless a durable installation is proven.
+- MCP registry metadata: `npm view <package> version --json`. A pinned MCP (`package@x.y.z`)
+  compares its pin with the registry latest; an unpinned `npx` MCP is `floating/latest-on-use`
+  unless a durable installation is proven.
 - Read `.github/dependabot.yml` or `.github/dependabot.yaml` for npm and GitHub Actions coverage;
   absence = `unknown`.
 
