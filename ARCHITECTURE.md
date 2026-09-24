@@ -312,6 +312,8 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **Supabase MCP** (`supabase`) | plugin (MCP) | Gerencia tabelas, roda SQL, lê config direto de um projeto Supabase. |
+| **PostgreSQL** (`toolbox-postgres`) | plugin (MCP) | MCP Toolbox do Google, prebuilt `postgres` (29 ferramentas, incluindo `execute_sql`). Sem modo read-only próprio: a fronteira é o papel do banco — com um papel só-`SELECT`, escrita e o escape multi-comando que furava o servidor antigo são recusados pelo próprio Postgres (testado ao vivo). |
+| **SQLite** (`toolbox-sqlite`) | plugin (MCP) | MCP Toolbox do Google, prebuilt `sqlite` (`list_tables`, `execute_sql`). `file:<caminho>?mode=ro` evita escrita acidental, mas `ATTACH` reabre o arquivo para escrita (testado) — por isso a orientação é apontar para uma cópia. |
 
 ### 🔒 Segurança
 | Nome | Tipo | O que faz |

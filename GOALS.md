@@ -241,9 +241,15 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   definition base_project wrote; Codex MCP handling moved from the two shell installers into
   `install-codex.js`, rooted where Codex reads it. Verified: all three pinned servers answer
   `initialize`; an old-install `HOME` upgraded end to end; tests fail on each mutated rule.
-- [ ] **R17.24 Choose replacement database MCP servers, if any** (`manual`) — candidates need a
+- [x] **R17.24 Choose replacement database MCP servers, if any** (`manual`) — candidates need a
   trust decision (for Postgres, the patched `@zeddotdev/postgres-context-server` ships no `bin`,
-  so it is not an `npx` drop-in).
+  so it is not an `npx` drop-in). **Decided: Google's MCP Toolbox for Databases**
+  (`@toolbox-sdk/server@1.12.0`, Apache-2.0, binaries as pinned per-platform npm packages, no
+  runtime download) as the optional `toolbox-postgres` and `toolbox-sqlite` entries — new ids, so
+  an old `postgres` registration is never mistaken for them. Verified live: Postgres 16 with a
+  SELECT-only role (29 tools; `INSERT` denied with SQLSTATE 42501; the `COMMIT; DROP` escape
+  refused) and SQLite (`mode=ro` blocks `INSERT`, but `ATTACH` reopens the file read-write), so
+  the entries put the boundary in the database role or a file copy, never in a read-only claim.
 - [ ] **R17.25 Decide the typecheck policy** (`manual`) — `checkJs: false` makes `tsc` report no
   type errors; enable it progressively (`// @ts-check`) or drop the step, then settle Dependabot's
   TypeScript 7 PR.

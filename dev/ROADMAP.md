@@ -2376,6 +2376,24 @@ comparar a versão fixada com a do registro, e o `/uninstall` conhece os nomes a
 instalação antiga (Claude, Codex e opencode) foi atualizado de ponta a ponta sem tocar em
 `my-db` nem em `model = ...`; cada regra nova tem teste que falha no código mutado.
 
+### MCPs de banco: MCP Toolbox do Google, com a fronteira no banco — R17.24
+
+**Decisão**: o MCP Toolbox for Databases do Google (`@toolbox-sdk/server@1.12.0`, Apache-2.0,
+mantido pelo `googleapis`; os binários vêm como pacotes npm por plataforma fixados na mesma
+versão, sem download em tempo de execução) volta a cobrir PostgreSQL e SQLite, como as entradas
+opcionais `toolbox-postgres` e `toolbox-sqlite`. Ids novos de propósito: um `postgres` antigo
+registrado com o pacote vulnerável nunca aparece como "instalado" para a entrada nova — e a
+entrada diz como removê-lo. O fork `@zeddotdev/postgres-context-server` foi descartado (sem
+`bin`, não roda por `npx`).
+
+**Testado ao vivo** (PostgreSQL 16 descartável, papel só-`SELECT`): 29 ferramentas; `SELECT`
+funciona; `INSERT` recusado pelo servidor (SQLSTATE 42501); o `COMMIT; DROP TABLE` que furava o
+servidor antigo é recusado (não aceita multi-comando). SQLite: `file:<db>?mode=ro` recusa
+`INSERT`, **mas `ATTACH DATABASE 'file:<db>?mode=rw'` grava no arquivo original** — então não é
+fronteira. As duas entradas dizem que `execute_sql` roda o que o papel/arquivo permitir e
+colocam a proteção onde ela funciona: papel de menor privilégio no Postgres, cópia do arquivo no
+SQLite. Lição registrada no `dev/scripts/NPInstructions.md` (erro #8).
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)

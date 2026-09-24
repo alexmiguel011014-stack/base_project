@@ -186,7 +186,7 @@ ai > This looks like a Next.js + Supabase project.
      Install the recommended two, more, or none?
 ```
 
-**Currently cataloged:** Playwright MCP, Supabase MCP, GitHub MCP (needs your own token), Filesystem and Git MCPs (formerly always on), Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline), and more design and orchestration skills — `source/plugins.json` is the full list.
+**Currently cataloged:** Playwright MCP, Supabase MCP, GitHub MCP (needs your own token), PostgreSQL and SQLite (Google's MCP Toolbox), Filesystem and Git MCPs (formerly always on), Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline), and more design and orchestration skills — `source/plugins.json` is the full list.
 
 The Postgres and SQLite MCP entries were removed in GOALS 17: the official reference servers they pointed to are archived with unpatched SQL-injection flaws (the Postgres one bypasses its read-only mode), and the SQLite npm package never existed. Choosing a maintained replacement is an open decision, not a silent swap.
 
@@ -286,7 +286,7 @@ In Codex, replace `/` with `$` for the workflow rows above.
 - Unified config layer (GOALS 6) parked: `/bootstrap`, `/scanproject` and `/audit` no longer run it, and the installer no longer initializes `~/.agents` (it only worked inside the base_project clone)
 - `/usagebp` no longer crashes on large ledgers; the ledger masks secrets before writing
 - `/uninstall` keeps your usage history, diaries and `~/.agents` content unless you explicitly delete them (new Tier D)
-- Catalog: removed the Postgres and SQLite MCP entries (unpatched SQL injection / nonexistent package) and a test fixture
+- Catalog: removed the Postgres and SQLite MCP entries (unpatched SQL injection / nonexistent package) and a test fixture; PostgreSQL and SQLite come back through Google's MCP Toolbox, pinned, with least-privilege guidance verified against a live database
 - Always-on MCPs: only Context7, pinned to an exact version; filesystem and git moved to the optional catalog (git now the official server) and are retired from existing installs only where base_project's own definition is still there
 - Since v1.1.0: native Codex support, opencode `lite` profile, unified config layer (experimental), `/repertoire`, `/diario`, `/pr`, `/undo`, `/updates`, `/usagebp`, typed `/newgoal`, deterministic contract harness, screen-control-as-last-resort rule
 
