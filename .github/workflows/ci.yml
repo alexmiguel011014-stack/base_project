@@ -149,6 +149,8 @@ jobs:
           node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
           grep -q "### UI verification & screen control" "$CLAUDE_HOME/CLAUDE.md"
           grep -q "### UI verification & screen control" "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
+          node -e "const fs = require('fs'); const shipped = JSON.parse(fs.readFileSync('source/opencode/mcp.json', 'utf8')).mcpServers; const toml = fs.readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/config.toml', 'utf8'); for (const [name, server] of Object.entries(shipped)) { if (!toml.includes('[mcp_servers.' + name + ']') || !toml.includes('args = [' + server.args.map((arg) => JSON.stringify(arg)).join(', ') + ']')) process.exit(1) } if (/\[mcp_servers\.(filesystem|git)\]/.test(toml)) process.exit(1)"
+          node -e "const fs = require('fs'); const { parseJsonc } = require('./dev/scripts/install-opencode.js'); const shipped = Object.keys(JSON.parse(fs.readFileSync('source/opencode/mcp.json', 'utf8')).mcpServers).sort(); const config = parseJsonc(fs.readFileSync(process.env.OPENCODE_HOME + '/opencode.jsonc', 'utf8')); if (JSON.stringify(Object.keys(config.mcp).sort()) !== JSON.stringify(shipped)) process.exit(1)"
           echo "install.sh: all expected artifacts present and settings.json is valid JSON"
 
       - name: Run install.ps1 against a throwaway HOME (Windows)
@@ -257,6 +259,15 @@ jobs:
           if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 21) { throw "Expected exactly 21 Codex skills" }
           if (-not (Select-String -Path (Join-Path $claudeHome "CLAUDE.md") -Pattern "### UI verification & screen control" -SimpleMatch -Quiet)) { throw "Claude CLAUDE.md is missing the UI verification & screen control section" }
           if (-not (Select-String -Path (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md") -Pattern "### UI verification & screen control" -SimpleMatch -Quiet)) { throw "Codex AGENTS.md is missing the UI verification & screen control section" }
+          $shippedMcp = (Get-Content "source/opencode/mcp.json" -Raw | ConvertFrom-Json).mcpServers
+          $codexToml = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "config.toml") -Raw
+          foreach ($mcpName in $shippedMcp.PSObject.Properties.Name) {
+            $argsLine = "args = [" + (($shippedMcp.$mcpName.args | ForEach-Object { '"' + $_ + '"' }) -join ", ") + "]"
+            if (-not $codexToml.Contains("[mcp_servers.$mcpName]") -or -not $codexToml.Contains($argsLine)) { throw "Codex config.toml is missing the shipped MCP server $mcpName" }
+          }
+          if ($codexToml -match '\[mcp_servers\.(filesystem|git)\]') { throw "Codex config.toml still has a retired MCP server" }
+          $opencodeMcp = ((Get-Content (Join-Path $opencodeHome "opencode.jsonc") -Raw | ConvertFrom-Json).mcp.PSObject.Properties.Name | Sort-Object) -join ","
+          if ($opencodeMcp -ne (($shippedMcp.PSObject.Properties.Name | Sort-Object) -join ",")) { throw "opencode.jsonc MCP servers differ from source/opencode/mcp.json" }
           Write-Output "install.ps1: all expected artifacts present and settings.json is valid JSON"
 
       - name: Re-run installer to confirm it's idempotent (Linux/macOS)

@@ -231,9 +231,16 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   `source/adapters.json`, both `config-model.md` references and their 11 tests stay until the owner
   approves the deletion (the session's permission policy blocked it); then add stale-copy pruning
   for the installed `config-model.md`, following the dashboard precedent (ROADMAP item 13).
-- [ ] **R17.23 Decide the always-on MCP set** (`manual`) — `filesystem` and `git` showed zero calls
+- [x] **R17.23 Decide the always-on MCP set** (`manual`) — `filesystem` and `git` showed zero calls
   in GOALS 9; `git` is `mcp-git@0.0.4` (individual maintainer, last release April 2025); all three
   run through unpinned `npx -y`. Options: keep only `context7`, pin versions, or both.
+  **Decided: both.** `source/opencode/mcp.json` ships only `@upstash/context7-mcp@4.1.1`;
+  `filesystem` (pinned) and the official `mcp-server-git` (pinned, via `uvx`) are optional catalog
+  entries. `source/opencode/mcp-previous.json` + `dev/scripts/mcp-servers.js` retire or upgrade an
+  existing install's entries in Claude Code, Codex and opencode only while they still hold a
+  definition base_project wrote; Codex MCP handling moved from the two shell installers into
+  `install-codex.js`, rooted where Codex reads it. Verified: all three pinned servers answer
+  `initialize`; an old-install `HOME` upgraded end to end; tests fail on each mutated rule.
 - [ ] **R17.24 Choose replacement database MCP servers, if any** (`manual`) — candidates need a
   trust decision (for Postgres, the patched `@zeddotdev/postgres-context-server` ships no `bin`,
   so it is not an `npx` drop-in).

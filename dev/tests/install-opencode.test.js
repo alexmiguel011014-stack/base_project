@@ -132,6 +132,36 @@ test("only base_project's own servers are updated, and retired ones are removed"
   assert.match(result.warnings.join("\n"), /'beta' is your own definition/);
 });
 
+test("before any state exists, a server no longer shipped is retired only if it still has a shipped definition", () => {
+  // What the installers wrote before this helper existed: no state file, whole `mcp` map.
+  const original = JSON.stringify(
+    {
+      mcp: {
+        alpha: { type: "local", command: ["npx", "-y", "alpha-mcp"] },
+        old: { type: "local", command: ["npx", "-y", "old-mcp"] },
+        edited: { type: "local", command: ["npx", "-y", "edited-mcp", "--x"] },
+      },
+    },
+    null,
+    2,
+  );
+  const previous = {
+    old: [{ command: "npx", args: ["-y", "old-mcp"] }],
+    edited: [{ command: "npx", args: ["-y", "edited-mcp"] }],
+  };
+  const result = mergeConfig(original, {
+    instructionsPath: INSTRUCTIONS,
+    servers: { alpha: SERVERS.alpha },
+    previouslyManaged: null,
+    previous,
+  });
+  assert.deepEqual(parseJsonc(result.text).mcp, {
+    alpha: ALPHA,
+    edited: { type: "local", command: ["npx", "-y", "edited-mcp", "--x"] },
+  });
+  assert.deepEqual(result.retired, ["old"]);
+});
+
 test("removing the first or the last MCP entry keeps the object valid", () => {
   for (const order of [
     ["retired", "keep"],

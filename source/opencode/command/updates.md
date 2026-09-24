@@ -21,8 +21,7 @@ after confirmation. `/updates` never changes a version or configuration.
      `typescript`;
    - installer-managed Node/npm, Git, `gh`, `graphifyy`/`graphify`, `repomix`,
      `@biomejs/biome`, `typescript`, and Unix `jq`;
-   - `source/opencode/mcp.json`: `@upstash/context7-mcp`,
-     `@modelcontextprotocol/server-filesystem`, `mcp-git`;
+   - `source/opencode/mcp.json`: `@upstash/context7-mcp` (pinned to an exact version);
    - `source/plugins.json` under the scope rule.
 
 4. Run bounded, read-only checks and continue after unrelated failures. `npm outdated` exit
@@ -35,7 +34,8 @@ after confirmation. `/updates` never changes a version or configuration.
      `HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --json=v2`; Linux: `apt list --upgradable`.
      Filter to managed tools. Missing manager is `unsupported`; a failed available checker is
      `check-failed`.
-   - MCP registry metadata: `npm view <package> version --json`. An `npx` MCP is
+   - MCP registry metadata: `npm view <package> version --json`. A pinned MCP (`package@x.y.z`)
+     compares its pin with the registry latest. An unpinned `npx` MCP is
      `floating/latest-on-use`, not an installed-version comparison unless installation is proven.
    - Inspect `.github/dependabot.yml` or `.github/dependabot.yaml` for npm and GitHub Actions
      automation coverage; absence is `unknown`.

@@ -1,0 +1,29 @@
+{
+  "_comment": "Every MCP server definition an earlier base_project version registered, by name. The installers (through dev/scripts/mcp-servers.js) retire a server that is no longer in mcp.json, and upgrade one whose definition changed, only while the user's entry still matches one of these exactly; anything else is the user's own and is left alone. Append here whenever mcp.json changes a definition or drops a server.",
+  "servers": {
+    "context7": [
+      { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] }
+    ],
+    "filesystem": [
+      {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+      }
+    ],
+    "git": [{ "command": "npx", "args": ["-y", "mcp-git"] }],
+    "brave-search": [
+      {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+        "env": { "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY" }
+      }
+    ],
+    "github": [
+      {
+        "type": "remote",
+        "url": "https://api.githubcopilot.com/mcp/",
+        "headers": { "Authorization": "Bearer YOUR_GITHUB_TOKEN" }
+      }
+    ]
+  }
+}

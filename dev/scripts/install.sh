@@ -372,51 +372,23 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
             warn "Could not auto-register '$name'. Add manually: claude mcp add --scope user $name ${env_args[*]} -- $cmd ${args[*]}"
         fi
     done
+    # Servers earlier versions registered and no longer ship (source/opencode/mcp-previous.json)
+    # are removed only while they still have base_project's exact definition.
+    while IFS= read -r retired_name; do
+        [ -n "$retired_name" ] || continue
+        if claude mcp remove "$retired_name" --scope user &>/dev/null; then
+            ok "retired '$retired_name' (no longer shipped; it still had base_project's definition)"
+        fi
+    done < <(node "$SCRIPT_DIR/mcp-servers.js" --claude-retirements 2>/dev/null || true)
 else
     warn "'claude' CLI or 'jq' not found - skipping Claude Code MCP registration."
 fi
 
 # ---------------------------------------------------------------------
-# 6b. MCP servers for Codex CLI - appended as [mcp_servers.NAME] tables to
-#     ~/.codex/config.toml. Append-only and guarded by an existence check: this
-#     script has no TOML parser, so it must never rewrite a file it can't fully
-#     understand. A table appended at the end of a TOML file cannot alter the
-#     tables above it, which is what makes append the safe operation here - and
-#     why an already-present server is skipped rather than "updated".
+# 6b. MCP servers for Codex CLI are merged into config.toml by install-codex.js
+#     (step 8d-2): one implementation for both installers that upgrades or retires
+#     only tables still holding a definition base_project wrote.
 # ---------------------------------------------------------------------
-if [ -d "$HOME/.codex" ] && [ -f "$MCP_SRC_PATH" ] && command -v jq &>/dev/null; then
-    step "Registering MCP servers with Codex CLI..."
-    CODEX_CONFIG="$HOME/.codex/config.toml"
-    touch "$CODEX_CONFIG"
-    CODEX_APPENDED=0
-    for name in $(jq -r '.mcpServers | keys[]' "$MCP_SRC_PATH"); do
-        if grep -qF "[mcp_servers.$name]" "$CODEX_CONFIG"; then
-            ok "'$name' already in config.toml - left as is"
-            continue
-        fi
-        cmd="$(jq -r ".mcpServers[\"$name\"].command // empty" "$MCP_SRC_PATH")"
-        if [ -z "$cmd" ]; then
-            warn "'$name' is a remote MCP server - add it to $CODEX_CONFIG manually (url-based syntax not emitted here)."
-            continue
-        fi
-        if [ "$CODEX_APPENDED" -eq 0 ]; then
-            printf '\n# --- base_project managed MCP servers (safe to edit; re-added if removed) ---\n' >> "$CODEX_CONFIG"
-        fi
-        {
-            printf '\n[mcp_servers.%s]\n' "$name"
-            printf 'command = "%s"\n' "$cmd"
-            printf 'args = [%s]\n' "$(jq -r ".mcpServers[\"$name\"].args // [] | map(tojson) | join(\", \")" "$MCP_SRC_PATH")"
-            if [ "$(jq -r ".mcpServers[\"$name\"].env // {} | length" "$MCP_SRC_PATH")" != "0" ]; then
-                printf '[mcp_servers.%s.env]\n' "$name"
-                jq -r ".mcpServers[\"$name\"].env | to_entries[] | \"\(.key) = \(.value|tojson)\"" "$MCP_SRC_PATH"
-            fi
-        } >> "$CODEX_CONFIG"
-        CODEX_APPENDED=$((CODEX_APPENDED + 1))
-        ok "appended '$name' to config.toml"
-    done
-elif [ ! -d "$HOME/.codex" ]; then
-    warn "Codex CLI not detected ($HOME/.codex missing) - skipped its MCP registration."
-fi
 
 # ---------------------------------------------------------------------
 # 6c. MCP servers for Kimi Code CLI. Kimi reads a standard mcpServers JSON via

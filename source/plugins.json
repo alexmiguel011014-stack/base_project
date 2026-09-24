@@ -55,6 +55,27 @@
       "claude": { "instruction": "claude mcp add --scope user --transport http github https://api.githubcopilot.com/mcp/ --header \"Authorization: Bearer <your-real-token>\"" }
     },
     {
+      "id": "filesystem",
+      "name": "Filesystem MCP",
+      "kind": "mcp",
+      "summary": "Reads, writes and searches files through MCP, confined to the directories passed as arguments. Part of base_project's always-on set until v1.2.0 — removed because Claude Code, opencode and Codex already have native file tools (GOALS 9 measured zero calls in 16 days).",
+      "recommend_if": "Only on explicit request — e.g. to confine a client without native file tools to specific directories. A coding agent with its own file tools gains nothing from it.",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem@2026.8.31", "."] },
+      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem@2026.8.31", "."] }
+    },
+    {
+      "id": "git",
+      "name": "Git MCP (official)",
+      "kind": "mcp",
+      "summary": "Git status, diff, log, branch and commit tools through MCP — the official reference server (Python, run with uvx). Replaces the `mcp-git` npm package base_project kept always-on until v1.2.0 (individual maintainer, unpinned, zero measured calls).",
+      "recommend_if": "Only on explicit request — the agents already run git through their shell.",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+      "requires": ["uv (provides uvx)"],
+      "claude": { "scope": "local", "command": "uvx", "args": ["mcp-server-git@2026.8.18"] },
+      "opencode": { "command": "uvx", "args": ["mcp-server-git@2026.8.18"] }
+    },
+    {
       "id": "strix",
       "name": "Strix",
       "kind": "cli",

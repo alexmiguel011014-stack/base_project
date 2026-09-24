@@ -14,7 +14,7 @@ Check all engines actually present:
 - base_project hook entries in `~/.codex/hooks.json` and `~/.claude/settings.json`;
 - in `~/.config/opencode/opencode.jsonc`, the `instructions` entry pointing at the clone's `source/opencode-instructions.md` and only the `mcp` entries named in `~/.base_project/opencode-managed-mcp.json`; fully base_project-owned JSON files;
 - state under `~/.base_project/`;
-- MCP server names derived from the installed catalog/config, never a hardcoded list;
+- MCP server names derived from the installed catalog/config, never a hardcoded list, plus names in the repo's `source/opencode/mcp-previous.json` (servers earlier versions registered) only while the entry still matches a definition listed there;
 - user data: the usage ledger, the diary directory named in `~/.base_project/diary-root.txt`, and the canonical store `~/.agents/` outside its managed skills.
 
 Report the inventory and confirm each tier separately:

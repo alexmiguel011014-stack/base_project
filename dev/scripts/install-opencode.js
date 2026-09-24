@@ -14,7 +14,10 @@
 //   rewritten, so comments and formatting elsewhere survive.
 // - MCP servers base_project added are tracked in <state-dir>/opencode-managed-mcp.json.
 //   A same-named server the user defined themselves is left alone (and reported); a
-//   server base_project added earlier but no longer ships is removed.
+//   server base_project added earlier but no longer ships is removed. Before any state
+//   exists (an install made by an older installer), a server no longer shipped counts as
+//   base_project's only while it still matches a definition listed in
+//   source/opencode/mcp-previous.json.
 // - Anything unparseable is left untouched (exit code 2) — never "start fresh".
 //
 // Usage: node install-opencode.js [--opencode-home <dir>] [--state-dir <dir>]
@@ -22,6 +25,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { loadPrevious } = require("./mcp-servers.js");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 const INSTRUCTIONS_FILE = "opencode-instructions.md";
@@ -254,7 +258,7 @@ function sameJson(a, b) {
 
 // Pure merge: returns { text, changed, warnings, managed } for the given inputs.
 function mergeConfig(originalText, options) {
-  const { instructionsPath, servers, previouslyManaged } = options;
+  const { instructionsPath, servers, previouslyManaged, previous } = options;
   const warnings = [];
   const fresh = !originalText || originalText.trim() === "";
   const text = fresh ? `{\n  "$schema": "${SCHEMA_URL}"\n}\n` : originalText;
@@ -323,6 +327,19 @@ function mergeConfig(originalText, options) {
       currentMcp &&
       Object.hasOwn(currentMcp, name),
   );
+  if (firstRun && currentMcp) {
+    for (const [name, definitions] of Object.entries(previous || {})) {
+      if (
+        !Object.hasOwn(servers, name) &&
+        Object.hasOwn(currentMcp, name) &&
+        definitions.some((definition) =>
+          sameJson(currentMcp[name], opencodeServer(definition)),
+        )
+      ) {
+        retired.push(name);
+      }
+    }
+  }
 
   const mcpMember = root.members.find((member) => member.key === "mcp");
   if (!mcpMember || !currentMcp) {
@@ -425,6 +442,7 @@ function run(args) {
       instructionsPath,
       servers,
       previouslyManaged: readManaged(stateFile),
+      previous: loadPrevious(),
     });
   } catch (error) {
     warn(

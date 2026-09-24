@@ -2351,6 +2351,31 @@ instalador. Um redesenho parte dele (`git show 3d47516:<arquivo>`), não da mem�
 **Dados do usuário**: nada que instalações antigas criaram em `~/.agents/` é apagado — é estado
 fora do repositório. O `/uninstall` (Tier D) continua oferecendo a remoção, com padrão manter.
 
+### MCPs sempre-ativos: só o context7, com versão fixada — R17.23
+
+**Decisão**: as duas opções juntas — manter só o `context7` e fixar a versão
+(`@upstash/context7-mcp@4.1.1`). `filesystem` e `git` tiveram zero chamadas no GOALS 9 e os três
+agentes já têm arquivo e git nativos; o `git` era o `mcp-git@0.0.4`, de mantenedor individual, e
+todos rodavam via `npx -y` sem versão — uma publicação nova sob esses nomes passaria a rodar em
+toda máquina sem revisão. Os dois viraram entradas opcionais do catálogo, fixadas: `filesystem`
+(`@modelcontextprotocol/server-filesystem@2026.8.31`) e o `git` **oficial**
+(`mcp-server-git@2026.8.18`, via `uvx`), como a auditoria recomendou.
+
+**Instalações existentes**: só mudar o `mcp.json` não bastava — o Claude re-registra só os nomes
+atuais, o Codex era append-only (um `context7` antigo nunca ganharia a versão fixada) e o
+opencode sem arquivo de estado tratava entradas antigas como do usuário. Agora
+`source/opencode/mcp-previous.json` lista toda definição já distribuída (incluindo `brave-search`
+e `github` com placeholder, de 08/2026) e `dev/scripts/mcp-servers.js` aposenta ou atualiza uma
+entrada **só enquanto ela ainda tem exatamente uma dessas definições** — qualquer edição do
+usuário a torna dele. O MCP do Codex saiu dos dois instaladores shell para o `install-codex.js`
+(uma implementação, testável, no `config.toml` da raiz que o Codex lê); a tabela editada, a
+chave pontilhada e a tabela inline nunca são duplicadas nem reescritas. O `/updates` passa a
+comparar a versão fixada com a do registro, e o `/uninstall` conhece os nomes aposentados.
+
+**Verificação**: os três servidores fixados respondem `initialize` via stdio; um `HOME` com
+instalação antiga (Claude, Codex e opencode) foi atualizado de ponta a ponta sem tocar em
+`my-db` nem em `model = ...`; cada regra nova tem teste que falha no código mutado.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)

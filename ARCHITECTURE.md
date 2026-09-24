@@ -46,7 +46,9 @@ base_project/
 │   │   │                        instrução condicional densa; nunca os dois instalados juntos)
 │   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
 │   │                            formato opencode)
-│   │   └── mcp.json            → ~/.config/opencode/mcp.json + registrado via `claude mcp add`
+│   │   ├── mcp.json            → seção `mcp` do opencode.jsonc, `claude mcp add`, config.toml do
+│   │   │                          Codex e ~/.kimi/mcp.json (hoje só o context7, versão fixada)
+│   │   └── mcp-previous.json   → não instalado: definições já distribuídas, para aposentar/atualizar
 │   ├── codex/
 │   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
 │   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
@@ -60,6 +62,7 @@ base_project/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
 │   │   ├── install-codex.js          ← projeção nativa do Codex, chamada pelos dois instaladores
 │   │   ├── install-opencode.js       ← merge do opencode.jsonc (JSONC tolerante, edição pontual, preserva entradas/comentários do usuário), chamado pelos dois instaladores
+│   │   ├── mcp-servers.js            ← MCPs atuais + definições já distribuídas (source/opencode/mcp-previous.json): aposenta/atualiza só entradas que ainda são do base_project (Claude, Codex, opencode)
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
@@ -249,7 +252,9 @@ os installers. Ele preserva conteúdo do usuário e instala seis superfícies co
 3. três subagentes TOML em `~/.codex/agents/`;
 4. referências e catálogo em `~/.codex/base_project/`;
 5. hooks mesclados em `~/.codex/hooks.json`;
-6. MCPs no `~/.codex/config.toml` pelo installer principal.
+6. MCPs no `config.toml` da mesma raiz do Codex (`CODEX_HOME`, padrão `~/.codex`), por
+   `dev/scripts/mcp-servers.js`: acrescenta os que faltam e atualiza/aposenta só tabelas que
+   ainda têm exatamente a definição que o base_project escreveu.
 
 Os hooks Codex apontam deliberadamente para os scripts já instalados em
 `~/.claude/base_project/hooks/`. Em especial, `usage-log.js` continua escrevendo no ledger
@@ -350,9 +355,9 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/bootstrap`** | comando | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
 | **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
 | **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão e ao fechar tarefa substancial — lista todos os comandos em linguagem simples. |
-| **context7** | MCP (sempre ativo) | Busca documentação atualizada de biblioteca/framework. |
-| **filesystem** | MCP (sempre ativo) | Acesso a arquivo fora do diretório de trabalho padrão. |
-| **git** | MCP (sempre ativo) | Operações git estruturadas. |
+| **context7** | MCP (sempre ativo, versão fixada) | Busca documentação atualizada de biblioteca/framework. |
+| **filesystem** | MCP opcional (`/plugins`) | Acesso a arquivo restrito aos diretórios passados. Saiu do conjunto sempre-ativo na v1.2.0 (zero uso medido; os agentes têm ferramentas de arquivo nativas). |
+| **git** | MCP opcional (`/plugins`) | Operações git estruturadas pelo servidor oficial (`mcp-server-git`, via `uvx`). Substitui o `mcp-git` sempre-ativo (mantenedor individual, sem versão fixada, zero uso medido). |
 | **github** | MCP opcional | Lê/escreve issues, PRs e código no GitHub quando o usuário fornece e configura um token pessoal. |
 
 ### 🛡️ Qualidade / comportamento automático
@@ -488,6 +493,9 @@ Codex reutilizam esse caminho compartilhado.
   isolado como prova
 - `install-opencode.test.js` — merge do `opencode.jsonc`: comentários, entradas do usuário,
   idempotência, posse dos MCPs, arquivo ilegível intocado
+- `mcp-servers.test.js` — `config.toml` do Codex (formato antigo dos dois instaladores,
+  tabela editada pelo usuário intocada, CRLF, chave pontilhada/tabela inline sem duplicar),
+  aposentadoria no Claude só com a definição exata, e versão fixada nos MCPs distribuídos
 - `command-paths.test.js` — nenhum comando distribuído roda `dev/scripts/*.js` relativo ao
   projeto do usuário (sempre via `<repo>` de `~/.base_project/repo-path.txt`)
 - `goals-archive-index.test.js` / `ledger-scale.test.js` — checksums do arquivo de GOALS e

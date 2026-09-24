@@ -42,7 +42,9 @@ installer usually does, actually check what's present on this machine right now:
   `~/.codex/config.toml`, and `~/.kimi/mcp.json` if it has `"_managed_by": "base_project"` —
   matching the server names declared by the base_project catalog/config. Confirm the exact
   current list from the repo located via `~/.base_project/repo-path.txt`; never hardcode
-  server names.
+  server names. Servers earlier versions registered are listed in that repo's
+  `source/opencode/mcp-previous.json`; count one only while its entry still matches a
+  definition listed there — otherwise it is the user's.
 - The user's own data (Tier D): the usage ledger `~/.claude/base_project/usage/`, the diary
   directory named in `~/.base_project/diary-root.txt`, and the unified canonical store
   `~/.agents/` (rules, MCP and config the user may have edited; the managed skills under

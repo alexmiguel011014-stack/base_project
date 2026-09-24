@@ -458,56 +458,29 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
             Write-Warn "Could not auto-register '$name'. Add manually: $manualHint"
         }
     }
+    # Servers earlier versions registered and no longer ship (source/opencode/mcp-previous.json)
+    # are removed only while they still have base_project's exact definition.
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $retiredNames = @(& node (Join-Path $repoRoot "dev\scripts\mcp-servers.js") --claude-retirements)
+        foreach ($retiredName in $retiredNames) {
+            if (-not $retiredName) { continue }
+            try {
+                & claude mcp remove $retiredName --scope user *> $null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Ok "retired '$retiredName' (no longer shipped; it still had base_project's definition)"
+                }
+            } catch {}
+        }
+    }
 } else {
     Write-Warn "'claude' CLI not found on PATH - skipping Claude Code MCP registration. Re-run this script after installing Claude Code."
 }
 
 # ---------------------------------------------------------------------
-# 6b. MCP servers for Codex CLI - appended as [mcp_servers.NAME] tables to
-#     ~/.codex/config.toml. Append-only and guarded by an existence check: this
-#     script has no TOML parser, so it must never rewrite a file it can't fully
-#     understand. A table appended at the end of a TOML file cannot alter the
-#     tables above it, which is what makes append the safe operation here - and
-#     why an already-present server is skipped rather than "updated".
+# 6b. MCP servers for Codex CLI are merged into config.toml by install-codex.js
+#     (step 8d-2): one implementation for both installers that upgrades or retires
+#     only tables still holding a definition base_project wrote.
 # ---------------------------------------------------------------------
-$codexHome = Join-Path $HOME ".codex"
-if ((Test-Path $codexHome) -and (Test-Path $mcpSrcPath)) {
-    Write-Step "Registering MCP servers with Codex CLI..."
-    $codexConfig = Join-Path $codexHome "config.toml"
-    $codexExisting = if (Test-Path $codexConfig) { Read-Utf8NoBom $codexConfig } else { "" }
-    $mcpForCodex = Read-Utf8NoBom $mcpSrcPath | ConvertFrom-Json
-    $appended = @()
-    foreach ($name in $mcpForCodex.mcpServers.PSObject.Properties.Name) {
-        $server = $mcpForCodex.mcpServers.$name
-        if ($codexExisting -match [regex]::Escape("[mcp_servers.$name]")) {
-            Write-Ok "'$name' already in config.toml - left as is"
-            continue
-        }
-        # Remote (url-based) servers use a different key set; only stdio servers are
-        # emitted here, since that is the shape verified against Codex's docs.
-        if (-not $server.command) {
-            Write-Warn "'$name' is a remote MCP server - add it to $codexConfig manually (url-based syntax not emitted here)."
-            continue
-        }
-        $argsToml = ($server.args | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ", "
-        $block = "`n[mcp_servers.$name]`ncommand = `"$($server.command)`"`nargs = [$argsToml]`n"
-        if ($server.env) {
-            $block += "[mcp_servers.$name.env]`n"
-            foreach ($envName in $server.env.PSObject.Properties.Name) {
-                $block += "$envName = `"$($server.env.$envName)`"`n"
-            }
-        }
-        $appended += $block
-        Write-Ok "queued '$name' for config.toml"
-    }
-    if ($appended.Count -gt 0) {
-        $header = "`n# --- base_project managed MCP servers (safe to edit; re-added if removed) ---"
-        Write-Utf8NoBom -Path $codexConfig -Content ($codexExisting.TrimEnd() + $header + ($appended -join ""))
-        Write-Ok "config.toml ($($appended.Count) server(s) appended, existing keys untouched)"
-    }
-} elseif (-not (Test-Path $codexHome)) {
-    Write-Warn "Codex CLI not detected ($codexHome missing) - skipped its MCP registration."
-}
 
 # ---------------------------------------------------------------------
 # 6c. MCP servers for Kimi Code CLI. Kimi reads a standard mcpServers JSON via

@@ -25,8 +25,6 @@ const requiredInventory = [
   "repomix",
   "jq",
   "@upstash/context7-mcp",
-  "@modelcontextprotocol/server-filesystem",
-  "mcp-git",
   "source/plugins.json",
 ];
 
