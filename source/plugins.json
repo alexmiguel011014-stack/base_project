@@ -7,8 +7,6 @@
     "full": [
       "playwright",
       "supabase",
-      "postgres",
-      "sqlite",
       "strix",
       "skill-ui",
       "emil-design-eng",
@@ -55,24 +53,6 @@
       "claude_only": true,
       "manual": true,
       "claude": { "instruction": "claude mcp add --scope user --transport http github https://api.githubcopilot.com/mcp/ --header \"Authorization: Bearer <your-real-token>\"" }
-    },
-    {
-      "id": "postgres",
-      "name": "Postgres MCP",
-      "kind": "mcp",
-      "summary": "Query and inspect a local/remote Postgres database directly from the agent.",
-      "recommend_if": "package.json/requirements has pg/psycopg/prisma-with-postgres, or a DATABASE_URL pointing at postgres:// is set in .env.",
-      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres", "<connection-string>"] },
-      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres", "<connection-string>"] }
-    },
-    {
-      "id": "sqlite",
-      "name": "SQLite MCP",
-      "kind": "mcp",
-      "summary": "Query and inspect a local SQLite database file directly from the agent.",
-      "recommend_if": "A .sqlite/.db file exists in the project, or package.json depends on better-sqlite3/sqlite3. NOT sqlcipher/@journeyapps/sqlcipher — confirmed by direct test (copied a real @journeyapps/sqlcipher database, tried opening it with a plain, non-SQLCipher SQLite driver): the file has no plain-SQLite header at all and fails to open outright ('file is not a database'). This server's driver has no SQLCipher decryption support, so it cannot connect to an encrypted-SQLite project regardless of how well `recommend_if` matches — don't recommend it there.",
-      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] },
-      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] }
     },
     {
       "id": "strix",
@@ -193,15 +173,6 @@
         "args": ["-y", "skills", "add", "DietrichGebert/ponytail", "-g", "-a", "opencode", "-y"],
         "note": "lands in ~/.agents/skills/ — also copy the ponytail* folders into ~/.config/opencode/skills/ afterward so opencode (which reads skills from its own confirmed skills/ dir) definitely picks them up. The 'opencode-ponytail' npm package is deprecated, do not use it."
       }
-    },
-    {
-      "id": "marketplace-demo",
-      "name": "Marketplace Demo",
-      "kind": "marketplace",
-      "summary": "Example marketplace plugin that decomposes into canonical skills — used to validate marketplace fetcher and scan-skill pre-trust.",
-      "recommend_if": "Testing marketplace fetch; not auto-installed.",
-      "source": "https://github.com/spxrogers/agentsync",
-      "claude": { "instruction": "marketplace fetch marketplace-demo" }
     }
   ]
 }

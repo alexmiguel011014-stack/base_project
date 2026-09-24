@@ -88,6 +88,14 @@ const CONTRACTS = {
       "final verification",
       /verify[^\n]{0,80}(final|state)|final[^\n]{0,80}verify/i,
     ],
+    // The usage ledger is the only source /diario has for past hours; it once sat inside
+    // the namespace Tier A called "reversible by re-running the installer".
+    ["user-data tier", /Tier D[\s\S]{0,700}ledger/i],
+    ["user data is not restorable", /not restorable|cannot be undone/i],
+    [
+      "user data kept by default",
+      /default[^\n]{0,20}keep|keep it unless|keeps it/i,
+    ],
   ],
 };
 

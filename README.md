@@ -189,11 +189,13 @@ Not every project needs every tool — a Next.js app doesn't need Supabase MCP, 
 you> /plugins
 ai > This looks like a Next.js + Supabase project.
      Recommended: Supabase MCP, Playwright MCP.
-     Also in the catalog: Strix, Headroom, Ponytail, Skill UI bundle, Postgres MCP, SQLite MCP.
+     Also in the catalog: Strix, Headroom, Ponytail, Skill UI bundle, GitHub MCP.
      Install the recommended two, more, or none?
 ```
 
-**Currently cataloged:** Playwright MCP, Supabase MCP, Postgres MCP, SQLite MCP, Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline).
+**Currently cataloged:** Playwright MCP, Supabase MCP, GitHub MCP (needs your own token), Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline), and more design and orchestration skills — `source/plugins.json` is the full list.
+
+The Postgres and SQLite MCP entries were removed in GOALS 17: the official reference servers they pointed to are archived with unpatched SQL-injection flaws (the Postgres one bypasses its read-only mode), and the SQLite npm package never existed. Choosing a maintained replacement is an open decision, not a silent swap.
 
 ### Claude Code vs. Codex vs. opencode
 

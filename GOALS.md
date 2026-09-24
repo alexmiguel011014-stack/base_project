@@ -162,7 +162,7 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Uninstall
 
-- [ ] **R17.17 Uninstall protects user data and covers every engine** (`coder`) — Root cause: the
+- [x] **R17.17 Uninstall protects user data and covers every engine** (`coder`) — Root cause: the
   usage ledger lives inside the namespace Tier A calls "100% reversible by re-running the
   installer", yet it is the only source for `/diario` and cannot be restored; the Claude/opencode
   variants still look for the removed `mcp.file`/`~/.config/opencode/mcp.json` shape and ignore
@@ -173,7 +173,7 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Catalog
 
-- [ ] **R17.18 Remove the test fixture and the broken or vulnerable database entries** (`coder`) —
+- [x] **R17.18 Remove the test fixture and the broken or vulnerable database entries** (`coder`) —
   Root cause: `marketplace-demo` is a test fixture shipped to users; `sqlite` installs
   `@modelcontextprotocol/server-sqlite`, which does not exist on npm (404), and the official Python
   server it was meant to be has an unpatched SQL injection (Trend Micro, June 2025); `postgres`

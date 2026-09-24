@@ -223,14 +223,19 @@ apontam pra ele em vez de duplicar a lista.
   ferramentas, MCPs e componentes opcionais que o base_project gerencia. Nunca instala,
   atualiza, executa `git pull` ou grava configuração; uma atualização de verdade exige tarefa
   separada e autorização explícita.
-- **`/uninstall`**: inventário real primeiro (nunca por suposição), depois 3 tiers de
-  confirmação **separados** por raio de impacto — Tier A (arquivos próprios do
-  base_project, reversível reinstalando), Tier B (os 3 registros de hook em
-  `settings.json` + `instructions`/`mcp.file` do `opencode.jsonc` — muda comportamento
-  de toda sessão futura), Tier C (os 4 registros de MCP server via `claude mcp remove
-  --scope user` — afeta todo projeto da máquina, não só quem usa base_project). Nunca
-  toca em arquivo sem o marcador `base_project:managed`, e **nunca apaga o repositório
-  do base_project em si**, só os efeitos instalados globalmente.
+- **`/uninstall`**: inventário real primeiro (nunca por suposição), em todos os engines
+  presentes (Claude Code, opencode, Codex, Kimi), depois 4 tiers de confirmação
+  **separados** por raio de impacto — Tier A (arquivos próprios do base_project,
+  reversível reinstalando), Tier B (os registros de hook em `~/.claude/settings.json` e
+  `~/.codex/hooks.json` + a entrada `instructions` do `opencode.jsonc` — muda
+  comportamento de toda sessão futura), Tier C (os MCPs globais: `claude mcp remove
+  --scope user`, as entradas do base_project no `mcp` do `opencode.jsonc`, as tabelas no
+  `~/.codex/config.toml` — afeta todo projeto da máquina) e **Tier D (dados do usuário:
+  ledger de uso, diários, `~/.agents/` — não voltam reinstalando, padrão é manter)**. Até o
+  GOALS 17 o ledger ficava dentro do namespace que o Tier A chamava de "reversível
+  reinstalando", mas é a única fonte do `/diario`. Nunca toca em arquivo sem o marcador
+  `base_project:managed`, e **nunca apaga o repositório do base_project em si**, só os
+  efeitos instalados globalmente.
 
 ### 4.4 Projeção nativa do Codex
 
@@ -274,7 +279,7 @@ pelo CI (`npm run validate:plugins`).
 Campo raiz opcional: `{ "minimal": ["headroom", "ponytail"], "design": [...], "full": [...] }`.
 `/plugins <nome-do-perfil>` reconhece isso em `$ARGUMENTS` e pula direto pra instalação,
 sem passar pela recomendação interativa. `dependsOn` por entrada existe no schema mas
-**não está populado** — decisão deliberada: as 13 entradas atuais não têm dependência
+**não está populado** — decisão deliberada: as entradas atuais não têm dependência
 técnica real entre si (são MCPs/CLIs/skills independentes), popular seria dado falso.
 
 ---
@@ -300,8 +305,6 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **Supabase MCP** (`supabase`) | plugin (MCP) | Gerencia tabelas, roda SQL, lê config direto de um projeto Supabase. |
-| **Postgres MCP** (`postgres`) | plugin (MCP) | Consulta/inspeciona um Postgres local ou remoto. |
-| **SQLite MCP** (`sqlite`) | plugin (MCP) | Consulta/inspeciona um arquivo SQLite local. |
 
 ### 🔄 Unified Layer — adapters (GOALS 6, sem comando novo no menu)
 | Agent | Tier | Link | Targets |
