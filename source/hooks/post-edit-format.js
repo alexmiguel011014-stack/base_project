@@ -8,9 +8,53 @@
 // (see CLAUDE.md). Silently does nothing if biome isn't installed/configured
 // for the target project — this hook must never block or fail the edit it's
 // attached to, and must never install anything on the user's behalf.
+//
+// It runs the project's own @biomejs/biome entry with the current Node binary,
+// and only under a biome.json(c). It deliberately never goes through `npx`:
+// `npx --no-install biome` cost ~500 ms per edit even with Biome installed, and
+// in projects without it resolved the unrelated npm package `biome@0.3.3` via a
+// registry lookup — the same pitfall this repo's CLAUDE.md documents.
 
 const { execFileSync } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
+
+const BIOME_CONFIGS = ["biome.json", "biome.jsonc"];
+const BIOME_ENTRY = path.join(
+  "node_modules",
+  "@biomejs",
+  "biome",
+  "bin",
+  "biome",
+);
+
+// Walks from `start` up to the filesystem root; returns the first `visit(dir)`
+// result that isn't null.
+function findUp(start, visit) {
+  let dir = path.resolve(start);
+  while (true) {
+    const found = visit(dir);
+    if (found) return found;
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+function biomeConfigDir(filePath) {
+  return findUp(path.dirname(filePath), (dir) =>
+    BIOME_CONFIGS.some((name) => fs.existsSync(path.join(dir, name)))
+      ? dir
+      : null,
+  );
+}
+
+function biomeEntry(filePath) {
+  return findUp(path.dirname(filePath), (dir) => {
+    const candidate = path.join(dir, BIOME_ENTRY);
+    return fs.existsSync(candidate) ? candidate : null;
+  });
+}
 
 const FORMATTABLE_EXT = new Set([
   ".js",
@@ -36,18 +80,22 @@ function readStdin() {
 
 function tryFormat(filePath) {
   try {
-    execFileSync(
-      "npx",
-      ["--no-install", "biome", "format", "--write", filePath],
-      {
-        timeout: 15000,
-        stdio: "ignore",
-        shell: process.platform === "win32",
-      },
-    );
+    const configDir = biomeConfigDir(filePath);
+    if (!configDir) return false;
+    const entry = biomeEntry(filePath);
+    if (!entry) return false;
+    // Biome resolves its configuration from the working directory, so run it from
+    // the config that governs this file — not from wherever the session started.
+    execFileSync(process.execPath, [entry, "format", "--write", filePath], {
+      cwd: configDir,
+      timeout: 15000,
+      stdio: "ignore",
+    });
+    return true;
   } catch {
-    // No local biome install, no biome.json scoping this path, or biome
-    // itself found nothing to do — all silently fine, this is best-effort.
+    // Biome refused the file (outside its `files.includes`, parse error) or
+    // found nothing to do — all silently fine, this is best-effort.
+    return false;
   }
 }
 
@@ -95,4 +143,10 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { FORMATTABLE_EXT, editedFiles };
+module.exports = {
+  FORMATTABLE_EXT,
+  editedFiles,
+  biomeConfigDir,
+  biomeEntry,
+  tryFormat,
+};

@@ -143,7 +143,7 @@ jobs:
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/newgoal/SKILL.md"
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/updates/SKILL.md"
           test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
-          node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1) process.exit(1)"
+          node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); for (const hook of ['validate-goals.js', 'post-edit-format.js']) { const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((entry) => entry.command.includes('base_project/hooks/' + hook))); if (groups.length !== 1 || groups[0].matcher !== 'Edit|Write|MultiEdit') process.exit(1) }"
           node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
           grep -q "### UI verification & screen control" "$CLAUDE_HOME/CLAUDE.md"
           grep -q "### UI verification & screen control" "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
@@ -242,8 +242,10 @@ jobs:
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
           }
           $settings = Get-Content (Join-Path $claudeHome "settings.json") -Raw | ConvertFrom-Json
-          $goalsGroups = @($settings.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
-          if ($goalsGroups.Count -ne 1) { throw "Expected exactly one Claude GOALS validation hook" }
+          foreach ($hookFile in @("validate-goals.js", "post-edit-format.js")) {
+            $hookGroups = @($settings.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/$hookFile*" } })
+            if ($hookGroups.Count -ne 1 -or $hookGroups[0].matcher -ne "Edit|Write|MultiEdit") { throw "Expected exactly one Claude $hookFile hook with the edit-tool matcher" }
+          }
           $codexHooks = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json
           $codexGoalsGroups = @($codexHooks.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
           if ($codexGoalsGroups.Count -ne 1 -or $codexGoalsGroups[0].matcher -ne "apply_patch|Edit|Write|MultiEdit") { throw "Expected exactly one narrow Codex GOALS validation hook" }

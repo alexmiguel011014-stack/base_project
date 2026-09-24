@@ -3,6 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   formatGitContext,
+  capDiffStat,
 } = require("../../source/hooks/session-start-git-context.js");
 
 test("formatGitContext: returns null for a clean tree in sync with upstream", () => {
@@ -74,4 +75,27 @@ test("formatGitContext: includes recent commit log when both uncommitted and div
   });
   assert.match(result, /Recent commits:/);
   assert.match(result, /abc123 fix bug/);
+});
+
+test("capDiffStat keeps short diffstats intact", () => {
+  const stat =
+    " a.js | 2 +-\n b.js | 1 +\n 2 files changed, 2 insertions(+), 1 deletion(-)";
+  assert.equal(capDiffStat(stat), stat);
+});
+
+test("formatGitContext caps a long diffstat at 20 files plus the summary line", () => {
+  const files = Array.from({ length: 50 }, (_, i) => ` file${i}.js | 1 +`);
+  const summary = " 50 files changed, 50 insertions(+)";
+  const result = formatGitContext({
+    branch: "main",
+    statusPorcelain: files.map((_, i) => ` M file${i}.js`).join("\n"),
+    diffStat: [...files, summary].join("\n"),
+    recentLog: "",
+    aheadBehind: "0\t0",
+  });
+  assert.match(result, /- 50 file\(s\) with uncommitted changes:/);
+  assert.ok(result.includes(" file19.js | 1 +"));
+  assert.ok(!result.includes(" file20.js | 1 +"));
+  assert.ok(result.includes(" ... and 30 more file(s)"));
+  assert.ok(result.includes(summary));
 });

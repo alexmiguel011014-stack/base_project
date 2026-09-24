@@ -2,9 +2,20 @@
 // base_project:managed
 // PostToolUse hook: validates GOALS.md structure after an edit, but never blocks
 // the edit. The deterministic check is shared with the manual /execgoals backstop.
+// Findings go out as JSON on stdout (`hookSpecificOutput.additionalContext`), the
+// channel Claude Code and Codex hand to the model; stderr on exit 0 never reaches it.
 
 const fs = require("node:fs");
 const path = require("node:path");
+
+function contextOutput(eventName, text) {
+  return `${JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: eventName || "PostToolUse",
+      additionalContext: text,
+    },
+  })}\n`;
+}
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -71,16 +82,24 @@ async function main() {
   try {
     const raw = await readStdin();
     const input = raw ? JSON.parse(raw) : {};
+    const targets = goalsFiles(input);
+    if (targets.length === 0) process.exit(0);
     const { check } = require(checkerPath());
-    for (const filePath of goalsFiles(input)) {
+    const warnings = [];
+    for (const filePath of targets) {
       const result = check(filePath);
       if (!result.ok) {
         for (const finding of result.findings) {
-          process.stderr.write(
-            `[base_project] GOALS.md structure warning: ${finding.message}\n`,
+          warnings.push(
+            `[base_project] GOALS.md structure warning: ${finding.message}`,
           );
         }
       }
+    }
+    if (warnings.length > 0) {
+      process.stdout.write(
+        contextOutput(input.hook_event_name, warnings.join("\n")),
+      );
     }
   } catch {
     // Hooks are advisory: a malformed payload or unavailable checker must never
@@ -93,4 +112,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { changedFiles, checkerPath, goalsFiles };
+module.exports = { changedFiles, checkerPath, goalsFiles, contextOutput };

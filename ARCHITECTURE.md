@@ -394,24 +394,34 @@ os disparou (tudo dentro de `try/catch` que engole erro).
 ### `source/hooks/loop-detect.js` (`PostToolUse`, síncrono)
 Mantém um contador por `session_id` (arquivo em `os.tmpdir()`, não em
 `~/.base_project/`) da assinatura `tool_name + JSON(tool_input)`. Se a mesma
-assinatura repetir 5x seguidas, escreve um aviso em stderr (nunca bloqueia). Existe
-porque um padrão assim precedeu um acidente real de perda de dados nesta mesma sessão de
-desenvolvimento (`git checkout --` repetido).
+assinatura repetir 5x seguidas, entrega o aviso **ao modelo** como JSON no stdout
+(`hookSpecificOutput.additionalContext`) e nunca bloqueia. Até o GOALS 17 o aviso ia
+para stderr com exit 0 — canal que o Claude Code manda só para o log de debug ("Claude
+never sees it", documentação oficial de hooks) e que o Codex também ignora; ou seja, o
+aviso existia mas ninguém o lia. Existe porque um padrão assim precedeu um acidente real
+de perda de dados nesta mesma sessão de desenvolvimento (`git checkout --` repetido).
 
 ### `source/hooks/post-edit-format.js` (`PostToolUse`, síncrono)
 Depois de `Edit`/`Write`/`MultiEdit` ou do `apply_patch` do Codex num arquivo
 `.js`/`.jsx`/`.ts`/`.tsx`/`.json`/`.css`,
 roda `biome format --write` **só nesse arquivo** — nunca o projeto inteiro. Escopo
 restrito é deliberado: um `biome format .` amplo já causou um incidente de reformatação
-não intencional nesta mesma sessão. Silenciosamente não faz nada se não houver
-`biome.json`/binário disponível no projeto alvo (não instala nada por conta própria).
+não intencional nesta mesma sessão. Procura o `biome.json(c)` subindo a partir do arquivo e
+roda o `@biomejs/biome` **do próprio projeto** com o binário atual do Node, a partir do
+diretório dessa config (o Biome resolve a config pelo diretório de trabalho). Sem config ou
+sem Biome local, não faz nada e não instala nada. Nunca usa `npx`: o
+`npx --no-install biome` anterior custava ~500 ms por edição e, em projeto sem Biome,
+consultava o registro npm e resolvia o pacote fantasma `biome@0.3.3` (o mesmo bug descrito no
+`CLAUDE.md` deste repo). No Claude Code e no Codex é registrado com matcher só de edição, então
+não sobe processo em `Read`/`Grep`/`Bash`.
 
 ### `source/hooks/validate-goals.js` (`PostToolUse`, síncrono)
 Depois de um `Edit`/`Write`/`MultiEdit` ou `apply_patch` que toca qualquer `GOALS.md`, chama o
 único verificador em `dev/scripts/validate-goals-structure.js` (instalado em
-`~/.claude/base_project/scripts/`). Ele detecta IDs de checklist em negrito duplicados e blocos
-Mermaid sem fechamento, escreve um aviso em stderr e sai com sucesso: é um poka-yoke
-observável, nunca um bloqueio que pudesse invalidar uma edição legítima. No Codex, o registro usa
+`~/.claude/base_project/scripts/`). Ele detecta IDs de item duplicados (nas linhas de checklist
+que os definem, nos formatos `H.1` e `S16.1`) e blocos Mermaid sem fechamento, entrega os achados
+ao modelo como `additionalContext` no stdout e sai com sucesso: é um poka-yoke observável, nunca
+um bloqueio que pudesse invalidar uma edição legítima. No Claude Code e no Codex, o registro usa
 matcher estreito só para ferramentas de edição; o filtro interno continua como defesa adicional.
 
 ### `source/hooks/session-start-git-context.js` (`SessionStart`, matcher `startup|resume|clear`)
@@ -422,8 +432,9 @@ tool calls). Mecanismo: stdout puro em exit 0 vira contexto automaticamente (sem
 wrapper JSON) — confirmado contra a documentação oficial do Claude Code antes de
 implementar, não assumido. **Fica em silêncio (zero stdout) se a árvore estiver limpa e
 sincronizada com o upstream** — decisão deliberada de economia de token: a maioria das
-aberturas de sessão não tem nada de novo pra reportar. Deliberadamente não registrado
-pros matchers `compact`/`fork` (não são cold start de verdade).
+aberturas de sessão não tem nada de novo pra reportar. O `git diff --stat` é limitado a 20
+arquivos + a linha de resumo, para uma árvore com centenas de mudanças não inundar o contexto.
+Deliberadamente não registrado pros matchers `compact`/`fork` (não são cold start de verdade).
 
 ### `source/hooks/usage-log.js` (`PostToolUse` + `UserPromptSubmit`, assíncrono)
 Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em

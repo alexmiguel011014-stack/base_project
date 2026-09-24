@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
-// PostToolUse hook: warns (stderr only, never blocks) when the same tool is
+// PostToolUse hook: warns the model (never blocks) when the same tool is
 // called with the same input 5 times in a row within one session. This is
 // the exact pattern that preceded a real data-loss accident in base_project's
 // own development (a `git checkout --` repeated after formatter re-runs) —
@@ -11,12 +11,34 @@
 // session_id, so it doesn't touch ~/.base_project/ and cleans up naturally
 // (OS temp dir, not persisted long-term). Must never fail or block the tool
 // call it's attached to — any error here is swallowed.
+//
+// The warning is printed as JSON on stdout (`hookSpecificOutput.additionalContext`):
+// both Claude Code and Codex hand that to the model, while stderr on exit 0 only
+// reaches a debug log — which is where this warning used to go, unseen.
 
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
 const REPEAT_THRESHOLD = 5;
+
+function contextOutput(eventName, text) {
+  return `${JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: eventName || "PostToolUse",
+      additionalContext: text,
+    },
+  })}\n`;
+}
+
+function warningFor(toolName, count) {
+  if (count < REPEAT_THRESHOLD) return null;
+  return (
+    `[base_project] Same ${toolName} call repeated ${count}x in a row with identical input — ` +
+    `if this isn't intentional (e.g. retrying a flaky command), it usually means the current ` +
+    `approach is stuck. Consider stopping to reconsider instead of trying again.`
+  );
+}
 
 function stateFilePath(sessionId) {
   const safe = String(sessionId || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -75,12 +97,9 @@ async function main() {
         toolName,
         input.tool_input || null,
       );
-      if (count >= REPEAT_THRESHOLD) {
-        process.stderr.write(
-          `[base_project] Same ${toolName} call repeated ${count}x in a row with identical input — ` +
-            `if this isn't intentional (e.g. retrying a flaky command), it usually means the current ` +
-            `approach is stuck. Consider stopping to reconsider instead of trying again.\n`,
-        );
+      const warning = warningFor(toolName, count);
+      if (warning) {
+        process.stdout.write(contextOutput(input.hook_event_name, warning));
       }
     }
   } catch {
@@ -93,4 +112,10 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { signatureFor, checkAndUpdate, stateFilePath };
+module.exports = {
+  signatureFor,
+  checkAndUpdate,
+  stateFilePath,
+  warningFor,
+  contextOutput,
+};

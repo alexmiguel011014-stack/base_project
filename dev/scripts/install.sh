@@ -188,7 +188,9 @@ if command -v jq &>/dev/null; then
 
     # Loop-detection, auto-format, and GOALS validation hooks are synchronous
     # (not async) so their warning/output lands before the next tool call.
-    # None ever throws or blocks (swallow-all-errors by design).
+    # None ever throws or blocks (swallow-all-errors by design). Format and GOALS
+    # validation only act on edits, so they carry an edit-tool matcher instead of
+    # starting a node process on every Read/Grep/Bash call; loop-detect needs every call.
     LOOP_DETECT_PATH="$CLAUDE_HOOKS_DIR/loop-detect.js"
     LOOP_DETECT_MARKER="base_project/hooks/loop-detect.js"
     POST_EDIT_FORMAT_PATH="$CLAUDE_HOOKS_DIR/post-edit-format.js"
@@ -213,8 +215,8 @@ if command -v jq &>/dev/null; then
         '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($goalsMarker)) | not))) + [{"hooks": [{"type": "command", "command": $goalsCmd, "async": false}]}]' \
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($goalsMarker)) | not))) + [{"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": $goalsCmd, "async": false}]}]' \
         > "$SETTINGS_PATH"
     ok "settings.json (loop-detect + post-edit-format + validate-goals hooks merged, stale dashboard hooks pruned)"
 

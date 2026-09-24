@@ -77,7 +77,7 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Hooks
 
-- [ ] **R17.6 Deliver hook warnings through `additionalContext`** (`coder`) — Repro: five identical
+- [x] **R17.6 Deliver hook warnings through `additionalContext`** (`coder`) — Repro: five identical
   tool calls or a malformed `GOALS.md` produce a warning the model never receives. Root cause:
   `loop-detect.js` and `validate-goals.js` write to stderr and exit 0; Claude Code documents that
   exit-0 stderr "goes to the debug log only … Claude never sees it", and Codex ignores it too. Fix:
@@ -85,20 +85,20 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   the shape both runtimes document for PostToolUse — and nothing when there is no warning.
   **Done when:** tests assert the stdout JSON for the warning case and empty stdout otherwise,
   and neither hook ever exits non-zero.
-- [ ] **R17.7 Register the edit-only hooks with an edit-tool matcher in Claude Code** (`coder`) —
+- [x] **R17.7 Register the edit-only hooks with an edit-tool matcher in Claude Code** (`coder`) —
   Repro: every `Read`/`Grep`/`Bash` call starts four `node` processes. Root cause:
   `install.sh`/`install.ps1` register `post-edit-format` and `validate-goals` without a `matcher`
   (the Codex projection already uses one). Fix: `"matcher": "Edit|Write|MultiEdit"` for those two
   entries in both installers. **Done when:** an install into a scratch `HOME` yields exactly one
   entry per hook with that matcher, and a second run stays idempotent.
-- [ ] **R17.8 Format with the project's own Biome binary, never `npx`** (`coder`) — Repro: each
+- [x] **R17.8 Format with the project's own Biome binary, never `npx`** (`coder`) — Repro: each
   edit of a `.js/.ts/.json/.css` file costs ~500 ms with local Biome and ~900 ms plus a registry
   lookup without it. Root cause: `npx --no-install biome` in `post-edit-format.js` (in projects
   without local Biome it resolves the unrelated `biome@0.3.3` package — the pitfall this repo's own
   `CLAUDE.md` documents). Fix: walk up from the edited file to the nearest `biome.json(c)`; if found,
   run the closest `node_modules/.bin/biome` directly; otherwise do nothing. **Done when:** tests prove
   a file under a Biome config is formatted, a file without one is untouched, and no `npx` is spawned.
-- [ ] **R17.9 Bound the session-start git context** (`coder`) — Repro: a work tree with hundreds of
+- [x] **R17.9 Bound the session-start git context** (`coder`) — Repro: a work tree with hundreds of
   changed files injects the whole `git diff --stat` into context. Root cause:
   `session-start-git-context.js` never caps `diffStat`. Fix: keep the first 20 lines plus a
   one-line remainder count. **Done when:** a regression test with a long diffstat gets a capped

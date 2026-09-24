@@ -266,7 +266,9 @@ foreach ($staleDir in @((Join-Path $ClaudeHome "base_project\dashboard"), (Join-
 # Loop-detection, auto-format, and GOALS validation hooks are synchronous (not
 # async) so their warning/output lands before the next tool call. None ever
 # throws or blocks — see the scripts themselves for the swallow-all-errors
-# guarantee.
+# guarantee. Format and GOALS validation only act on edits, so they carry an
+# edit-tool matcher instead of starting a node process on every Read/Grep/Bash
+# call; loop-detect needs every call.
 $loopDetectPath   = (Join-Path $claudeHooksDir "loop-detect.js") -replace '\\', '/'
 $loopDetectMarker = "base_project/hooks/loop-detect.js"
 $loopDetectCommand = "node `"$loopDetectPath`""
@@ -284,6 +286,7 @@ $postEditFormatPath   = (Join-Path $claudeHooksDir "post-edit-format.js") -repla
 $postEditFormatMarker = "base_project/hooks/post-edit-format.js"
 $postEditFormatCommand = "node `"$postEditFormatPath`""
 $ourFormatEntry = [PSCustomObject]@{
+    matcher = "Edit|Write|MultiEdit"
     hooks = @(
         [PSCustomObject]@{ type = "command"; command = $postEditFormatCommand; async = $false }
     )
@@ -297,6 +300,7 @@ $validateGoalsPath   = (Join-Path $claudeHooksDir "validate-goals.js") -replace 
 $validateGoalsMarker = "base_project/hooks/validate-goals.js"
 $validateGoalsCommand = "node `"$validateGoalsPath`""
 $ourGoalsValidationEntry = [PSCustomObject]@{
+    matcher = "Edit|Write|MultiEdit"
     hooks = @(
         [PSCustomObject]@{ type = "command"; command = $validateGoalsCommand; async = $false }
     )

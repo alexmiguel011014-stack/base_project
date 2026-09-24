@@ -188,8 +188,46 @@ test("validate-goals hook warns for a malformed GOALS.md without failing the edi
       }),
     });
     assert.equal(result.status, 0);
-    assert.match(result.stderr, /GOALS\.md structure warning/);
-    assert.match(result.stderr, /Duplicate item ID \*\*A\.1\*\*/);
+    // stdout JSON is the channel the model actually receives; exit-0 stderr is debug-only.
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.hookSpecificOutput.hookEventName, "PostToolUse");
+    assert.match(
+      output.hookSpecificOutput.additionalContext,
+      /GOALS\.md structure warning/,
+    );
+    assert.match(
+      output.hookSpecificOutput.additionalContext,
+      /Duplicate item ID \*\*A\.1\*\*/,
+    );
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
+test("validate-goals hook stays silent for a well-formed GOALS.md and for other files", () => {
+  const item = fixture("- [ ] **A.1** first\n- [x] **A.2** second\n");
+  const hook = path.join(
+    __dirname,
+    "..",
+    "..",
+    "source",
+    "hooks",
+    "validate-goals.js",
+  );
+  try {
+    for (const filePath of ["GOALS.md", "README.md"]) {
+      const result = spawnSync(process.execPath, [hook], {
+        encoding: "utf8",
+        input: JSON.stringify({
+          cwd: item.directory,
+          hook_event_name: "PostToolUse",
+          tool_name: "Edit",
+          tool_input: { file_path: filePath },
+        }),
+      });
+      assert.equal(result.status, 0);
+      assert.equal(result.stdout, "");
+    }
   } finally {
     fs.rmSync(item.directory, { recursive: true, force: true });
   }
