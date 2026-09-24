@@ -268,7 +268,9 @@ fi
 #     Only removes what carries the managed marker, mirroring sync_managed - a
 #     file written by hand at the same path is left alone even if the name matches.
 # ---------------------------------------------------------------------
-for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md" "$CLAUDE_COMMANDS_DIR/newproject.md" "$OPENCODE_COMMAND_DIR/newproject.md" "$CLAUDE_COMMANDS_DIR/reviewusage.md" "$OPENCODE_COMMAND_DIR/reviewusage.md"; do
+# Same list as install.ps1 (doctor/context/explain were briefly shipped as commands).
+for stale_name in dashboard doctor context explain newproject reviewusage; do
+  for stale_cmd in "$CLAUDE_COMMANDS_DIR/$stale_name.md" "$OPENCODE_COMMAND_DIR/$stale_name.md"; do
     [ -f "$stale_cmd" ] || continue
     if grep -q 'base_project:managed' "$stale_cmd"; then
         rm -f "$stale_cmd"
@@ -276,6 +278,7 @@ for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dash
     else
         warn "Kept $stale_cmd - not managed by base_project (looks like your own file)"
     fi
+  done
 done
 for stale_dir in "$CLAUDE_HOME/base_project/dashboard" "$OPENCODE_HOME/base_project/dashboard"; do
     if [ -d "$stale_dir" ]; then
@@ -554,6 +557,22 @@ if command -v node &>/dev/null; then
     node "$SCRIPT_DIR/install-codex.js" || warn "Codex integration sync failed."
 else
     warn "Node.js not found - skipped native Codex skills/agents sync."
+fi
+
+# ---------------------------------------------------------------------
+# 8e. Unified canonical store (~/.agents) - the same non-destructive init as
+#     install.ps1 (it only creates what is missing). The unified-layer scripts
+#     themselves are not copied: /bootstrap, /scanproject and /audit run them
+#     from this clone, recorded in ~/.base_project/repo-path.txt below.
+# ---------------------------------------------------------------------
+step "Initializing unified canonical store (~/.agents)..."
+if command -v node &>/dev/null; then
+    if AGENTS_HOME="${BASE_PROJECT_AGENTS_ROOT:-${AGENTS_HOME:-$HOME/.agents}}" \
+        node "$SCRIPT_DIR/config-store.js" --init >/dev/null 2>&1; then
+        ok "canonical store initialized (~/.agents)"
+    else
+        warn "Could not initialize the canonical store (~/.agents)."
+    fi
 fi
 
 # ---------------------------------------------------------------------

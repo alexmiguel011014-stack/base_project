@@ -7,9 +7,9 @@ Two modes — security and config visibility — in one command.
 
 **Config audit mode** (new, GOALS 6): when called with `--project`/`--agent` flags, show which unified-layer config applies.
 
-1. Resolve the canonical home via `dev/scripts/paths.js`.
-2. Run `node dev/scripts/audit.js --project <cwd> --agent <agent> --json` where `<agent>` is one of `claude-code`, `cursor`, `codex`, `opencode`, `gemini-cli`, `continue`, `windsurf`, `roo-code`, `cline` (or any breadth-tier id). If no agent is specified, ask briefly (one question).
-3. Render as a table: `source | files` (global → agent → project). Reuses `dev/scripts/resolve-layers.js`.
+1. Resolve `<repo>`, the base_project clone recorded in `~/.base_project/repo-path.txt` — the config-audit scripts run from that clone, never from the audited project (`audit.js` resolves the canonical home itself through `<repo>/dev/scripts/paths.js`). If the file is missing, say config audit is unavailable until base_project is reinstalled.
+2. Run `node <repo>/dev/scripts/audit.js --project <cwd> --agent <agent> --json` where `<agent>` is one of `claude-code`, `cursor`, `codex`, `opencode`, `gemini-cli`, `continue`, `windsurf`, `roo-code`, `cline` (or any breadth-tier id). If no agent is specified, ask briefly (one question).
+3. Render as a table: `source | files` (global → agent → project). Reuses `<repo>/dev/scripts/resolve-layers.js`.
 4. Output shape must match `dot-agents audit`: `{ agent, project, layers: [{source, files}], effectiveConfig: { mcp, skills, instructions } }` when called with `--json`.
 
 **Security audit mode** (original): when called without `--agent`, run a full vulnerability scan.

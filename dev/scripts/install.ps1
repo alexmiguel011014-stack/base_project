@@ -639,38 +639,58 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 }
 
 # ---------------------------------------------------------------------
-# 8e. Unified layer scripts (GOALS 6) - config-store, resolvers, adapters, doctor, etc.
+# 8e. Usage-report scripts and the unified canonical store (GOALS 6).
+#     /usagebp runs the two usage-* scripts from ~/.claude/base_project/scripts/.
+#     The unified-layer scripts are NOT copied: /bootstrap, /scanproject and
+#     /audit run them from the base_project clone recorded in
+#     ~/.base_project/repo-path.txt, and copies installed here could not find
+#     source/adapters.json (they saw 0 adapters and reported success). Copies
+#     left by older installs are pruned - only files carrying the managed marker.
 # ---------------------------------------------------------------------
-Write-Step "Syncing unified-layer scripts..."
-$unifiedScripts = @(
-    "paths.js", "config-store.js", "resolve-layers.js", "apply.js", "drift.js",
-    "secrets.js", "lint-config.js", "doctor.js", "audit.js", "context.js",
-    "wizard.js", "sync.js", "tasks.js", "history.js", "snapshot.js",
-    "marketplace.js", "check-plugin-updates.js", "usage-envelope.js", "usage-baseline.js"
-)
-foreach ($script in $unifiedScripts) {
+Write-Step "Syncing usage-report scripts..."
+foreach ($script in @("usage-envelope.js", "usage-baseline.js")) {
     $src = Join-Path $repoRoot "dev\scripts\$script"
     if (Test-Path $src) {
         Sync-Managed -SrcFile $src -DestFile (Join-Path $claudeScriptsDir $script)
     }
 }
-$adaptersSrcDir = Join-Path $repoRoot "dev\scripts\adapters"
-$adaptersDestDir = Join-Path $claudeScriptsDir "adapters"
-if (Test-Path $adaptersSrcDir) {
-    New-Item -ItemType Directory -Force -Path $adaptersDestDir | Out-Null
-    Get-ChildItem $adaptersSrcDir -Filter *.js | ForEach-Object {
-        Sync-Managed -SrcFile $_.FullName -DestFile (Join-Path $adaptersDestDir $_.Name)
+$staleUnifiedCopies = @(
+    "paths.js", "config-store.js", "resolve-layers.js", "apply.js", "drift.js",
+    "secrets.js", "lint-config.js", "doctor.js", "audit.js", "context.js",
+    "wizard.js", "sync.js", "tasks.js", "history.js", "snapshot.js",
+    "marketplace.js", "check-plugin-updates.js"
+) | ForEach-Object { Join-Path $claudeScriptsDir $_ }
+$staleUnifiedCopies += @(
+    (Join-Path $claudeScriptsDir "adapters\index.js"),
+    (Join-Path $ClaudeHome "base_project\adapters.json"),
+    (Join-Path $OpencodeHome "base_project\adapters.json")
+)
+foreach ($staleCopy in $staleUnifiedCopies) {
+    if (-not (Test-Path $staleCopy)) { continue }
+    $staleContent = Read-Utf8NoBom $staleCopy
+    if (($staleContent -match 'base_project:managed') -or ($staleContent -match '"_managed_by":\s*"base_project"')) {
+        Remove-Item $staleCopy -Force
+        Write-Ok "removed stale unified-layer copy: $staleCopy"
     }
 }
-$adaptersJsonSrc = Join-Path $repoRoot "source\adapters.json"
-if (Test-Path $adaptersJsonSrc) {
-    Sync-Managed -SrcFile $adaptersJsonSrc -DestFile (Join-Path $ClaudeHome "base_project\adapters.json")
-    Sync-Managed -SrcFile $adaptersJsonSrc -DestFile (Join-Path $OpencodeHome "base_project\adapters.json")
+$staleAdaptersDir = Join-Path $claudeScriptsDir "adapters"
+if ((Test-Path $staleAdaptersDir) -and -not (Get-ChildItem $staleAdaptersDir -Force)) {
+    Remove-Item $staleAdaptersDir -Force
 }
 Write-Step "Initializing unified canonical store (~/.agents)..."
 if (Get-Command node -ErrorAction SilentlyContinue) {
+    # Same root install-codex.js uses, so a test install with
+    # BASE_PROJECT_AGENTS_ROOT stays inside its scratch directory.
+    $previousAgentsHome = $env:AGENTS_HOME
+    if ($env:BASE_PROJECT_AGENTS_ROOT) { $env:AGENTS_HOME = $env:BASE_PROJECT_AGENTS_ROOT }
     & node (Join-Path $repoRoot "dev\scripts\config-store.js") --init *> $null
-    if ($LASTEXITCODE -eq 0) { Write-Ok "canonical store initialized (~/.agents)" }
+    $initExitCode = $LASTEXITCODE
+    $env:AGENTS_HOME = $previousAgentsHome
+    if ($initExitCode -eq 0) {
+        Write-Ok "canonical store initialized (~/.agents)"
+    } else {
+        Write-Warn "Could not initialize the canonical store (~/.agents) (exit $initExitCode)."
+    }
 }
 
 # ---------------------------------------------------------------------

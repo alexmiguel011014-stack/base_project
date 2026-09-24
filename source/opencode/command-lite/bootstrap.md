@@ -5,9 +5,9 @@ description: Map the current project into graphify + repomix outputs (lite). Syn
 
 Map the current project for token-efficient AI context.
 
-STEP 1 — Sync the shared canonical `~/.agents/` first, separate from the project's own remote. If `~/.agents/` is a git repo (`test -d ~/.agents/.git`), run `node dev/scripts/sync.js pull` (fast-forward only). If it's not a git repo, skip this step. If `sync status` shows dirty/uncommitted canonical changes, note it and skip pulling — never stash or force.
+STEP 1 — Sync the shared canonical `~/.agents/` first, separate from the project's own remote. `<repo>` in steps 1 and 1b is the base_project clone recorded in `~/.base_project/repo-path.txt` (these scripts run from that clone, never from this project); if the file is missing, skip steps 1 and 1b and say so. If `~/.agents/` is a git repo (`test -d ~/.agents/.git`), run `node <repo>/dev/scripts/sync.js pull` (fast-forward only). If it's not a git repo, skip this step. If `sync status` shows dirty/uncommitted canonical changes, note it and skip pulling — never stash or force.
 
-STEP 1b — Check for real drift, not just non-adoption: run `node dev/scripts/drift.js --project . --json`. Only entries with `"status": "drift"` matter — a projected file that exists but is stale. Ignore `"status": "missing"` entries — they just mean this project never adopted that agent's projection, which is normal and not worth reporting. Mention real `drift` entries in the final report with `node dev/scripts/apply.js --project . --agent <id> --fix` as the fix; say nothing extra if there's none.
+STEP 1b — Check for real drift, not just non-adoption: run `node <repo>/dev/scripts/drift.js --project . --json`. Only entries with `"status": "drift"` matter — a projected file that exists but is stale. Ignore `"status": "missing"` entries — they just mean this project never adopted that agent's projection, which is normal and not worth reporting. Mention real `drift` entries in the final report with `node <repo>/dev/scripts/apply.js --project . --agent <id> --fix` as the fix; say nothing extra if there's none.
 
 STEP 2 — Sync this project's own remote (a different repo from step 1):
 - Not a git repo, or no remote configured → skip, nothing to sync.

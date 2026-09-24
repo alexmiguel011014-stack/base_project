@@ -125,7 +125,7 @@ One canonical source `~/.agents/` (with `~/.base_project/` kept for bookkeeping)
 
 | Agent | Status | Config Files | Link Type |
 |---|---|---|---|
-| **Claude Code** | deep | `CLAUDE.md`, `.claude.json`, `.claude/skills/` | symlink |
+| **Claude Code** | deep | `CLAUDE.md`, `.mcp.json`, `.claude/skills/` | symlink |
 | **OpenCode** | deep | `AGENTS.md`, `opencode.json` | symlink |
 | **Codex CLI** | deep | `AGENTS.md`, `.codex/config.toml` (TOML) | symlink |
 | **Cursor** | deep | `.cursor/rules/*.mdc`, `.cursor/mcp.json` | **hardlink** (Cursor doesn't follow symlinks) |

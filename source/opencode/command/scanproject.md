@@ -30,13 +30,13 @@ never edit files in this command.
    `medium` / `low`) and file/line when applicable — same shape `reviewer` already uses
    for code review findings, not a new report format.
 
-4. **Unified layer health (doctor, now inside scanproject, not a separate command):** after the 9 standard categories, also check the unified `~/.agents/` health — same logic `doctor.js` uses, but reported inline here:
+4. **Unified layer health (doctor, now inside scanproject, not a separate command):** after the 9 standard categories, also check the unified `~/.agents/` health — same logic `doctor.js` uses, but reported inline here (`<repo>` here is the base_project clone recorded in `~/.base_project/repo-path.txt` — the unified-layer scripts run from that clone, never from the current project; if the file is missing, report this check as unavailable instead of guessing a path):
    - Broken symlinks/hardlinks (Cursor `~/.cursor/rules/*.mdc` hardlink inode check; warn on `EXDEV` fallback copy)
    - Missing canonical dirs (`~/.agents/rules/global`, `mcp`, `skills`, `commands`)
    - Stale hooks in `~/.claude/settings.json` containing `dashboard/`
    - Legacy formats (`.cursorrules` → `.cursor/rules/`)
-   - `sync` drift for `~/.agents/` if it is a git repo (`git status --porcelain` in canonical) — suggest `node dev/scripts/sync.js push` or `bootstrap` sync
-   Run `node dev/scripts/doctor.js --project . --json` and `node dev/scripts/drift.js --project . --json` for real evidence. Only a `drift` status is repairable; `missing` means the layer was never adopted, and `not_applicable` means self-host projection is deliberately disabled — never suggest `apply --fix` for either one.
+   - `sync` drift for `~/.agents/` if it is a git repo (`git status --porcelain` in canonical) — suggest `node <repo>/dev/scripts/sync.js push` or `bootstrap` sync
+   Run `node <repo>/dev/scripts/doctor.js --project . --json` and `node <repo>/dev/scripts/drift.js --project . --json` for real evidence. Only a `drift` status is repairable; `missing` means the layer was never adopted, and `not_applicable` means self-host projection is deliberately disabled — never suggest `apply --fix` for either one.
 
 5. Order the report by severity, critical first. For each finding, state concretely what
    is wrong and what evidence supports it (the command you ran, the line you read) — not

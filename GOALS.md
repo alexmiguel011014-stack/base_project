@@ -120,26 +120,27 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Unified layer (fixes only — its future is R17.22)
 
-- [ ] **R17.11 Resolve unified-layer scripts from the base_project clone** (`coder`) — Repro:
+- [x] **R17.11 Resolve unified-layer scripts from the base_project clone** (`coder`) — Repro:
   `/bootstrap`, `/scanproject`, `/audit --agent` in any consumer project run
   `node dev/scripts/*.js`, which does not exist there. Root cause: relative paths in the Claude,
   opencode dense and opencode lite variants (the Codex skills already resolve the clone through
   `~/.base_project/repo-path.txt`). Fix: resolve `<repo>` from `repo-path.txt` in every variant, and
   make the `fix` hints printed by `doctor.js` absolute. **Done when:** a contract test fails if any
   shipped command or skill runs `node dev/scripts/...` relative to the current project.
-- [ ] **R17.12 Installer parity for the unified layer and stale-command pruning** (`coder`) — Root
+- [x] **R17.12 Installer parity for the unified layer and stale-command pruning** (`coder`) — Root
   cause: `install.ps1` copies 17 unified-layer scripts that cannot find `adapters.json` once
   installed (they see 0 adapters) and initializes `~/.agents`, while `install.sh` does neither; the
   stale-command prune lists also differ. Fix: stop copying the non-functional copies (the commands
   now run the clone's scripts), initialize the canonical store from both installers through the
   clone, and prune the same stale commands on both sides. **Done when:** a scratch-`HOME` install
   on Linux initializes `~/.agents` and prunes a managed `doctor.md`, and the PowerShell diff is
-  reviewed line by line (no PowerShell in this environment; the Windows CI job confirms it).
-- [ ] **R17.13 Project Claude Code MCP config to `.mcp.json`** (`coder`) — Root cause: the
+  reviewed line by line (no PowerShell in this environment; its Windows execution is confirmed
+  together with R17.3's first PR run).
+- [x] **R17.13 Project Claude Code MCP config to `.mcp.json`** (`coder`) — Root cause: the
   `claude-code` adapter writes `<project>/.claude.json`, which Claude Code does not read; its
   project-scope MCP file is `.mcp.json`. **Done when:** adapter, doctor candidates and tests use
   `.mcp.json`, and `apply`→`drift` round-trips in-sync.
-- [ ] **R17.14 `sync.js` without shell interpolation, fast-forward-only pull** (`coder`) — Root
+- [x] **R17.14 `sync.js` without shell interpolation, fast-forward-only pull** (`coder`) — Root
   cause: `commit` builds `git commit -m "<msg>"` through a shell (a `$(...)` in the message would
   execute) and `pull` is a plain `git pull`, although `/bootstrap` promises fast-forward only.
   Fix: `execFileSync("git", [...])` and `pull --ff-only`. **Done when:** a test commits a message

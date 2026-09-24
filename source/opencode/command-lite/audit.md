@@ -6,9 +6,9 @@ description: Security audit and config-layer audit (lite). Two modes in one comm
 Two modes: security scan, or config-layer visibility.
 
 STEP 1 — If called with `--project`/`--agent` flags, use config-layer mode:
-1. Resolve the canonical home via `dev/scripts/paths.js`.
-2. Run `node dev/scripts/audit.js --project <cwd> --agent <agent> --json`. Valid agent values: `claude-code`, `cursor`, `codex`, `opencode`, `gemini-cli`, `continue`, `windsurf`, `roo-code`, `cline`, or another breadth-tier id. If no agent given, ask one short question.
-3. Show a table: `source | files` (global → agent → project), from `dev/scripts/resolve-layers.js`.
+1. Resolve `<repo>`, the base_project clone recorded in `~/.base_project/repo-path.txt` — the config-audit scripts run from that clone, never from the audited project (`audit.js` resolves the canonical home itself through `<repo>/dev/scripts/paths.js`). If the file is missing, say config audit is unavailable until base_project is reinstalled.
+2. Run `node <repo>/dev/scripts/audit.js --project <cwd> --agent <agent> --json`. Valid agent values: `claude-code`, `cursor`, `codex`, `opencode`, `gemini-cli`, `continue`, `windsurf`, `roo-code`, `cline`, or another breadth-tier id. If no agent given, ask one short question.
+3. Show a table: `source | files` (global → agent → project), from `<repo>/dev/scripts/resolve-layers.js`.
 4. With `--json`, match this shape: `{ agent, project, layers: [{source, files}], effectiveConfig: { mcp, skills, instructions } }`.
 
 STEP 2 — If called without `--agent`, use security-scan mode:

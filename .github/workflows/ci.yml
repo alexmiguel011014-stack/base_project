@@ -142,6 +142,8 @@ jobs:
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/wpp/SKILL.md"
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/newgoal/SKILL.md"
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/updates/SKILL.md"
+          test -d "$BASE_PROJECT_AGENTS_ROOT/rules/global"
+          test -f "$BASE_PROJECT_AGENTS_ROOT/config.json"
           test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
           node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); for (const hook of ['validate-goals.js', 'post-edit-format.js']) { const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((entry) => entry.command.includes('base_project/hooks/' + hook))); if (groups.length !== 1 || groups[0].matcher !== 'Edit|Write|MultiEdit') process.exit(1) }"
           node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
@@ -236,7 +238,9 @@ jobs:
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json"),
             (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\wpp\SKILL.md"),
             (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\newgoal\SKILL.md"),
-            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\updates\SKILL.md")
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\updates\SKILL.md"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "rules\global"),
+            (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "config.json")
           )
           foreach ($path in $expected) {
             if (-not (Test-Path $path)) { throw "Missing expected artifact: $path" }
