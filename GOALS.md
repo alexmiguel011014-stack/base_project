@@ -148,13 +148,13 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Ledger
 
-- [ ] **R17.15 Ledger readers survive a growing ledger** (`coder`) — Repro: `/usagebp` crashes
+- [x] **R17.15 Ledger readers survive a growing ledger** (`coder`) — Repro: `/usagebp` crashes
   with `Maximum call stack size exceeded` above ~125–130k events (~4 months of heavy use). Root
   cause: `Math.min(...dates)`/`Math.max(...dates)` in `usage-baseline.js` and
   `lines.push(...split)` in `diary-source.js` spread one argument per event. Fix: loops instead of
   argument spreading. **Done when:** a regression test with 200k synthetic events passes for
   `buildBaseline` and the diary parser.
-- [ ] **R17.16 Redact secret-like values before writing the ledger** (`coder`) — Root cause:
+- [x] **R17.16 Redact secret-like values before writing the ledger** (`coder`) — Root cause:
   `usage-log.js` stores the start of every prompt and tool input (Bash commands with tokens,
   `Authorization` headers) in plain text, indefinitely. Fix: mask well-known token shapes and
   `key/token/secret/password=value` assignments before truncation. **Done when:** tests prove

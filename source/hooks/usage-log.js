@@ -46,12 +46,53 @@ function ledgerFile(sessionId) {
   return path.join(ledgerDir(), `${day}-${safe}.jsonl`);
 }
 
+// Prompts and tool inputs routinely carry credentials (`export API_KEY=…`, a curl with an
+// Authorization header, a pasted token). The ledger is plain text kept indefinitely, so
+// well-known secret shapes are masked before anything is written. File paths and ordinary
+// commands — what /usagebp and /diario actually read — are left intact.
+const SECRET_PATTERNS = [
+  [
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+    "[REDACTED PRIVATE KEY]",
+  ],
+  [
+    /(authorization\\?"?\s*[:=]\s*\\?"?\s*(?:bearer|basic|token)?\s*)[^\s"'\\,;]+/gi,
+    "$1[REDACTED]",
+  ],
+  [
+    /\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|npm_[A-Za-z0-9]{36})\b/g,
+    "[REDACTED]",
+  ],
+  [
+    /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+    "[REDACTED]",
+  ],
+  [/\b([a-z][a-z0-9+.-]*:\/\/[^\s:/@"'\\]+:)[^\s@/"'\\]+@/gi, "$1[REDACTED]@"],
+  [
+    /\b([A-Za-z0-9_-]*(?:api[_-]?key|secret|token|passw(?:or)?d|credential)[A-Za-z0-9_-]*)(\\?"?\s*[=:]\s*\\?"?)([^\s"'\\&;,]{3,})/gi,
+    "$1$2[REDACTED]",
+  ],
+];
+
+function redact(text) {
+  let result = text;
+  for (const [pattern, replacement] of SECRET_PATTERNS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
 function truncate(value, max) {
   if (value === undefined || value === null) return null;
   try {
     const text = typeof value === "string" ? value : JSON.stringify(value);
     if (typeof text !== "string") return null;
-    return text.length > max ? text.slice(0, max) : text;
+    // Redact before truncating, so a secret cut at the boundary can't slip through —
+    // over a window a little past `max`, not the whole payload (a Write of a large file
+    // would otherwise be scanned in full on every call).
+    const window = text.length > max + 512 ? text.slice(0, max + 512) : text;
+    const safe = redact(window);
+    return safe.length > max ? safe.slice(0, max) : safe;
   } catch {
     return null;
   }
@@ -156,5 +197,6 @@ module.exports = {
   installEntryFrom,
   ledgerDir,
   ledgerFile,
+  redact,
   truncate,
 };
