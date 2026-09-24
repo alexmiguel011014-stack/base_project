@@ -106,7 +106,7 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Installer safety
 
-- [ ] **R17.10 Merge `opencode.jsonc` instead of replacing it** (`coder`) — Repro: an existing
+- [x] **R17.10 Merge `opencode.jsonc` instead of replacing it** (`coder`) — Repro: an existing
   `opencode.jsonc` with the user's own `instructions` entry and MCP server loses both after
   `install.sh`; a single `//` comment makes the installer recreate the file from scratch while
   printing "other keys preserved". Root cause: the `jq`/`ConvertFrom-Json` step assigns `.instructions`

@@ -285,45 +285,18 @@ for stale_dir in "$CLAUDE_HOME/base_project/dashboard" "$OPENCODE_HOME/base_proj
 done
 
 # ---------------------------------------------------------------------
-# 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
+# 4. opencode.jsonc - merge base_project's instructions path and MCP servers
+#    into the user's config instead of replacing it. One Node implementation
+#    (shared with install.ps1) parses JSONC, edits only what base_project owns,
+#    keeps the user's own entries and comments, and leaves an unparseable file
+#    untouched instead of recreating it.
 # ---------------------------------------------------------------------
 step "Updating $OPENCODE_HOME/opencode.jsonc..."
-
-OPENCODE_CONFIG_PATH="$OPENCODE_HOME/opencode.jsonc"
-INSTRUCTIONS_PATH="$SOURCE_DIR/opencode-instructions.md"
-MCP_SRC_PATH_FOR_CONFIG="$SOURCE_DIR/opencode/mcp.json"
-
-if command -v jq &>/dev/null; then
-    if [ -f "$OPENCODE_CONFIG_PATH" ] && jq empty "$OPENCODE_CONFIG_PATH" 2>/dev/null; then
-        BASE_JSON="$(cat "$OPENCODE_CONFIG_PATH")"
-    else
-        if [ -f "$OPENCODE_CONFIG_PATH" ]; then
-            cp "$OPENCODE_CONFIG_PATH" "$OPENCODE_CONFIG_PATH.bak"
-            warn "opencode.jsonc could not be parsed (comments or invalid JSON) - backed up to opencode.jsonc.bak and starting fresh"
-        fi
-        BASE_JSON='{"$schema": "https://opencode.ai/config.json"}'
-    fi
-    # opencode's schema wants "instructions" as an array of paths, and "mcp" as a map
-    # of server name -> { type: "local", command: [...] } | { type: "remote", url,
-    # headers }, defined inline - not a pointer to an external file (that "mcp.file"
-    # shape doesn't exist in opencode's config schema and fails validation on startup).
-    echo "$BASE_JSON" | jq \
-        --arg instr "$INSTRUCTIONS_PATH" \
-        --argjson mcpsrc "$(cat "$MCP_SRC_PATH_FOR_CONFIG")" \
-        '.instructions = [$instr]
-         | .mcp = ($mcpsrc.mcpServers | with_entries(
-             .value = (
-               if .value.type == "remote" then
-                 {type: "remote", url: .value.url} + (if .value.headers then {headers: .value.headers} else {} end)
-               else
-                 {type: "local", command: ([.value.command] + (.value.args // []))} + (if .value.env then {environment: .value.env} else {} end)
-               end
-             )
-           ))' \
-        > "$OPENCODE_CONFIG_PATH"
-    ok "opencode.jsonc (instructions + mcp servers inlined, other keys preserved)"
+if command -v node &>/dev/null; then
+    node "$SCRIPT_DIR/install-opencode.js" --opencode-home "$OPENCODE_HOME" \
+        || warn "opencode.jsonc was left untouched - fix the problem reported above, then re-run this script."
 else
-    warn "'jq' not found - skipping opencode.jsonc merge. Install jq, then re-run this script."
+    warn "Node.js not found - skipped the opencode.jsonc merge. Install Node.js (https://nodejs.org), then re-run this script."
 fi
 
 # ---------------------------------------------------------------------

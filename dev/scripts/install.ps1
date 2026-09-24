@@ -362,56 +362,21 @@ if (-not $settingsObj.PSObject.Properties['fallbackModel']) {
 }
 
 # ---------------------------------------------------------------------
-# 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
+# 4. opencode.jsonc - merge base_project's instructions path and MCP servers
+#    into the user's config instead of replacing it. One Node implementation
+#    (shared with install.sh) parses JSONC, edits only what base_project owns,
+#    keeps the user's own entries and comments, and leaves an unparseable file
+#    untouched instead of recreating it.
 # ---------------------------------------------------------------------
 Write-Step "Updating $OpencodeHome\opencode.jsonc..."
-
-$opencodeConfigPath  = Join-Path $OpencodeHome "opencode.jsonc"
-$instructionsPath    = (Join-Path $sourceDir "opencode-instructions.md") -replace '\\', '/'
-$mcpSrcPathForConfig = Join-Path $sourceDir "opencode\mcp.json"
-
-$configObj = $null
-if (Test-Path $opencodeConfigPath) {
-    try {
-        $configObj = Read-Utf8NoBom $opencodeConfigPath | ConvertFrom-Json
-    } catch {
-        $backupPath = "$opencodeConfigPath.bak"
-        Copy-Item $opencodeConfigPath $backupPath -Force
-        Write-Warn "opencode.jsonc could not be parsed (comments or invalid JSON) - backed up to $backupPath and starting fresh"
-        $configObj = $null
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    & node (Join-Path $repoRoot "dev\scripts\install-opencode.js") --opencode-home $OpencodeHome
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "opencode.jsonc was left untouched - fix the problem reported above, then re-run this script."
     }
+} else {
+    Write-Warn "Node.js not found - skipped the opencode.jsonc merge. Install Node.js (https://nodejs.org), then re-run this script."
 }
-if ($null -eq $configObj) {
-    $configObj = [PSCustomObject]@{ '$schema' = "https://opencode.ai/config.json" }
-}
-
-# opencode's schema wants "instructions" as an array of paths, and "mcp" as a map of
-# server name -> { type: "local", command: [...] } | { type: "remote", url, headers },
-# defined inline - not a pointer to an external file (that "mcp.file" shape doesn't
-# exist in opencode's config schema and fails validation on startup).
-$configObj | Add-Member -NotePropertyName instructions -NotePropertyValue @($instructionsPath) -Force
-
-$mcpSourceConfig = Read-Utf8NoBom $mcpSrcPathForConfig | ConvertFrom-Json
-$mcpForOpencode = [PSCustomObject]@{}
-foreach ($name in $mcpSourceConfig.mcpServers.PSObject.Properties.Name) {
-    $server = $mcpSourceConfig.mcpServers.$name
-    if ($server.type -eq 'remote') {
-        $entry = [PSCustomObject]@{ type = 'remote'; url = $server.url }
-        if ($server.headers) {
-            $entry | Add-Member -NotePropertyName headers -NotePropertyValue $server.headers
-        }
-    } else {
-        $entry = [PSCustomObject]@{ type = 'local'; command = @($server.command) + @($server.args) }
-        if ($server.env) {
-            $entry | Add-Member -NotePropertyName environment -NotePropertyValue $server.env
-        }
-    }
-    $mcpForOpencode | Add-Member -NotePropertyName $name -NotePropertyValue $entry
-}
-$configObj | Add-Member -NotePropertyName mcp -NotePropertyValue $mcpForOpencode -Force
-
-Write-Utf8NoBom -Path $opencodeConfigPath -Content ($configObj | ConvertTo-Json -Depth 10)
-Write-Ok "opencode.jsonc (instructions + mcp servers inlined, other keys preserved)"
 
 # ---------------------------------------------------------------------
 # 5. Copy managed agent/command files (skip anything not ours)
