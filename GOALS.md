@@ -58,11 +58,13 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   with `--check`/`--write` recomputes the checksum column from the files, so it is never hand-edited
   again. **Done when:** the existing test passes, `--check` exits 0 on the real archive, and a
   regression test proves `--check` fails for a tampered body.
-- [ ] **R17.3 Run the unit tests on all three OSes** (`coder`) — Root cause of a month of unnoticed
+- [x] **R17.3 Run the unit tests on all three OSes** (`coder`) — Root cause of a month of unnoticed
   red CI: tests run only on Ubuntu while validation happens locally on Windows, so platform-dependent
   tests pass on one side and fail on the other. Fix: add `npm ci` + `npm test` to the existing
   `install-test` matrix in `.github/workflows/ci.yml`. **Done when:** `dev/tests/ci-contract.test.js`
   asserts the step exists and passes; execution on Windows/macOS is confirmed by the first PR run.
+  **Confirmed** on PR #8's first run (Actions run 36002927137): `validate` and `install-test` on
+  Ubuntu, Windows and macOS all green, including `install.ps1` and its new MCP/parked-store asserts.
 - [x] **R17.4 Validator checks real item definitions** (`coder`) — Repro: two checklist items
   both defined as `S16.1` (or `H.1`) produce no finding. Root cause: `ITEM_ID` in
   `dev/scripts/validate-goals-structure.js` matched a bold span containing *only* an `A.1`-style
@@ -267,7 +269,10 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   Tests fail if the cutoff day is pruned or a dry run deletes.
 - [ ] **R17.27 Protect `main` and cut the release** (`manual`) — require the `validate` and
   `install-test` checks before merge (GitHub settings), merge the Dependabot action/Biome PRs once
-  CI is green, and tag `v1.2.0`.
+  CI is green, and tag `v1.2.0`. **Progress:** the four Dependabot updates were folded into PR #8
+  and verified by its CI — `actions/checkout` and `actions/setup-node` v4 → v7 (#1, #2), Biome
+  2.5.8 → 2.5.14 with its config schema migrated (#7), TypeScript 7 (#3). Left: the `v1.2.0` tag
+  after the merge and branch protection, which is a GitHub setting only the owner can change.
 
 ### Explicitly out of scope
 
