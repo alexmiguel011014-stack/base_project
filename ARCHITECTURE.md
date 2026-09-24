@@ -59,15 +59,18 @@ base_project/
 ├── dev/                        ← ADMIN-ONLY. Nada aqui importa pra quem só USA o base_project.
 │   ├── scripts/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
+│   │   ├── install-codex.js          ← projeção nativa do Codex, chamada pelos dois instaladores
+│   │   ├── install-opencode.js       ← merge do opencode.jsonc (JSONC tolerante, edição pontual, preserva entradas/comentários do usuário), chamado pelos dois instaladores
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
-│   │   ├── validate-goals-structure.js ← CLI: detecta IDs duplicados e fences Mermaid abertas em GOALS.md
+│   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md
+│   │   ├── goals-archive-index.js    ← CLI: --check/--write da coluna de checksums de dev/goals-archive/README.md
 │   │   ├── paths.js                  ← resolve CANONICAL_HOME (~/.agents) + TARGET_ROOT (GOALS 6)
 │   │   ├── config-store.js           ← CRUD de ~/.agents/config.json (projects map)
 │   │   ├── resolve-layers.js         ← global→agent→project resolver + merge
-│   │   ├── adapters/                 ← um módulo por agente (claude-code, cursor, codex, gemini-cli, continue, windsurf, roo-code, cline, opencode) + index.js registry
+│   │   ├── adapters/index.js         ← registry que lê source/adapters.json (os 31 adapters são dados, não um módulo por agente)
 │   │   ├── apply.js / drift.js / audit.js / doctor.js / lint-config.js / context.js / wizard.js / sync.js / tasks.js / history.js / snapshot.js / secrets.js / check-plugin-updates.js
 │   │   └── NPInstructions.md         ← guia "como cadastrar plugin novo" + ledger de erros conhecidos
 │   ├── schemas/
@@ -500,6 +503,13 @@ Codex reutilizam esse caminho compartilhado.
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
   e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
   isolado como prova
+- `install-opencode.test.js` — merge do `opencode.jsonc`: comentários, entradas do usuário,
+  idempotência, posse dos MCPs, arquivo ilegível intocado
+- `command-paths.test.js` — nenhum comando distribuído roda `dev/scripts/*.js` relativo ao
+  projeto do usuário (sempre via `<repo>` de `~/.base_project/repo-path.txt`)
+- `goals-archive-index.test.js` / `ledger-scale.test.js` / `sync.test.js` — checksums do
+  arquivo de GOALS, leitores do ledger acima do limite de argumentos do V8 (150 mil eventos),
+  e `sync.js` sem shell e com pull só fast-forward
 
 Escopo deliberado: testa lógica de instalador/hook/script, não "qualidade" de skill —
 mesmo princípio que a pesquisa achou no próprio ECC (maior projeto do gênero, só testa 2
@@ -519,7 +529,10 @@ Dois jobs:
    os overrides `CLAUDE_HOME`/`OPENCODE_HOME` e
    `BASE_PROJECT_CODEX_ROOT`/`BASE_PROJECT_AGENTS_ROOT`),
    confere que os artefatos-chave existem e que `settings.json` é JSON válido, e roda o
-   installer uma 2ª vez pra confirmar idempotência.
+   installer uma 2ª vez pra confirmar idempotência. Desde o GOALS 17 também roda
+   `npm ci` + `npm test` em cada SO: até então os testes só rodavam no Ubuntu enquanto a
+   validação do dia a dia acontecia no Windows, e um teste dependente de plataforma ficou
+   vermelho no CI por um mês sem ninguém notar.
 
 `biome.json`/`tsconfig.json` (raiz — ver seção 2 sobre por que não estão em `dev/`)
 escopam `source/hooks/**/*.js`, `dev/scripts/*.js`, `dev/tests/**/*.js` — sem isso o

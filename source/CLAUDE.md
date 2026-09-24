@@ -20,7 +20,8 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repo.
 - Read runtime secrets from the project's own `.env` (gitignored). MCP server credentials live in the global
-  `~/.config/opencode/mcp.json` / Claude Code user-scope MCP config — never inside a project repo.
+  Claude Code user-scope MCP config (`claude mcp add --scope user`) / the `mcp` section of
+  `~/.config/opencode/opencode.jsonc` — never inside a project repo.
 
 ### Workflow
 1. **Plan** — use the `architect` subagent (read-only) before non-trivial changes.
@@ -36,12 +37,12 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
    reversible work inside the current repository; **notify-and-proceed** for an in-scope,
    reversible change whose visible effect should be stated before continuing; and
    **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice,
-   data/state outside base_project's own repository, sensitive data, credentials, external
+   data/state outside the current repository, sensitive data, credentials, external
    publication, or screen control (see *UI verification & screen control*). Decide from
    reversibility, scope of affected state, and data sensitivity — not
-   from whether the action merely looks technically easy. The ERP database compatibility test is
-   the model case for human-in-the-loop: even a copied test database was external sensitive data,
-   so it required explicit approval first.
+   from whether the action merely looks technically easy. Model case: a test run against a
+   copy of a production database is still human-in-the-loop — even a copy is external,
+   sensitive data, so it needs explicit approval first.
 
 ### Autonomy & Confirmations
 - Once the user has authorized a task, perform ordinary, reversible, in-scope implementation

@@ -89,6 +89,14 @@ invocam (`dev/scripts/validate-plugins.js` etc.) continuam apontando pra dentro 
   `checkJs` fica `false` de propósito.
 - `npm run validate:plugins` (= `node dev/scripts/validate-plugins.js`) roda no CI e valida
   `source/plugins.json` contra `dev/schemas/plugins.schema.json` antes de qualquer merge.
+- `npm test` roda no job `validate` (Ubuntu) **e** em cada SO da matriz `install-test`
+  (Ubuntu/Windows/macOS). Não confie em "passou aqui": um teste dependente de plataforma
+  passou no Windows e ficou vermelho no CI do Linux de 24/08 a 24/09/2026 sem ninguém ver, e
+  um PR foi mergeado com o CI vermelho. Confira o resultado do CI antes de dar merge.
+- A coluna de checksums de `dev/goals-archive/README.md` nunca é editada à mão: rode
+  `node dev/scripts/goals-archive-index.js --write` depois de arquivar um plano (e `--check`
+  para conferir). Um commit já reintroduziu checksums antigos colando o índice de uma cópia
+  desatualizada.
 
 ### Bug histórico: CI rodava um Biome fantasma (`biome@0.3.3`)
 

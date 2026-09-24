@@ -2252,6 +2252,67 @@ tarefa separada, não corrigido aqui.
 
 ---
 
+## 54. Auditoria geral e remediação (GOALS 17) (2026-09-24)
+
+**Origem**: auditoria completa em `dev/auditoria-2026-09-24.md` (14 achados, F1–F14), feita
+com execução real — suíte, instalador num `HOME` descartável, benchmarks dos hooks e dos
+leitores do ledger — e conferência na documentação oficial do Claude Code e do Codex. O plano
+executável virou o GOALS 17; os itens sem decisão de produto foram executados, os que dependem
+do dono ficaram abertos como `manual`.
+
+**O que mudou** (um commit por área, todos com teste de regressão que falha no código antigo):
+- **CI verde de novo**: estava vermelho desde o run #21 (24/08) — 20 runs seguidos, PR #6
+  mergeado vermelho, PRs do Dependabot travados e o harness de contrato (GOALS 8, H.2) nunca
+  executado no CI. Causas: teste do `doctor` dependente de plataforma (passava no Windows por
+  cair num ramo de fallback) e checksums do arquivo de GOALS reintroduzidos errados por
+  `0710eb5` (tinham sido corrigidos em `20b8acf`). Agora `npm test` roda nos 3 SOs e
+  `dev/scripts/goals-archive-index.js` recalcula a coluna de checksums. O validador de GOALS
+  nunca checava os itens reais (só `**A.1**` isolado em qualquer lugar do texto); agora checa
+  as definições de checklist nos dois formatos de ID. GOALS 8 arquivado.
+- **Hooks**: `loop-detect` e `validate-goals` escreviam em stderr com exit 0 — canal que o
+  Claude Code manda só para o log de debug e que o Codex ignora; o aviso do incidente do
+  `git checkout --` nunca chegava ao modelo. Agora saem como `additionalContext` no stdout.
+  `post-edit-format` deixou o `npx` (~500 ms por edição; sem Biome, consultava o registro npm e
+  resolvia o `biome@0.3.3` fantasma): usa o `@biomejs/biome` do projeto a partir do diretório da
+  config, ~130 ms, e nada sem config. No Claude Code, format/goals ganharam matcher de edição
+  (antes subiam em todo `Read`/`Bash`). Diffstat do início de sessão limitado a 20 arquivos.
+- **Instalador**: o merge do `opencode.jsonc` substituía `instructions` e `mcp` inteiros (MCPs
+  do usuário sumiam, sem backup) e recriava o arquivo do zero se houvesse um comentário. Novo
+  `dev/scripts/install-opencode.js` (sem dependências, chamado pelos dois instaladores): JSONC
+  tolerante, edição pontual que preserva comentários, posse dos MCPs registrada em
+  `~/.base_project/opencode-managed-mcp.json`, arquivo ilegível intocado.
+- **Unified layer** (sem decidir o futuro dela): comandos rodavam `node dev/scripts/*.js`
+  relativo ao projeto do usuário — só funcionavam dentro deste repo. Agora resolvem `<repo>`
+  por `repo-path.txt` (teste de contrato impede regressão). O `install.ps1` parou de copiar 17
+  scripts que, instalados, enxergavam 0 adapters; os dois instaladores inicializam o
+  `~/.agents` do mesmo jeito. Adapter do Claude Code agora projeta MCP em `.mcp.json` (o
+  arquivo que o Claude Code lê). `sync.js` sem shell (o `$(...)` numa mensagem de commit
+  executava) e pull só fast-forward.
+- **Ledger**: `/usagebp` quebrava acima de ~125–130 mil eventos (`Math.min(...dates)`); um
+  ledger sintético de 4 meses que quebrava agora roda em ~3 s. Segredos conhecidos (tokens,
+  `Authorization`, credenciais em URL, `key=valor`) são mascarados antes de gravar.
+- **`/uninstall`**: o ledger estava no namespace que o Tier A chamava de "reversível
+  reinstalando" — é a única fonte do `/diario`. Nova Tier D (dados do usuário, padrão manter),
+  inventário de todos os engines e do formato atual do `opencode.jsonc`, com contrato no harness.
+- **Catálogo**: removidos `marketplace-demo` (fixture de teste), `sqlite` (o pacote npm não
+  existe; o servidor oficial Python tem SQL injection sem correção) e `postgres` (pacote
+  deprecado com SQL injection que fura o read-only). Isso reabre, com motivo novo, a decisão
+  "manter catalogado" do GOALS 9 (U.3a): o custo deixou de ser zero.
+- **Docs e regra distribuída**: README/ARCHITECTURE/menu/regras alinhados ao comportamento real
+  (MCP em `opencode.jsonc`, suporte a Kimi, `/uninstall`, testes e CI). A regra de autonomia
+  distribuída pedia aprovação humana para "data/state outside base_project's own repository" —
+  num projeto do usuário, literalmente tudo; corrigido para "the current repository". O exemplo
+  de um projeto pessoal (ERP) virou um exemplo genérico.
+
+**Em aberto (decisão do dono, GOALS 17 R17.22–R17.27)**: futuro da unified layer (estacionar é
+a recomendação); conjunto de MCPs sempre-ativos (`filesystem`/`git` com zero uso medido,
+`mcp-git@0.0.4` sem versão fixada); substitutos para os MCPs de banco; política de typecheck
+(`checkJs: false` não verifica nada); retenção do ledger; proteção do `main`, merge dos PRs do
+Dependabot e tag `v1.2.0`. Execução no Windows/macOS das mudanças de instalador e da matriz de
+testes: confirmada no primeiro run de PR (R17.3).
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto

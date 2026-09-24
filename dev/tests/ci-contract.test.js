@@ -53,3 +53,11 @@ test("verification and dependency-update safeguards stay wired into CI", () => {
   assert.match(dependabot, /package-ecosystem: github-actions/);
   assert.match(dependabot, /interval: weekly/g);
 });
+
+test("the repository rules for Claude Code and Codex stay identical", () => {
+  // CLAUDE.md (read by Claude Code) and AGENTS.md (read by Codex) are the same rules kept as
+  // two files; this is what keeps them from silently drifting apart.
+  const claude = fs.readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8");
+  const agents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+  assert.equal(agents, claude);
+});

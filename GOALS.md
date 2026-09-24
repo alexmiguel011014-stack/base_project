@@ -184,17 +184,38 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
 
 ### Docs, privacy, registration
 
-- [ ] **R17.19 Correct documentation drift** (`coder`) — README install table, stale
+- [x] **R17.19 Correct documentation drift** (`coder`) — README install table, stale
   `~/.config/opencode/mcp.json` references, `/status` vs `/wpp`, the `/bootstrap` menu line, undocumented
   Kimi support, ARCHITECTURE counts and adapter map, and the uninstall tiers. **Done when:** every
   row of the audit's F11 table is either corrected or explicitly left to a manual item.
-- [ ] **R17.20 Neutral example in the distributed autonomy rule** (`coder`) — the rules shipped to
+- [x] **R17.20 Neutral example in the distributed autonomy rule** (`coder`) — the rules shipped to
   every user cite "The ERP database compatibility test", a private project. Fix: a generic example
   with the same meaning in the three rule blocks. **Done when:** the three blocks stay consistent
   and their parity tests pass.
-- [ ] **R17.21 Register the remediation** (`coder`) — ROADMAP entry, ARCHITECTURE hooks/installer
+- [x] **R17.21 Register the remediation** (`coder`) — ROADMAP entry, ARCHITECTURE hooks/installer
   sections, README changelog, `package.json` version `1.2.0`. **Done when:** `npm run verify` and
   `npm run test:harness` pass on the final tree.
+
+### Execution evidence (2026-09-24)
+
+- `npm run verify`: 170/170 tests, Biome, TypeScript, plugin schema, unused deps, `npm audit`
+  (0 vulnerabilities); `npm run test:harness` ok; `goals-archive-index.js --check` 12/12.
+- Every fix item has a regression test that fails against the previous code (checked by
+  mutation copies or `git stash`): doctor exit contract, archive checksums, item-ID
+  definitions, hook JSON output, Biome resolution, opencode merge, command paths, `sync.js`
+  shell/ff-only, 150k-event ledger, uninstall user-data tier.
+- The Linux/macOS `install-test` steps of `.github/workflows/ci.yml` were replayed verbatim
+  into a scratch `HOME` (stubbed `gh`/`graphify`/`repomix`/`biome`/`claude`): artifacts,
+  hook matchers, canonical store, idempotent second run, and the lite-profile switch all pass.
+- Measured: format hook ~500 ms → ~130 ms per edit (54 ms without Biome, no network);
+  `/usagebp` on a synthetic 4-month ledger (~300k lines) crash → ~3 s.
+- Found and fixed during execution: the distributed autonomy rule required human approval
+  for "data/state outside base_project's own repository" — every action in a user's project;
+  now "outside the current repository".
+- Not verifiable here: `install.ps1` (no PowerShell in this environment; diff reviewed line
+  by line) and the Windows/macOS test matrix — both confirmed by R17.3's first PR run.
+- README's "31 agents / verified transforms" claim and the GitHub repository description
+  are left to R17.22 and R17.27 respectively.
 
 ### Owner decisions (manual — stay open until decided)
 
