@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // The MCP servers base_project registers in every engine, and the definitions it shipped
 // before, so an installer can tell its own stale entries from a user's (GOALS 17 R17.23).
 //
@@ -143,6 +144,7 @@ function headerPath(inner) {
 function tomlTables(text) {
   const tables = [];
   let offset = 0;
+  /** @type {string | null} */
   let openString = null;
   for (const line of text.split(/(?<=\n)/)) {
     const content = line.replace(/\r?\n$/, "");
@@ -157,6 +159,7 @@ function tomlTables(text) {
           path: headerPath(header[2]),
           array: header[1] === "[[",
           start: offset,
+          end: text.length,
         });
       } else {
         openString =
@@ -168,7 +171,7 @@ function tomlTables(text) {
     offset += line.length;
   }
   tables.forEach((table, index) => {
-    table.end = tables[index + 1]?.start ?? text.length;
+    if (tables[index + 1]) table.end = tables[index + 1].start;
   });
   return tables;
 }

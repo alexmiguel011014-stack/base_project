@@ -287,6 +287,7 @@ In Codex, replace `/` with `$` for the workflow rows above.
 - `/usagebp` no longer crashes on large ledgers; the ledger masks secrets before writing
 - `/uninstall` keeps your usage history, diaries and `~/.agents` content unless you explicitly delete them (new Tier D)
 - Catalog: removed the Postgres and SQLite MCP entries (unpatched SQL injection / nonexistent package) and a test fixture; PostgreSQL and SQLite come back through Google's MCP Toolbox, pinned, with least-privilege guidance verified against a live database
+- Type checking that checks something: hooks and installer helpers opt in with `// @ts-check` on TypeScript 7 (before, `tsc` checked no file at all)
 - Always-on MCPs: only Context7, pinned to an exact version; filesystem and git moved to the optional catalog (git now the official server) and are retired from existing installs only where base_project's own definition is still there
 - Since v1.1.0: native Codex support, opencode `lite` profile, unified config layer (experimental), `/repertoire`, `/diario`, `/pr`, `/undo`, `/updates`, `/usagebp`, typed `/newgoal`, deterministic contract harness, screen-control-as-last-resort rule
 

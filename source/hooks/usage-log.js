@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // PostToolUse + UserPromptSubmit hook: appends one JSONL line per event to a
 // per-session ledger, so /usagebp or $usagebp can later answer "was this plugin/MCP/agent
 // ever actually used, in which project, and did it error" — questions the catalog

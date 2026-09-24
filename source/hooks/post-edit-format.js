@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // PostToolUse hook: after Edit/Write/apply_patch touches a JS/TS/JSON/CSS file, runs
 // `biome format --write` scoped to THAT SINGLE FILE only — never the whole
 // project. Scoping to one file is deliberate: a broad `biome format .` run

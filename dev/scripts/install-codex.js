@@ -1,4 +1,5 @@
 // base_project:managed
+// @ts-check
 
 const fs = require("node:fs");
 const os = require("node:os");

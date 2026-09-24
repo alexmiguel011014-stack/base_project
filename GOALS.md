@@ -250,9 +250,14 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   SELECT-only role (29 tools; `INSERT` denied with SQLSTATE 42501; the `COMMIT; DROP` escape
   refused) and SQLite (`mode=ro` blocks `INSERT`, but `ATTACH` reopens the file read-write), so
   the entries put the boundary in the database role or a file copy, never in a read-only claim.
-- [ ] **R17.25 Decide the typecheck policy** (`manual`) — `checkJs: false` makes `tsc` report no
+- [x] **R17.25 Decide the typecheck policy** (`manual`) — `checkJs: false` makes `tsc` report no
   type errors; enable it progressively (`// @ts-check`) or drop the step, then settle Dependabot's
-  TypeScript 7 PR.
+  TypeScript 7 PR. **Decided: progressive.** All five hooks and the three installer helpers that
+  edit user config carry `// @ts-check` (a contract test covers every current and future hook);
+  `strict` with `noImplicitAny: false`, `@types/node` 22. It reported 9 errors in six places, all
+  inference gaps (fixed with JSDoc or an `instanceof Error` guard, no runtime change), and now
+  rejects a mistyped property it used to pass. TypeScript
+  7.0.2 was verified on the same setup (0.5 s) and adopted here, which supersedes PR #3.
 - [ ] **R17.26 Decide ledger retention** (`manual`) — raw events are kept forever; `/diario`
   depends on history, so any automatic pruning needs an owner-chosen window.
 - [ ] **R17.27 Protect `main` and cut the release** (`manual`) — require the `validate` and

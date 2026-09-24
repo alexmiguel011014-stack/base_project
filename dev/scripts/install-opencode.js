@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // Merges base_project's global instructions path and MCP servers into opencode's
 // global config (opencode.jsonc) without taking over the rest of the file.
 //
@@ -304,6 +305,7 @@ function mergeConfig(originalText, options) {
       ? config.mcp
       : null;
   const nextManaged = new Set();
+  /** @type {Array<[string, object]>} */
   const toSet = [];
   for (const [name, server] of Object.entries(servers)) {
     const desired = opencodeServer(server);
@@ -446,7 +448,7 @@ function run(args) {
     });
   } catch (error) {
     warn(
-      `${configPath} could not be parsed (${error.message}) - left untouched. Fix it, then re-run the installer.`,
+      `${configPath} could not be parsed (${error instanceof Error ? error.message : error}) - left untouched. Fix it, then re-run the installer.`,
     );
     return 2;
   }
@@ -476,7 +478,9 @@ if (require.main === module) {
   try {
     process.exitCode = run(process.argv.slice(2));
   } catch (error) {
-    process.stderr.write(`install-opencode failed: ${error.message}\n`);
+    process.stderr.write(
+      `install-opencode failed: ${error instanceof Error ? error.message : error}\n`,
+    );
     process.exitCode = 1;
   }
 }

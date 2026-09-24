@@ -516,8 +516,9 @@ coisas de conteúdo de skill em ~130 arquivos de teste).
 
 Dois jobs:
 
-1. **`validate`** (ubuntu-latest): `npm ci` → `npm run verify` (Biome, TypeScript, schema de
-   plugins, dependências não usadas, testes e auditoria de dependências de produção). Dependabot
+1. **`validate`** (ubuntu-latest): `npm ci` → `npm run verify` (Biome, TypeScript sobre os
+   arquivos com `// @ts-check` — hooks e helpers do instalador —, schema de plugins,
+   dependências não usadas, testes e auditoria de dependências de produção). Dependabot
    abre PRs semanais separados para npm e GitHub Actions; não há auto-merge.
 2. **`install-test`** (matriz `ubuntu-latest`/`windows-latest`/`macos-latest`): roda
    `dev/scripts/install.sh`/`install.ps1` de verdade contra um `$HOME` descartável (via

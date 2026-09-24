@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // PostToolUse hook: warns the model (never blocks) when the same tool is
 // called with the same input 5 times in a row within one session. This is
 // the exact pattern that preceded a real data-loss accident in base_project's
@@ -56,6 +57,7 @@ function signatureFor(toolName, toolInput) {
 function checkAndUpdate(sessionId, toolName, toolInput) {
   const file = stateFilePath(sessionId);
   const sig = signatureFor(toolName, toolInput);
+  /** @type {{ sig: string | null, count: number }} */
   let state = { sig: null, count: 0 };
   try {
     state = JSON.parse(fs.readFileSync(file, "utf8"));

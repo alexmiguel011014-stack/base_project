@@ -2394,6 +2394,24 @@ fronteira. As duas entradas dizem que `execute_sql` roda o que o papel/arquivo p
 colocam a proteção onde ela funciona: papel de menor privilégio no Postgres, cópia do arquivo no
 SQLite. Lição registrada no `dev/scripts/NPInstructions.md` (erro #8).
 
+### Typecheck progressivo, com TypeScript 7 — R17.25
+
+**Decisão**: ligar aos poucos, não remover o passo. O `checkJs` continua `false` no global e cada
+arquivo entra com `// @ts-check`: os cinco hooks (todo hook novo também — o
+`ci-contract.test.js` exige) e os três helpers que editam config do usuário
+(`install-opencode.js`, `install-codex.js`, `mcp-servers.js`). `strict` com
+`noImplicitAny: false`: com ele ligado seriam 139 erros de parâmetro sem anotação, quase todos
+ruído; sem ele sobraram 8 erros em cinco pontos — lacunas de inferência (tupla virando união,
+`catch` como `unknown`, estado inicializado com `null`) —, corrigidos com JSDoc ou um
+`instanceof Error`, sem mudar comportamento. Um
+`state.cnt` digitado errado num hook agora falha o `tsc`; antes passava. `@types/node` fixado na
+major do Node do CI (22), contado como usado pelo `check-unused-deps` por estar em
+`compilerOptions.types`.
+
+**TypeScript 7 (PR #3 do Dependabot)**: o `tsc` nativo 7.0.2 checou o mesmo conjunto sem
+diferença de configuração, em ~0,5 s; achou um sexto ponto que o 5.9 não via (também
+corrigido). Adotado neste PR, o que torna o #3 redundante.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // PostToolUse hook: validates GOALS.md structure after an edit, but never blocks
 // the edit. The deterministic check is shared with the manual /execgoals backstop.
 // Findings go out as JSON on stdout (`hookSpecificOutput.additionalContext`), the

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // base_project:managed
+// @ts-check
 // SessionStart hook: injects a compact git-state summary (branch, uncommitted
 // changes, recent commits) directly into context at the start of a session —
 // so Claude Code or Codex doesn't spend tool calls rediscovering "what was I doing"
