@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execSync } = require("node:child_process");
+const { execSync, spawnSync } = require("node:child_process");
 
 function tmpHome() {
   const h = fs.mkdtempSync(path.join(os.tmpdir(), "bp-doctor-home-"));
@@ -15,59 +15,82 @@ function tmpHome() {
   return h;
 }
 
-test("doctor detects broken symlink and suggests apply --fix", () => {
+// doctor exits 1 whenever it reports an error — that is its contract, not a crash — so it
+// runs through spawnSync: execSync would throw on the very exit code these tests assert.
+function doctor(home, proj, ...extra) {
+  return spawnSync(
+    process.execPath,
+    ["dev/scripts/doctor.js", "--project", proj, ...extra],
+    { env: { ...process.env, AGENTS_HOME: home }, encoding: "utf8" },
+  );
+}
+
+test("doctor reports a missing canonical dir with exit 1 on every platform", () => {
   const home = tmpHome();
   const proj = fs.mkdtempSync(path.join(os.tmpdir(), "bp-doctor-proj-"));
-  execSync(
-    `node dev/scripts/apply.js --project "${proj}" --agent claude-code`,
-    { env: { ...process.env, AGENTS_HOME: home }, encoding: "utf8" },
-  );
-  const target = path.join(proj, "CLAUDE.md");
-  // break the symlink (if it's a symlink, replace with broken link; if copy fallback, create broken symlink)
   try {
-    if (fs.existsSync(target)) fs.unlinkSync(target);
-  } catch {}
-  // create broken symlink
-  try {
-    fs.symlinkSync(
-      path.join(home, "rules", "global", "MISSING.md"),
-      target,
-      "file",
-    );
-  } catch {
-    // if EPERM, just create a dangling file path
-    try {
-      fs.writeFileSync(target, "broken");
-      // make it look broken by pointing to missing canonical? we can just unlink canonical
-      fs.unlinkSync(path.join(home, "rules", "global", "CLAUDE.md"));
-    } catch {}
-  }
-  let out = "";
-  try {
-    execSync(`node dev/scripts/doctor.js --project "${proj}"`, {
-      env: { ...process.env, AGENTS_HOME: home },
-      encoding: "utf8",
-    });
-  } catch (e) {
-    out = (e.stdout || "") + (e.stderr || "");
-    assert.equal(e.status, 1);
+    fs.rmSync(path.join(home, "mcp"), { recursive: true, force: true });
+
+    const text = doctor(home, proj);
+    assert.equal(text.status, 1);
+    assert.match(text.stdout, /missing canonical dir/);
+
+    const json = doctor(home, proj, "--json");
+    assert.equal(json.status, 1);
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.healthy, false);
     assert.ok(
-      out.includes("broken symlink") ||
-        out.includes("missing canonical dir") ||
-        out.includes("apply --fix") ||
-        out.includes("broken"),
+      report.issues.some(
+        (issue) =>
+          issue.level === "error" &&
+          issue.message.includes("missing canonical dir"),
+      ),
     );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.rmSync(proj, { recursive: true, force: true });
   }
-  // also test doctor --json shape
-  const jsonOut = execSync(
-    `node dev/scripts/doctor.js --project "${proj}" --json`,
-    { env: { ...process.env, AGENTS_HOME: home }, encoding: "utf8" },
-  );
-  const j = JSON.parse(jsonOut);
-  assert.ok(typeof j.healthy === "boolean");
-  assert.ok(Array.isArray(j.issues));
-  fs.rmSync(home, { recursive: true, force: true });
-  fs.rmSync(proj, { recursive: true, force: true });
+});
+
+test("doctor detects broken symlink and suggests apply --fix", (t) => {
+  const home = tmpHome();
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), "bp-doctor-proj-"));
+  try {
+    execSync(
+      `node dev/scripts/apply.js --project "${proj}" --agent claude-code`,
+      { env: { ...process.env, AGENTS_HOME: home }, encoding: "utf8" },
+    );
+    const target = path.join(proj, "CLAUDE.md");
+    fs.rmSync(target, { force: true });
+    try {
+      fs.symlinkSync(
+        path.join(home, "rules", "global", "MISSING.md"),
+        target,
+        "file",
+      );
+    } catch {
+      // Windows without Developer Mode cannot create symlinks at all, so there is no broken
+      // symlink to detect; the missing-canonical-dir test above still covers exit status there.
+      t.skip("symlinks are not available on this platform");
+      return;
+    }
+
+    const text = doctor(home, proj);
+    assert.equal(text.status, 1);
+    assert.match(text.stdout, /broken symlink/);
+    assert.match(text.stdout, /apply\.js/);
+
+    const json = doctor(home, proj, "--json");
+    assert.equal(json.status, 1);
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.healthy, false);
+    assert.ok(
+      report.issues.some((issue) => issue.message.includes("broken symlink")),
+    );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.rmSync(proj, { recursive: true, force: true });
+  }
 });
 
 test("doctor healthy after init", () => {

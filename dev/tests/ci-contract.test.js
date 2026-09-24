@@ -33,6 +33,18 @@ test("verification and dependency-update safeguards stay wired into CI", () => {
   assert.match(workflow, /validate-goals-structure\.js/);
   assert.match(workflow, /base_project\/hooks\/validate-goals\.js/);
 
+  // Unit tests must run on every OS of the install-test matrix, not only in the Ubuntu
+  // validate job — a Windows-only pass once hid a red test for a month.
+  const installTest = workflow.slice(workflow.indexOf("install-test:"));
+  assert.match(
+    installTest,
+    /os: \[ubuntu-latest, windows-latest, macos-latest\]/,
+  );
+  assert.match(
+    installTest,
+    /name: Run unit tests on this OS\n\s+run: npm test/,
+  );
+
   const dependabot = fs.readFileSync(
     path.join(repoRoot, ".github", "dependabot.yml"),
     "utf8",

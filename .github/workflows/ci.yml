@@ -40,6 +40,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "npm"
+
+      # The unit tests used to run only on ubuntu-latest (validate job) while day-to-day
+      # validation happened locally on Windows, so a platform-dependent test stayed red on
+      # one side for a month (dev/auditoria-2026-09-24.md, F1). Run them on every OS.
+      - name: Install dependencies for unit tests
+        run: npm ci
+
+      - name: Run unit tests on this OS
+        run: npm test
 
       - name: Run install.sh against a throwaway HOME (Linux/macOS)
         if: runner.os != 'Windows'
