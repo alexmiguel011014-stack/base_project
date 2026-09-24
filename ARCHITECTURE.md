@@ -62,6 +62,7 @@ base_project/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
 │   │   ├── install-codex.js          ← projeção nativa do Codex, chamada pelos dois instaladores
 │   │   ├── install-opencode.js       ← merge do opencode.jsonc (JSONC tolerante, edição pontual, preserva entradas/comentários do usuário), chamado pelos dois instaladores
+│   │   ├── ledger-prune.js           ← CLI opt-in: apaga dias antigos do ledger de uso (dry run por padrão)
 │   │   ├── mcp-servers.js            ← MCPs atuais + definições já distribuídas (source/opencode/mcp-previous.json): aposenta/atualiza só entradas que ainda são do base_project (Claude, Codex, opencode)
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
@@ -447,6 +448,13 @@ Input grande é truncado pra um `Write` não inflar o ledger; sobrevive a input 
 lançar exceção; cada entrada é uma linha só, então uma escrita corrompida não contamina as
 vizinhas.
 
+**Retenção**: o ledger é mantido indefinidamente por padrão — é a única fonte do `/diario` para
+horas passadas, então apagar histórico é decisão do usuário, nunca automática.
+`dev/scripts/ledger-prune.js --keep-days <N>` (ou `--before <YYYY-MM-DD>`) lista os arquivos
+`YYYY-MM-DD-<sessão>.jsonl` anteriores ao corte sem apagar nada; só com `--apply` apaga
+exatamente esses arquivos inteiros. Nada mais do diretório (`.zero-use-tracking.json`, uma nota
+do usuário) é tocado.
+
 **Importante**: editar esses arquivos em `source/hooks/` não muda o comportamento da sua
 sessão atual — o `settings.json` real só é atualizado rodando o installer de novo (ele
 faz merge idempotente na lista de hooks, preservando qualquer hook seu que não seja do
@@ -502,6 +510,8 @@ Codex reutilizam esse caminho compartilhado.
   projeto do usuário (sempre via `<repo>` de `~/.base_project/repo-path.txt`)
 - `goals-archive-index.test.js` / `ledger-scale.test.js` — checksums do arquivo de GOALS e
   leitores do ledger acima do limite de argumentos do V8 (150 mil eventos)
+- `ledger-prune.test.js` — retenção opt-in: dry run não apaga, o dia do corte fica, arquivos que
+  não são do ledger ficam, argumento inválido não apaga nada
 - `adapters`, `audit`, `config-store`, `doctor`, `drift`, `lint-config`, `resolve-layers`,
   `secrets`, `snapshot`, `sync`, `tasks` `.test.js` — cobrem a unified layer estacionada;
   saem junto com ela

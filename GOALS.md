@@ -258,8 +258,13 @@ Suggested: opus · high — cross-cutting fixes across hooks, both installers, f
   inference gaps (fixed with JSDoc or an `instanceof Error` guard, no runtime change), and now
   rejects a mistyped property it used to pass. TypeScript
   7.0.2 was verified on the same setup (0.5 s) and adopted here, which supersedes PR #3.
-- [ ] **R17.26 Decide ledger retention** (`manual`) — raw events are kept forever; `/diario`
-  depends on history, so any automatic pruning needs an owner-chosen window.
+- [x] **R17.26 Decide ledger retention** (`manual`) — raw events are kept forever; `/diario`
+  depends on history, so any automatic pruning needs an owner-chosen window. **Decided: keep by
+  default, prune only on request.** `dev/scripts/ledger-prune.js --keep-days <N>` (or
+  `--before <date>`) is a dry run unless `--apply` is passed, removes whole
+  `YYYY-MM-DD-<session>.jsonl` files dated before the cutoff (the cutoff day stays), never touches
+  anything else in the directory, and says which `/diario` range stops being recoverable.
+  Tests fail if the cutoff day is pruned or a dry run deletes.
 - [ ] **R17.27 Protect `main` and cut the release** (`manual`) — require the `validate` and
   `install-test` checks before merge (GitHub settings), merge the Dependabot action/Biome PRs once
   CI is green, and tag `v1.2.0`.

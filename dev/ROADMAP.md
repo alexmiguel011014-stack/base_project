@@ -2412,6 +2412,17 @@ major do Node do CI (22), contado como usado pelo `check-unused-deps` por estar 
 diferença de configuração, em ~0,5 s; achou um sexto ponto que o 5.9 não via (também
 corrigido). Adotado neste PR, o que torna o #3 redundante.
 
+### Retenção do ledger: manter por padrão, podar só a pedido — R17.26
+
+**Decisão**: nenhuma poda automática. O ledger é a única fonte do `/diario` para horas passadas,
+e o `/uninstall` já o trata como dado do usuário (Tier D, padrão manter); uma janela automática
+apagaria algo que não volta sem o usuário escolher. Para quem quer aparar, o
+`dev/scripts/ledger-prune.js` (`--keep-days <N>` ou `--before <YYYY-MM-DD>`) é dry run por
+padrão, apaga só com `--apply`, trabalha com arquivos inteiros (o ledger já é um arquivo por dia
+UTC e sessão, então nunca reescreve um arquivo), mantém o próprio dia do corte, ignora tudo que
+não é `YYYY-MM-DD-*.jsonl` (inclusive o `.zero-use-tracking.json` do `/usagebp`) e diz a partir
+de quando o `/diario` deixa de conseguir reconstruir horas.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
