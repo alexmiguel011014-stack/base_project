@@ -226,14 +226,13 @@ Suggested: sonnet · medium — mostly mechanical, but the menus are user-langua
   `dev/tests/codex.test.js` and `npm run test:harness` pass, and no new menu line exists.
 - [ ] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
   `/fixproject` rows, a short note on modifiers ("a word you add to a command"), a safety-table
-  row ("debug ports are opt-in") and a changelog line under a new unreleased heading (no version
+  row ("debug ports are opt-in") and a changelog line under the existing `### Unreleased` heading (no version
   bump — that is the owner's release call); ARCHITECTURE: the references list, the scripts map
   (`cdp-smoke.js`), the tests list, the CI description, and one sentence naming the pattern ("a
   modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already
   uses"). **Done when:** each of those places mentions it, checked with grep, and the command
   count still reads 21 everywhere.
-- [ ] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the
-  next after 55) with the three options, the evidence from "Design rationale", the probe result
+- [ ] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the next free number — 56 is the menu change) with the three options, the evidence from "Design rationale", the probe result
   and the choice, plus a line under "Decisões já tomadas": modifier token — not an always-on debug
   port and not a 22nd command. **Done when:** the item exists and the test suite still passes.
 - [ ] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,

@@ -170,7 +170,7 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/update` | Checks whether base_project itself has a newer version on GitHub and, on confirmation, pulls it and re-runs the installer. Never touches an unrelated project. |
 | `/updates` | Reports available updates for base_project-managed dependencies, tools, MCPs, and detected optional components. Read-only: never installs, upgrades, pulls, or changes configuration. |
 | `/uninstall` | Cleanly removes everything base_project installed globally, with tiered confirmation — bigger-blast-radius items (hooks, MCP servers) confirmed separately. Never deletes the base_project repo itself. |
-| `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start and after a substantial task. |
+| `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start. It is never shown on its own after a task; this is how to bring it back. |
 
 ---
 
@@ -279,6 +279,9 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ---
 
 ## 📬 Changelog
+
+### Unreleased
+- The "what do you want to do now?" menu is no longer printed after a finished task (it cost about a thousand tokens each time and stayed in the context); it still appears at session start, and `/wpp` brings it back on demand
 
 ### v1.2.0 (unreleased — tag pending)
 - Audit remediation (GOALS 17, `dev/auditoria-2026-09-24.md`): CI green again and unit tests run on Linux, Windows and macOS

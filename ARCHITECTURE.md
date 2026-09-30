@@ -173,7 +173,7 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 | `/plugins` | Lê `plugins.json`, recomenda plugins pro projeto atual, instala os escolhidos. Aceita um preset (`/plugins minimal`) que pula a etapa de recomendação. Depois de instalar uma skill de terceiro, roda `scan-skill.js` na pasta baixada antes de dizer que está pronta pra uso. |
 | `/council` | Pressão-testa uma decisão difícil através de 5 perspectivas de conselheiro independentes + veredito sintetizado. Sempre pede confirmação antes — custa ~6x uma resposta de passada única. |
 | `/designreview` | Critica um design (mockup/screenshot/URL externo, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa. Roda o check determinístico de contraste WCAG/alvo de toque (`contrast-check.js`) primeiro, depois julgamento global-antes-local. |
-| `/wpp` | Mostra o menu "o que você deseja fazer agora?" sob demanda (mesmo conteúdo que aparece automaticamente no início de sessão / fim de tarefa). |
+| `/wpp` | Mostra o menu "o que você deseja fazer agora?" sob demanda (mesmo conteúdo que aparece automaticamente só no início de sessão; depois de uma tarefa nunca aparece sozinho). |
 | `/status` | Mostra a versão do base_project e uma lista simples (só nomes) de tudo que está ativo agora — agentes, comandos, hooks, plugins instalados. |
 | `/usagebp` / `$usagebp` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando, além de uma fila priorizada de diagnóstico. Também compara dois baselines anotados, sem tratar menor consumo de token como sucesso isolado. Cobre Claude Code e Codex quando os hooks estão ativos; atividade do opencode não é rastreada. |
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
@@ -207,12 +207,13 @@ básica, estrutura.
 ### 4.2 O menu "o que você deseja fazer agora?" (estilo WhatsApp)
 
 Instrução em `CLAUDE.md`/`opencode-instructions.md`/`codex/AGENTS.md`: renderizar
-`references/command-menu.md` **verbatim** (nunca redigitar a lista de memória) em dois
-momentos automáticos — início de sessão sem pedido específico já dado, e logo depois de
-fechar uma tarefa substancial (múltiplos edits, subagentes, ou TodoWrite envolvido).
-Não dispara a cada turno — existe pra baixar a fricção de quem não sabe por onde
-começar, não pra virar ruído em uso avançado. `/wpp` é o mesmo menu sob demanda, pra
-quando o usuário quer vê-lo fora dos dois gatilhos automáticos. `command-menu.md` é a
+`references/command-menu.md` **verbatim** (nunca redigitar a lista de memória) em um único
+momento automático — o início de sessão sem pedido específico já dado. **Nunca** depois de
+uma tarefa: até 2026-09-30 havia um segundo gatilho ("logo depois de fechar uma tarefa
+substancial"), removido porque imprimia ~3,8 mil caracteres a cada tarefa — que ficavam no
+contexto pelo resto da sessão — para quem já sabe chamar `/wpp`. O menu existe pra baixar a
+fricção de quem não sabe por onde começar, não pra virar ruído em uso avançado. `/wpp` é o
+mesmo menu sob demanda, o jeito de vê-lo de novo. `command-menu.md` é a
 mesma fonte única que `plugins.json`/`project-standards.md`: um arquivo, todos os
 pontos de entrada (`CLAUDE.md`, `opencode-instructions.md`, `/wpp` e `$wpp`)
 apontam pra ele em vez de duplicar a lista.
