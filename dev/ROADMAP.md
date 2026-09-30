@@ -2423,6 +2423,38 @@ UTC e sessão, então nunca reescreve um arquivo), mantém o próprio dia do cor
 não é `YYYY-MM-DD-*.jsonl` (inclusive o `.zero-use-tracking.json` do `/usagebp`) e diz a partir
 de quando o `/diario` deixa de conseguir reconstruir horas.
 
+## 56. O menu "o que você deseja fazer agora?" deixa de aparecer depois de uma tarefa (2026-09-30)
+
+**Origem**: o dono mandou uma captura do menu impresso ao fim de uma tarefa — "isso está fazendo
+gastar tokens à toa". A regra global tinha dois gatilhos automáticos: o início de sessão e "logo
+depois de fechar uma tarefa substancial". O segundo disparava depois de quase todo trabalho com
+mais de um edit; no opencode o limiar era ainda mais frouxo ("múltiplas chamadas de ferramenta").
+Nenhum hook, comando ou agente imprimia o menu: só a regra (e as descrições do `/wpp`, que
+prometiam o automático).
+
+**Custo**: o `command-menu.md` tem 3.779 caracteres em português — na ordem de mil tokens
+(estimativa) — impressos a cada tarefa e mantidos no contexto pelo resto da sessão, para quem usa
+o base_project todo dia e já sabe os comandos.
+
+**Mudança**: os três blocos de regra (`source/CLAUDE.md`, `source/opencode-instructions.md`,
+`source/codex/AGENTS.md`) mantêm só o gatilho de início de sessão e ganham uma proibição
+explícita — "Never show it after finishing a task or after any reply" — em vez de só omitir o
+gatilho: um modelo habituado ao menu pós-tarefa o repete quando a regra simplesmente se cala. Saiu
+também a terceira linha ("se o próximo pedido já é direto, pule o menu"), que só fazia sentido com
+o segundo gatilho. A sugestão de uma linha do `/diario` continua e deixou de tomar emprestado o
+limiar "da regra do menu" (agora traz o próprio). `/wpp` e `$wpp` são o jeito de chamar o menu de
+volta; suas descrições, o README e o ARCHITECTURE deixaram de prometer o menu depois de tarefa.
+`dev/tests/menu-rule.test.js` impede a volta do gatilho (falha nos 5 casos contra o texto antigo).
+
+**Como chega à máquina**: só pelo instalador — o bloco vive em `~/.claude/CLAUDE.md`,
+`~/.codex/AGENTS.md` e no `opencode.jsonc` — e vale a partir da próxima sessão. A captura do dono
+mostra o texto antigo do menu (ainda com a camada unificada, estacionada no item 55), o que sugere
+que o instalador não rodou desde antes da v1.2.0.
+
+**Deixado de fora de propósito**: o menu de início de sessão (aparece uma vez, só quando o
+primeiro pedido não é específico) e a sugestão de uma linha do `/diario` — o dono pediu só o fim
+das emissões depois de tarefa.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
@@ -2432,6 +2464,8 @@ de quando o `/diario` deixa de conseguir reconstruir horas.
   central à identidade do projeto, não é negociável só porque ECC faz diferente.
 - **Unified layer estacionada (item 55)** — não religar sem demanda real por outro agente e
   sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
+- **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
+  custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

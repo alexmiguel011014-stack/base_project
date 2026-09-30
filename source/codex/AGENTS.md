@@ -39,9 +39,9 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Do not repeat a suggestion in the same session after it was mentioned or declined.
 
 ### WhatsApp-Style Menu
-- Show the menu only at the start of a session when the first request is not already specific, and after completing a substantial task.
+- Show the menu only at the start of a session, and only when the first request is not already specific.
+- Never show it after finishing a task or after any reply: a finished task ends with its result, not with a list of commands. The user can ask for it at any time with `$wpp`.
 - Read `~/.codex/base_project/references/command-menu.md` and render it verbatim. Never reconstruct it from memory.
-- Skip the menu whenever the user has already made a direct request.
 
 ### Contribution Diary
 - After substantial work, mention once that `$diario` can record it. Never write a diary unless asked.

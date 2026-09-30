@@ -2,16 +2,291 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
-1. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
-2. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
-3. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
-4. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
-5. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
+1. [**CDP Verification Modifier**](#goals-18-cdp-verification-modifier-for-execgoals-and-fixproject) — a `cdp` word added to `/execgoals` or `/fixproject` makes the run prove UI items in an isolated real browser over the Chrome DevTools Protocol; no new command, no always-on debug port.
+2. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
+3. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
+4. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
+5. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
+6. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
 The completed bodies for GOALS 1–11 and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
+
+---
+
+<a id="goals-18-cdp-verification-modifier-for-execgoals-and-fixproject"></a>
+## GOALS 18 — CDP Verification Modifier for `/execgoals` and `/fixproject` (base_project feature)
+
+The owner wants to say, per run, "prove this UI in a real browser over the Chrome DevTools
+Protocol (CDP)" — without a permanent setting and without a new command. Three shapes were
+weighed and the owner chose the third on 2026-09-29: an always-on rule, a real `/cdp` command in
+the `/repertoire` style, or a **modifier token** — the word `cdp` written next to another command
+(`/execgoals cdp`, `$execgoals cdp`). This goal adds that token to `/execgoals` and `/fixproject`
+(the two commands whose job is to verify work) in all four variants, keeps the whole procedure in
+one reference file that is read only when the token is present, and adds one guard sentence to the
+always-on rule so a debug-port browser is never started unprompted. No command, skill or menu entry
+is added; the command count stays 21.
+
+```mermaid
+flowchart TD
+    Design[Fix the token grammar, evidence contract and file layout] --> Ref[Write the on-demand CDP reference]
+    Design --> Guard[Add the debug-port guard to the shared rule block]
+    Design --> Smoke[Write the zero-dependency cdp-smoke script]
+    Ref --> Hosts[Add the CDP-mode paragraph to /execgoals and /fixproject, four variants each]
+    Hosts --> Tests[Modifier, parity and projection tests]
+    Guard --> Tests
+    Smoke --> Tests
+    Smoke --> CI[Run the smoke on the 3-OS matrix]
+    Tests --> Register[Menus, README, ARCHITECTURE, ROADMAP]
+    CI --> Register
+    Register --> Verify[Full verification]
+    Verify --> Manual[Live acceptance on the owner's PC]
+```
+
+Suggested: sonnet · high — text-only edits across ten files, but strict cross-runtime parity, a safety contract and a cross-OS browser launch make a careless pass expensive.
+
+### Design rationale
+
+Suggested: sonnet · high — the surface is small, but the grammar and the safety contract are what every later file, test and doc repeats.
+
+Why a token and not the alternatives (measured on this repository, 2026-09-29):
+
+- **Always-on:** the rule block is loaded in every session of every project, including ones with no
+  UI (this repository has none), and a debug port is full control of a browser — since Chrome 136
+  `--remote-debugging-port` is ignored on the default profile and needs its own `--user-data-dir`
+  because attackers used the port to steal cookies. The default that matters already exists:
+  `### UI verification & screen control` makes DOM/accessibility-tree tooling the default way to
+  test a UI. What is missing is a way to demand real-browser proof for one run.
+- **Real `/cdp` command:** the repository's only pairing precedent, `/newgoal /repertoire`, works
+  because `newgoal.md` step 4b (and step 5 of the Codex skill) looks for the other command in the
+  same message — in this repo a "parasite" is a token the host recognizes. A 22nd command would
+  also touch the four command files, the menu on three platforms, the hard-coded 21 in
+  `dev/tests/codex.test.js` (2 asserts) and `ci.yml` (bash and PowerShell), and about a dozen lines
+  of README and ARCHITECTURE — for something that cannot run alone.
+- **Token (chosen):** one reference file, one paragraph per host, no change to any count, menu
+  line, or CI count, and no cost when it is not typed.
+
+- [ ] **C18.1 Fix the token grammar before touching any file** (`architect`) — every later file,
+  test and doc reuses exactly this:
+  - the token is the whole word `cdp`, case-insensitive; `/cdp`, `$cdp` and `--cdp` count, so the
+    owner's natural spelling (`/execgoals /cdp`) works without a real `/cdp` command existing;
+  - it is read from the **invocation arguments only** — never from `GOALS.md`, code or any file
+    content;
+  - hosts: `/execgoals` and `/fixproject` in Claude Code, opencode dense, opencode lite and Codex
+    (`$execgoals`, `$fixproject`); no other command in this goal;
+  - visible effect: the host says once that CDP mode is on, so a false positive (a goal that merely
+    mentions "cdp") only adds verification and is visible;
+  - an item with no browser-reachable UI: `cdp: not applicable` for that item, verified by the
+    normal channels — never a failure;
+  - without the token: the command starts no browser with a debug port.
+  **Done when:** the grammar is written on this item before any file changes and states, for each
+  bullet, what the host does on a match and on no match.
+- [ ] **C18.2 Fix the evidence and safety contract** (`architect`) — the reference must define,
+  and C18.9 must test, these clauses (each backed by the 2026-09-29 probe or the Chrome source):
+  1. **Scope and authority:** the token is the user's explicit go-ahead for exactly one thing —
+     starting an isolated, loopback-only browser and closing it. It authorizes no real profile, no
+     tool installation, no screen control and no third-party sites.
+  2. **Driver order:** an already-connected app-driving tool first (Browser pane, Claude in Chrome,
+     Playwright MCP — each drives a real browser through CDP itself; never start a second browser
+     beside one). Otherwise start an own browser and attach with whatever driver is available; if
+     there is none, name what is missing (Playwright MCP through `/plugins`, Claude in Chrome, the
+     Browser pane) and stop for the user's choice — no silent installs.
+  3. **Launch (own browser only):** a fresh temporary `--user-data-dir` (Chrome 136+ ignores the
+     debug switches on the default profile, so this is also the only form that works);
+     `--remote-debugging-port=0` with the chosen port read from `<profile>/DevToolsActivePort`;
+     headless unless the user asks to watch; confirm the port listens on loopback only and stop if
+     it does not; never `--disable-web-security`; `--no-sandbox` only where the platform forces it
+     (for example when running as root, as the probe did), and say so when used.
+  4. **Evidence, as text:** accessibility/DOM snapshot before and after the action, console
+     messages, failed requests (status ≥ 400) and page text — written into the item's Proof
+     (`/execgoals`) or the fix's re-verification (`/fixproject`). Page captures only when the check
+     is visual by nature or the user asked (unchanged from the UI-verification rule).
+  5. **Cleanup on every outcome (`finally`/trap):** close the browser process, remove the temporary
+     profile, confirm the port is closed. A failed step must not leave a browser behind — the first
+     probe attempt did exactly that.
+  6. **Language:** the file is English (model-executed text) and ends with the footer telling the
+     model to answer in the user's language, like `project-standards.md`.
+  **Done when:** the clause list is recorded on this item with the source of each clause (probe
+  result or Chrome for Developers page), so C18.4 copies decisions instead of making them.
+- [ ] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
+  - reference: `source/claude/references/cdp-verification.md` (installed to
+    `~/.claude/base_project/references/`, and to `~/.codex/base_project/references/` by the
+    shared-references sync in `install-codex.js`) plus a byte-identical
+    `source/opencode/references/cdp-verification.md` (installed to
+    `~/.config/opencode/base_project/references/`) — the same two-copy arrangement
+    `project-standards.md` already has;
+  - each host cites its own runtime's path: Claude `~/.claude/base_project/references/cdp-verification.md`;
+    opencode dense and lite `~/.config/opencode/base_project/references/cdp-verification.md`;
+    Codex `~/.codex/base_project/references/cdp-verification.md`;
+  - the debug-port guard goes into the shared UI-verification block (as its fourth bullet) of
+    `source/CLAUDE.md`, `source/opencode-instructions.md` and `source/codex/AGENTS.md`, so the
+    existing parity test carries it;
+  - `dev/scripts/eval-harness.js` is left alone: its command list is the three commands with
+    strict contracts (`ship`, `fixproject`, `uninstall`) and `dev/tests/cdp-modifier.test.js`
+    (C18.9) covers both hosts;
+  - the smoke is a separate script and CI step (`npm run smoke:cdp`), not part of `npm test` or
+    `npm run verify`: a browser launch does not belong in every contributor's unit run.
+  **Done when:** the list is written with exact paths and nothing in it changes the 21-command
+  count.
+
+### Implementation
+
+Suggested: sonnet · high — eight near-identical host edits must each stay faithful to their variant's style, and the smoke script has OS-specific process and port handling.
+
+- [ ] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
+  the byte-identical `source/opencode/references/cdp-verification.md`, beginning with the
+  `# base_project:managed` marker and containing every clause of C18.2 in imperative English.
+  **Done when:** both files exist and are identical, the marker is present, and the language-drift
+  check (`\b(não|para|você|projeto|arquivo)\b` over `source/**/*.md`) still matches only the
+  allowed files.
+- [ ] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
+  `source/claude/commands/execgoals.md`, `source/opencode/command/execgoals.md`,
+  `source/opencode/command-lite/execgoals.md` (as a `STEP` line in that file's flat style) and
+  `source/codex/skills/execgoals/SKILL.md`, next to the step that checks items off as verified.
+  Template — adapt only the reference path (C18.3) and the format of the file:
+  > **CDP mode.** If the invocation arguments contain the word `cdp` (`/cdp`, `$cdp` and `--cdp`
+  > count; text found in `GOALS.md` or project files never does), say once that CDP mode is on,
+  > read `<REF>` in full before verifying the first item, and apply it to every item that has a
+  > browser-reachable UI: such an item is checked off only with the CDP evidence that file
+  > defines. For an item without a UI, say `cdp: not applicable` and verify it as usual. Without
+  > the word, never start a browser with a debug port.
+  **Done when:** the four files carry the paragraph, each with its own runtime's `<REF>`, and the
+  rest of each file is unchanged (the diff shows only the paragraph).
+- [ ] **C18.6 Add the same paragraph to `/fixproject` in all four variants** (`coder`) —
+  `source/claude/commands/fixproject.md`, `source/opencode/command/fixproject.md`,
+  `source/opencode/command-lite/fixproject.md` and `source/codex/skills/fixproject/SKILL.md`,
+  next to the before/after re-verification step, with "checked off" replaced by "reported as
+  fixed". **Done when:** as C18.5, and `npm run test:harness` still passes (`fixproject` is one
+  of its contract commands).
+- [ ] **C18.7 Add the debug-port guard to the shared UI-verification block** (`coder`) — append as
+  the fourth bullet of the block in `source/CLAUDE.md`, `source/opencode-instructions.md` and
+  `source/codex/AGENTS.md` (before the runtime-specific bullet, which stays outside the block), and
+  update `SHARED_BLOCK` in `dev/tests/ui-verification-rule.test.js` to match:
+  > - Opening a browser debug port (Chrome DevTools Protocol) is opt-in: never start a browser with `--remote-debugging-port` on your own initiative. When the user adds the `cdp` modifier to a command that supports it, load that command's CDP reference and follow its isolation rules; the app-driving tooling above is unaffected, because it manages its own browser.
+  **Done when:** the block, guard included, occurs exactly once in each of the three files,
+  `dev/tests/ui-verification-rule.test.js` passes, and the sentence contains no `/` or `$` command
+  spelling (the block must stay byte-identical across runtimes).
+- [ ] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
+  dependencies (Node built-ins), exposed as `npm run smoke:cdp`. It serves a page with a known
+  `<title>` from a loopback HTTP server, launches Chrome headless on that URL with a fresh
+  temporary `--user-data-dir` and `--remote-debugging-port=0`, reads the port from
+  `DevToolsActivePort`, and checks: (1) `GET /json/version` answers on loopback; (2)
+  `GET /json/list` shows a page target with the served title; (3) the debug port is not listening
+  on a non-loopback address — per-OS listing (`/proc/net/tcp*` on Linux, `netstat -an` on Windows
+  and macOS) fed to an exported, pure classifier; then it kills the whole process tree (a detached
+  process group on POSIX, `taskkill /T /F` on Windows) and removes the profile in a `finally`, and
+  checks (4) the profile directory is gone and (5) the port no longer answers. Chrome is found
+  through `CHROME_BIN`/`CHROME_PATH`, then the standard per-OS install paths and PATH names.
+  `--no-sandbox` only when running as root, and on Linux CI only if the run shows Chrome cannot
+  start otherwise (record that evidence). With no Chrome it prints `skipped: no Chrome found` and
+  exits 0 locally, but exits 1 when `CI` is set. **Done when:** it passes locally, and a
+  deliberately broken variant that skips the profile removal fails check (4).
+
+### Tests
+
+Suggested: sonnet · high — mutation checks are what make these tests worth having, and one of them must cover OS-specific listing formats without a browser.
+
+- [ ] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
+  (a) each of the eight host files (`execgoals` and `fixproject` × Claude, opencode dense,
+  opencode lite, Codex) matches `/\bcdp\b/`, cites exactly its own runtime's reference path from
+  C18.3, and carries the three behaviors — reads the reference first, `cdp: not applicable` for
+  no-UI items, no debug-port browser without the word; (b) the two reference copies exist, are
+  byte-identical, start with the managed marker and match one regex per C18.2 clause
+  (`user-data-dir`, loopback, `DevToolsActivePort`, `finally`/every outcome, `not applicable`,
+  no real or default profile, no silent installs, the user's-language footer); (c) the loopback
+  classifier exported by `cdp-smoke.js` flags a wildcard listener (`0.0.0.0`, `::`) and accepts
+  `127.0.0.1`/`::1` for the Linux `/proc/net/tcp` format and the `netstat` formats of Windows and
+  macOS, from fixtures; (d) no host file claims a `/cdp` command exists.
+  **Done when:** the test fails if any host loses the paragraph, if a runtime cites another
+  runtime's path, if the reference copies diverge or lose a clause, or if the classifier accepts a
+  wildcard listener — checked with mutation copies, as in GOALS 17.
+- [ ] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
+  test in `dev/tests/codex.test.js` to assert `<codex>/base_project/references/cdp-verification.md`
+  exists after `install-codex.js`, and add to both `install-test` assertion blocks of
+  `.github/workflows/ci.yml` (bash and PowerShell) that the file exists under the Claude home, the
+  opencode home and the Codex root. **Done when:** removing either source copy or the Codex sync
+  makes a local test or the CI assertion fail.
+- [ ] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
+  `.github/workflows/ci.yml` (all three OS, after the unit tests) running `npm run smoke:cdp`.
+  **Done when:** the step is green on Ubuntu, Windows and macOS in the run of the PR that carries
+  this goal's execution (run id recorded as Proof); a red run on one OS is investigated as a real
+  Chrome or procedure difference, never skipped.
+
+### Registration
+
+Suggested: sonnet · medium — mostly mechanical, but the menus are user-language text guarded by parity tests.
+
+- [ ] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
+  `source/opencode/references/command-menu.md`, `source/codex/references/command-menu.md`
+  (Portuguese — user-facing text): the `/execgoals` and `/fixproject` lines (`$…` in Codex) gain
+  one clause saying they accept `cdp` to prove the UI in a real, isolated browser over CDP.
+  **Done when:** all three menus say it on both lines, the menu assertions in
+  `dev/tests/codex.test.js` and `npm run test:harness` pass, and no new menu line exists.
+- [ ] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
+  `/fixproject` rows, a short note on modifiers ("a word you add to a command"), a safety-table
+  row ("debug ports are opt-in") and a changelog line under the existing `### Unreleased` heading (no version
+  bump — that is the owner's release call); ARCHITECTURE: the references list, the scripts map
+  (`cdp-smoke.js`), the tests list, the CI description, and one sentence naming the pattern ("a
+  modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already
+  uses"). **Done when:** each of those places mentions it, checked with grep, and the command
+  count still reads 21 everywhere.
+- [ ] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the next free number — 56 is the menu change) with the three options, the evidence from "Design rationale", the probe result
+  and the choice, plus a line under "Decisões já tomadas": modifier token — not an always-on debug
+  port and not a 22nd command. **Done when:** the item exists and the test suite still passes.
+- [ ] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
+  `node dev/scripts/goals-archive-index.js --check`, a replay of the Linux `install-test` steps
+  against a scratch `HOME` (as in GOALS 17), and the CI run of the PR (all jobs green). **Done
+  when:** all pass on the final tree and the PR's CI result was read on the merge head, not
+  assumed.
+
+### Owner acceptance and decisions (manual — stay open until done)
+
+- [ ] **C18.16 Live acceptance on your PC** (`manual`) — in a project with a UI, run
+  `/execgoals cdp` (or `/fixproject cdp`) once and check: an isolated browser starts, the evidence
+  (snapshot, console, failed requests) lands in the item's Proof, the browser closes, and no
+  browser process or temporary profile is left behind. This is the only check that exercises the
+  model following the paragraph; the tests prove the text and the launch sequence, not the model's
+  behavior, and only Linux was exercised while planning.
+- [ ] **C18.17 Decide the catalog follow-ups** (`manual`) — `chrome-devtools-mcp` (npm 1.10.1,
+  `ChromeDevTools/chrome-devtools-mcp`; its flags were not evaluated here) as an optional catalog
+  entry, and pinning the catalogued Playwright MCP, which is `@playwright/mcp@latest` today, in the
+  spirit of R17.23. Separate changes; nothing in this goal depends on them.
+
+### Explicitly out of scope
+
+- A new command, skill or menu entry (the count stays 21); an always-on debug port; any change to
+  the default that DOM/accessibility-tree tooling is how a UI is tested.
+- Attaching to the user's real browser profile, screen control and desktop screenshots — the rules
+  in `### UI verification & screen control` stand unchanged.
+- Driving code inside base_project (a CDP client, page helpers): the drivers are the tools the
+  rule already names; the smoke only proves the launch sequence.
+- The token on other commands (`/ship`, `/pr`, `/designreview`, `/scanproject`): the mechanism
+  makes it a one-paragraph change later, but each would need its own contract.
+- Found while planning, unrelated: `source/opencode/command/scanproject.md` reads
+  `project-standards.md` from `~/.claude/base_project/references/`, while every other opencode
+  command uses `~/.config/opencode/base_project/references/`. It works only because the installer
+  populates both trees; a one-line fix for a separate change.
+
+### Sources consulted
+
+- [Chrome for Developers — Changes to remote debugging switches](https://developer.chrome.com/blog/remote-debugging-port)
+  — from Chrome 136 `--remote-debugging-port` and `--remote-debugging-pipe` are ignored on the
+  default data directory and need a non-standard `--user-data-dir`; Google points automation at
+  Chrome for Testing.
+- `npx @playwright/mcp@latest --help` (2026-09-29) — `--cdp-endpoint`, `--cdp-header`,
+  `--cdp-timeout`, `--isolated`, `--user-data-dir`, `--headless`.
+- npm registry — `chrome-devtools-mcp` 1.10.1 (`ChromeDevTools/chrome-devtools-mcp`); flags not
+  evaluated.
+- Local probe, 2026-09-29 (Linux, the environment's Playwright Chromium build 1194): throwaway
+  profile + `--remote-debugging-port=0` + `DevToolsActivePort` + `connectOverCDP` — listening on
+  `127.0.0.1` only; accessibility snapshot before and after a click, console errors and a failed
+  request read as text; profile removed. The first attempt crashed in the probe's own port check
+  and left seven Chrome processes running, which is why C18.2 clause 5 exists.
+- This repository: `source/claude/commands/newgoal.md` step 4b and the Codex `newgoal` skill
+  step 5 (the pairing precedent), `dev/tests/ui-verification-rule.test.js`,
+  `dev/tests/codex.test.js`, `dev/scripts/install-codex.js` (`syncReferences`).
 
 ---
 
