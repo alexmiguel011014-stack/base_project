@@ -79,3 +79,10 @@ test("breadth tier: adding new entry to adapters.json projects new agent memory 
   fs.rmSync(home, { recursive: true, force: true });
   fs.rmSync(proj, { recursive: true, force: true });
 });
+
+test("claude-code projects MCP servers to .mcp.json, the project-scope file Claude Code reads", () => {
+  // https://code.claude.com/docs/en/mcp — project-scoped servers live in `.mcp.json`;
+  // `.claude.json` (the old target) is only read from the user's home directory.
+  const { get } = require("../scripts/adapters");
+  assert.equal(get("claude-code").targets.mcp.destination, ".mcp.json");
+});

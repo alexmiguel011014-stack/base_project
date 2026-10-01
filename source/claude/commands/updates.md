@@ -21,10 +21,8 @@ base_project repository itself; `/updates` only reports versions and never chang
      and `typescript`;
    - installer-managed runtime/tool names: Node/npm, Git, `gh`, `graphifyy`/`graphify`,
      `repomix`, `@biomejs/biome`, `typescript`, and Unix `jq`;
-   - `source/opencode/mcp.json`: `@upstash/context7-mcp`,
-     `@modelcontextprotocol/server-filesystem`, and `mcp-git`;
-   - `source/plugins.json` only under the scope rule above. The historical
-     `dev/scripts/check-plugin-updates.js` helper is not a complete dependency update checker.
+   - `source/opencode/mcp.json`: `@upstash/context7-mcp` (pinned to an exact version);
+   - `source/plugins.json` only under the scope rule above.
 
 4. Use only read-only, bounded native checks; continue independently when one is unavailable.
    Treat `npm outdated` exit code 1 with JSON output as update data, not a failure.
@@ -37,9 +35,10 @@ base_project repository itself; `/updates` only reports versions and never chang
      `HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --json=v2`; on Linux run
      `apt list --upgradable`. Filter each result to the managed tool inventory. If a manager
      is absent, report `unsupported`; if its check errors, report `check-failed`.
-   - Query each MCP package with `npm view <package> version --json`. MCPs invoked by `npx`
-     are `floating/latest-on-use`: report registry latest, but do not claim an installed-version
-     comparison unless a durable local installation is actually detected.
+   - Query each MCP package with `npm view <package> version --json`. A pinned MCP
+     (`package@x.y.z`) compares its pin with the registry latest, like any other version. An
+     unpinned MCP invoked by `npx` is `floating/latest-on-use`: report registry latest, but do
+     not claim an installed-version comparison unless a durable local installation is detected.
    - Read `.github/dependabot.yml` or `.github/dependabot.yaml` if present and report the
      coverage for npm and GitHub Actions; absence is `unknown`, not a broken update check.
 

@@ -20,7 +20,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repo.
 - Read runtime secrets from the project's own `.env` (gitignored). MCP server credentials live in the global
-  `~/.config/opencode/mcp.json` — never inside a project repo.
+  `mcp` section of `~/.config/opencode/opencode.jsonc` — never inside a project repo.
 
 ### Workflow
 1. **Plan** — use `@architect` (read-only) before non-trivial changes.
@@ -36,12 +36,12 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
    reversible work inside the current repository; **notify-and-proceed** for an in-scope,
    reversible change whose visible effect should be stated before continuing; and
    **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice,
-   data/state outside base_project's own repository, sensitive data, credentials, external
+   data/state outside the current repository, sensitive data, credentials, external
    publication, or screen control (see *UI verification & screen control*). Decide from
    reversibility, scope of affected state, and data sensitivity — not
-   from whether the action merely looks technically easy. The ERP database compatibility test is
-   the model case for human-in-the-loop: even a copied test database was external sensitive data,
-   so it required explicit approval first.
+   from whether the action merely looks technically easy. Model case: a test run against a
+   copy of a production database is still human-in-the-loop — even a copy is external,
+   sensitive data, so it needs explicit approval first.
 
 ### Autonomy & Confirmations
 - Once the user has authorized a task, perform ordinary, reversible, in-scope implementation
@@ -66,22 +66,19 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Don't repeat the same suggestion again within one session once it's been mentioned or declined.
 
 ### "What do you want to do now?" menu (WhatsApp-style)
-- Show this menu in two moments only: (1) at the very start of a session, right after
-  any git-context hook output, before doing anything else — unless the user's first
-  message already states a clear, specific request (in that case just do the work, no
-  menu); (2) right after closing out a substantial task (one that used multiple tool
-  calls, subagents, or multiple file edits) — not after every reply, and never after a
-  small Q&A exchange.
+- Show this menu only at the very start of a session, right after any git-context hook
+  output, before doing anything else — unless the user's first message already states a
+  clear, specific request (in that case just do the work, no menu).
+- Never show it after finishing a task or after any reply: a finished task ends with its
+  result, not with a list of commands. The user can ask for it at any time with `/wpp`.
 - Render it by reading `~/.config/opencode/base_project/references/command-menu.md`
   verbatim — do not redigit the list from memory, so it never drifts from the real
   command set.
-- If the user's next message is already a direct request, skip the menu that turn — it
-  exists to lower friction for someone unsure what to do next, not to gate every turn.
 
 ### Contribution diary (suggest only, never write unasked)
-- After closing a substantial task (the same threshold the menu rule below uses: multiple
-  file edits, subagents, or TodoWrite involved), mention once — briefly, without derailing —
-  that `/diario` can record it in this project's contribution diary. Then drop it.
+- After closing a substantial task (multiple file edits, subagents, or TodoWrite involved),
+  mention once — briefly, without derailing — that `/diario` can record it in this
+  project's contribution diary. Then drop it.
 - Never write or update a diary without being asked. The recording that happens automatically
   is the `usage-log` hook's raw ledger, not narrative entries; nothing is lost by the user
   saying no, since `/diario` can synthesize any past date range later from that same ledger.

@@ -21,10 +21,8 @@ only reports state and must never change it.
    - root `package.json` and `package-lock.json`: `ajv`, `ajv-formats`, `@biomejs/biome`, `typescript`;
    - installer-managed Node/npm, Git, `gh`, `graphifyy`/`graphify`, `repomix`,
      `@biomejs/biome`, `typescript`, and Unix `jq`;
-   - `source/opencode/mcp.json`: `@upstash/context7-mcp`,
-     `@modelcontextprotocol/server-filesystem`, `mcp-git`;
-   - `source/plugins.json` under the selected scope. Do not represent the historical
-     `dev/scripts/check-plugin-updates.js` helper as a complete update checker.
+   - `source/opencode/mcp.json`: `@upstash/context7-mcp` (pinned to an exact version);
+   - `source/plugins.json` under the selected scope.
 
 4. Use only bounded, read-only native checks. Continue after independent failures. Interpret
    `npm outdated` exit code 1 with JSON output as updates found, not a failed check.
@@ -36,7 +34,8 @@ only reports state and must never change it.
      `HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --json=v2`. Linux: `apt list --upgradable`.
      Filter each result to managed tools; missing manager is `unsupported`, failed checker is
      `check-failed`.
-   - For MCP packages, query `npm view <package> version --json`. An `npx` MCP is
+   - For MCP packages, query `npm view <package> version --json`. A pinned MCP
+     (`package@x.y.z`) compares its pin with the registry latest. An unpinned `npx` MCP is
      `floating/latest-on-use` unless a durable local installation is proven.
    - Inspect `.github/dependabot.yml` or `.github/dependabot.yaml` for npm and GitHub Actions
      automation coverage; no config is `unknown`.

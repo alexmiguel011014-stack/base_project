@@ -3,16 +3,7 @@
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
-    },
-    "git": {
-      "command": "npx",
-      "args": ["-y", "mcp-git"],
-      "autoApprove": ["get_branch", "get_status", "list_branches"]
+      "args": ["-y", "@upstash/context7-mcp@4.1.1"]
     }
   }
 }

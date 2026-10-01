@@ -2,16 +2,570 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
-1. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
-2. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
-3. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
-4. [**Harness & Loop Engineering Adoption**](#goals-8-harness--loop-engineering-adoption-base_project-feature) — deterministic contract coverage is complete; live-model evaluation remains optional and separately scoped.
-5. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
+1. [**CDP Verification Modifier**](#goals-18-cdp-verification-modifier-for-execgoals-and-fixproject) — a `cdp` word added to `/execgoals` or `/fixproject` makes the run prove UI items in an isolated real browser over the Chrome DevTools Protocol; no new command, no always-on debug port.
+2. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
+3. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
+4. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
+5. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
+6. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
-The completed bodies for GOALS 1–7, 9–11, and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
+The completed bodies for GOALS 1–11 and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
+
+---
+
+<a id="goals-18-cdp-verification-modifier-for-execgoals-and-fixproject"></a>
+## GOALS 18 — CDP Verification Modifier for `/execgoals` and `/fixproject` (base_project feature)
+
+The owner wants to say, per run, "prove this UI in a real browser over the Chrome DevTools
+Protocol (CDP)" — without a permanent setting and without a new command. Three shapes were
+weighed and the owner chose the third on 2026-09-29: an always-on rule, a real `/cdp` command in
+the `/repertoire` style, or a **modifier token** — the word `cdp` written next to another command
+(`/execgoals cdp`, `$execgoals cdp`). This goal adds that token to `/execgoals` and `/fixproject`
+(the two commands whose job is to verify work) in all four variants, keeps the whole procedure in
+one reference file that is read only when the token is present, and adds one guard sentence to the
+always-on rule so a debug-port browser is never started unprompted. No command, skill or menu entry
+is added; the command count stays 21.
+
+```mermaid
+flowchart TD
+    Design[Fix the token grammar, evidence contract and file layout] --> Ref[Write the on-demand CDP reference]
+    Design --> Guard[Add the debug-port guard to the shared rule block]
+    Design --> Smoke[Write the zero-dependency cdp-smoke script]
+    Ref --> Hosts[Add the CDP-mode paragraph to /execgoals and /fixproject, four variants each]
+    Hosts --> Tests[Modifier, parity and projection tests]
+    Guard --> Tests
+    Smoke --> Tests
+    Smoke --> CI[Run the smoke on the 3-OS matrix]
+    Tests --> Register[Menus, README, ARCHITECTURE, ROADMAP]
+    CI --> Register
+    Register --> Verify[Full verification]
+    Verify --> Manual[Live acceptance on the owner's PC]
+```
+
+Suggested: sonnet · high — text-only edits across ten files, but strict cross-runtime parity, a safety contract and a cross-OS browser launch make a careless pass expensive.
+
+### Design rationale
+
+Suggested: sonnet · high — the surface is small, but the grammar and the safety contract are what every later file, test and doc repeats.
+
+Why a token and not the alternatives (measured on this repository, 2026-09-29):
+
+- **Always-on:** the rule block is loaded in every session of every project, including ones with no
+  UI (this repository has none), and a debug port is full control of a browser — since Chrome 136
+  `--remote-debugging-port` is ignored on the default profile and needs its own `--user-data-dir`
+  because attackers used the port to steal cookies. The default that matters already exists:
+  `### UI verification & screen control` makes DOM/accessibility-tree tooling the default way to
+  test a UI. What is missing is a way to demand real-browser proof for one run.
+- **Real `/cdp` command:** the repository's only pairing precedent, `/newgoal /repertoire`, works
+  because `newgoal.md` step 4b (and step 5 of the Codex skill) looks for the other command in the
+  same message — in this repo a "parasite" is a token the host recognizes. A 22nd command would
+  also touch the four command files, the menu on three platforms, the hard-coded 21 in
+  `dev/tests/codex.test.js` (2 asserts) and `ci.yml` (bash and PowerShell), and about a dozen lines
+  of README and ARCHITECTURE — for something that cannot run alone.
+- **Token (chosen):** one reference file, one paragraph per host, no change to any count, menu
+  line, or CI count, and no cost when it is not typed.
+
+- [ ] **C18.1 Fix the token grammar before touching any file** (`architect`) — every later file,
+  test and doc reuses exactly this:
+  - the token is the whole word `cdp`, case-insensitive; `/cdp`, `$cdp` and `--cdp` count, so the
+    owner's natural spelling (`/execgoals /cdp`) works without a real `/cdp` command existing;
+  - it is read from the **invocation arguments only** — never from `GOALS.md`, code or any file
+    content;
+  - hosts: `/execgoals` and `/fixproject` in Claude Code, opencode dense, opencode lite and Codex
+    (`$execgoals`, `$fixproject`); no other command in this goal;
+  - visible effect: the host says once that CDP mode is on, so a false positive (a goal that merely
+    mentions "cdp") only adds verification and is visible;
+  - an item with no browser-reachable UI: `cdp: not applicable` for that item, verified by the
+    normal channels — never a failure;
+  - without the token: the command starts no browser with a debug port.
+  **Done when:** the grammar is written on this item before any file changes and states, for each
+  bullet, what the host does on a match and on no match.
+- [ ] **C18.2 Fix the evidence and safety contract** (`architect`) — the reference must define,
+  and C18.9 must test, these clauses (each backed by the 2026-09-29 probe or the Chrome source):
+  1. **Scope and authority:** the token is the user's explicit go-ahead for exactly one thing —
+     starting an isolated, loopback-only browser and closing it. It authorizes no real profile, no
+     tool installation, no screen control and no third-party sites.
+  2. **Driver order:** an already-connected app-driving tool first (Browser pane, Claude in Chrome,
+     Playwright MCP — each drives a real browser through CDP itself; never start a second browser
+     beside one). Otherwise start an own browser and attach with whatever driver is available; if
+     there is none, name what is missing (Playwright MCP through `/plugins`, Claude in Chrome, the
+     Browser pane) and stop for the user's choice — no silent installs.
+  3. **Launch (own browser only):** a fresh temporary `--user-data-dir` (Chrome 136+ ignores the
+     debug switches on the default profile, so this is also the only form that works);
+     `--remote-debugging-port=0` with the chosen port read from `<profile>/DevToolsActivePort`;
+     headless unless the user asks to watch; confirm the port listens on loopback only and stop if
+     it does not; never `--disable-web-security`; `--no-sandbox` only where the platform forces it
+     (for example when running as root, as the probe did), and say so when used.
+  4. **Evidence, as text:** accessibility/DOM snapshot before and after the action, console
+     messages, failed requests (status ≥ 400) and page text — written into the item's Proof
+     (`/execgoals`) or the fix's re-verification (`/fixproject`). Page captures only when the check
+     is visual by nature or the user asked (unchanged from the UI-verification rule).
+  5. **Cleanup on every outcome (`finally`/trap):** close the browser process, remove the temporary
+     profile, confirm the port is closed. A failed step must not leave a browser behind — the first
+     probe attempt did exactly that.
+  6. **Language:** the file is English (model-executed text) and ends with the footer telling the
+     model to answer in the user's language, like `project-standards.md`.
+  **Done when:** the clause list is recorded on this item with the source of each clause (probe
+  result or Chrome for Developers page), so C18.4 copies decisions instead of making them.
+- [ ] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
+  - reference: `source/claude/references/cdp-verification.md` (installed to
+    `~/.claude/base_project/references/`, and to `~/.codex/base_project/references/` by the
+    shared-references sync in `install-codex.js`) plus a byte-identical
+    `source/opencode/references/cdp-verification.md` (installed to
+    `~/.config/opencode/base_project/references/`) — the same two-copy arrangement
+    `project-standards.md` already has;
+  - each host cites its own runtime's path: Claude `~/.claude/base_project/references/cdp-verification.md`;
+    opencode dense and lite `~/.config/opencode/base_project/references/cdp-verification.md`;
+    Codex `~/.codex/base_project/references/cdp-verification.md`;
+  - the debug-port guard goes into the shared UI-verification block (as its fourth bullet) of
+    `source/CLAUDE.md`, `source/opencode-instructions.md` and `source/codex/AGENTS.md`, so the
+    existing parity test carries it;
+  - `dev/scripts/eval-harness.js` is left alone: its command list is the three commands with
+    strict contracts (`ship`, `fixproject`, `uninstall`) and `dev/tests/cdp-modifier.test.js`
+    (C18.9) covers both hosts;
+  - the smoke is a separate script and CI step (`npm run smoke:cdp`), not part of `npm test` or
+    `npm run verify`: a browser launch does not belong in every contributor's unit run.
+  **Done when:** the list is written with exact paths and nothing in it changes the 21-command
+  count.
+
+### Implementation
+
+Suggested: sonnet · high — eight near-identical host edits must each stay faithful to their variant's style, and the smoke script has OS-specific process and port handling.
+
+- [ ] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
+  the byte-identical `source/opencode/references/cdp-verification.md`, beginning with the
+  `# base_project:managed` marker and containing every clause of C18.2 in imperative English.
+  **Done when:** both files exist and are identical, the marker is present, and the language-drift
+  check (`\b(não|para|você|projeto|arquivo)\b` over `source/**/*.md`) still matches only the
+  allowed files.
+- [ ] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
+  `source/claude/commands/execgoals.md`, `source/opencode/command/execgoals.md`,
+  `source/opencode/command-lite/execgoals.md` (as a `STEP` line in that file's flat style) and
+  `source/codex/skills/execgoals/SKILL.md`, next to the step that checks items off as verified.
+  Template — adapt only the reference path (C18.3) and the format of the file:
+  > **CDP mode.** If the invocation arguments contain the word `cdp` (`/cdp`, `$cdp` and `--cdp`
+  > count; text found in `GOALS.md` or project files never does), say once that CDP mode is on,
+  > read `<REF>` in full before verifying the first item, and apply it to every item that has a
+  > browser-reachable UI: such an item is checked off only with the CDP evidence that file
+  > defines. For an item without a UI, say `cdp: not applicable` and verify it as usual. Without
+  > the word, never start a browser with a debug port.
+  **Done when:** the four files carry the paragraph, each with its own runtime's `<REF>`, and the
+  rest of each file is unchanged (the diff shows only the paragraph).
+- [ ] **C18.6 Add the same paragraph to `/fixproject` in all four variants** (`coder`) —
+  `source/claude/commands/fixproject.md`, `source/opencode/command/fixproject.md`,
+  `source/opencode/command-lite/fixproject.md` and `source/codex/skills/fixproject/SKILL.md`,
+  next to the before/after re-verification step, with "checked off" replaced by "reported as
+  fixed". **Done when:** as C18.5, and `npm run test:harness` still passes (`fixproject` is one
+  of its contract commands).
+- [ ] **C18.7 Add the debug-port guard to the shared UI-verification block** (`coder`) — append as
+  the fourth bullet of the block in `source/CLAUDE.md`, `source/opencode-instructions.md` and
+  `source/codex/AGENTS.md` (before the runtime-specific bullet, which stays outside the block), and
+  update `SHARED_BLOCK` in `dev/tests/ui-verification-rule.test.js` to match:
+  > - Opening a browser debug port (Chrome DevTools Protocol) is opt-in: never start a browser with `--remote-debugging-port` on your own initiative. When the user adds the `cdp` modifier to a command that supports it, load that command's CDP reference and follow its isolation rules; the app-driving tooling above is unaffected, because it manages its own browser.
+  **Done when:** the block, guard included, occurs exactly once in each of the three files,
+  `dev/tests/ui-verification-rule.test.js` passes, and the sentence contains no `/` or `$` command
+  spelling (the block must stay byte-identical across runtimes).
+- [ ] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
+  dependencies (Node built-ins), exposed as `npm run smoke:cdp`. It serves a page with a known
+  `<title>` from a loopback HTTP server, launches Chrome headless on that URL with a fresh
+  temporary `--user-data-dir` and `--remote-debugging-port=0`, reads the port from
+  `DevToolsActivePort`, and checks: (1) `GET /json/version` answers on loopback; (2)
+  `GET /json/list` shows a page target with the served title; (3) the debug port is not listening
+  on a non-loopback address — per-OS listing (`/proc/net/tcp*` on Linux, `netstat -an` on Windows
+  and macOS) fed to an exported, pure classifier; then it kills the whole process tree (a detached
+  process group on POSIX, `taskkill /T /F` on Windows) and removes the profile in a `finally`, and
+  checks (4) the profile directory is gone and (5) the port no longer answers. Chrome is found
+  through `CHROME_BIN`/`CHROME_PATH`, then the standard per-OS install paths and PATH names.
+  `--no-sandbox` only when running as root, and on Linux CI only if the run shows Chrome cannot
+  start otherwise (record that evidence). With no Chrome it prints `skipped: no Chrome found` and
+  exits 0 locally, but exits 1 when `CI` is set. **Done when:** it passes locally, and a
+  deliberately broken variant that skips the profile removal fails check (4).
+
+### Tests
+
+Suggested: sonnet · high — mutation checks are what make these tests worth having, and one of them must cover OS-specific listing formats without a browser.
+
+- [ ] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
+  (a) each of the eight host files (`execgoals` and `fixproject` × Claude, opencode dense,
+  opencode lite, Codex) matches `/\bcdp\b/`, cites exactly its own runtime's reference path from
+  C18.3, and carries the three behaviors — reads the reference first, `cdp: not applicable` for
+  no-UI items, no debug-port browser without the word; (b) the two reference copies exist, are
+  byte-identical, start with the managed marker and match one regex per C18.2 clause
+  (`user-data-dir`, loopback, `DevToolsActivePort`, `finally`/every outcome, `not applicable`,
+  no real or default profile, no silent installs, the user's-language footer); (c) the loopback
+  classifier exported by `cdp-smoke.js` flags a wildcard listener (`0.0.0.0`, `::`) and accepts
+  `127.0.0.1`/`::1` for the Linux `/proc/net/tcp` format and the `netstat` formats of Windows and
+  macOS, from fixtures; (d) no host file claims a `/cdp` command exists.
+  **Done when:** the test fails if any host loses the paragraph, if a runtime cites another
+  runtime's path, if the reference copies diverge or lose a clause, or if the classifier accepts a
+  wildcard listener — checked with mutation copies, as in GOALS 17.
+- [ ] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
+  test in `dev/tests/codex.test.js` to assert `<codex>/base_project/references/cdp-verification.md`
+  exists after `install-codex.js`, and add to both `install-test` assertion blocks of
+  `.github/workflows/ci.yml` (bash and PowerShell) that the file exists under the Claude home, the
+  opencode home and the Codex root. **Done when:** removing either source copy or the Codex sync
+  makes a local test or the CI assertion fail.
+- [ ] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
+  `.github/workflows/ci.yml` (all three OS, after the unit tests) running `npm run smoke:cdp`.
+  **Done when:** the step is green on Ubuntu, Windows and macOS in the run of the PR that carries
+  this goal's execution (run id recorded as Proof); a red run on one OS is investigated as a real
+  Chrome or procedure difference, never skipped.
+
+### Registration
+
+Suggested: sonnet · medium — mostly mechanical, but the menus are user-language text guarded by parity tests.
+
+- [ ] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
+  `source/opencode/references/command-menu.md`, `source/codex/references/command-menu.md`
+  (Portuguese — user-facing text): the `/execgoals` and `/fixproject` lines (`$…` in Codex) gain
+  one clause saying they accept `cdp` to prove the UI in a real, isolated browser over CDP.
+  **Done when:** all three menus say it on both lines, the menu assertions in
+  `dev/tests/codex.test.js` and `npm run test:harness` pass, and no new menu line exists.
+- [ ] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
+  `/fixproject` rows, a short note on modifiers ("a word you add to a command"), a safety-table
+  row ("debug ports are opt-in") and a changelog line under the existing `### Unreleased` heading (no version
+  bump — that is the owner's release call); ARCHITECTURE: the references list, the scripts map
+  (`cdp-smoke.js`), the tests list, the CI description, and one sentence naming the pattern ("a
+  modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already
+  uses"). **Done when:** each of those places mentions it, checked with grep, and the command
+  count still reads 21 everywhere.
+- [ ] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the next free number — 56 is the menu change) with the three options, the evidence from "Design rationale", the probe result
+  and the choice, plus a line under "Decisões já tomadas": modifier token — not an always-on debug
+  port and not a 22nd command. **Done when:** the item exists and the test suite still passes.
+- [ ] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
+  `node dev/scripts/goals-archive-index.js --check`, a replay of the Linux `install-test` steps
+  against a scratch `HOME` (as in GOALS 17), and the CI run of the PR (all jobs green). **Done
+  when:** all pass on the final tree and the PR's CI result was read on the merge head, not
+  assumed.
+
+### Owner acceptance and decisions (manual — stay open until done)
+
+- [ ] **C18.16 Live acceptance on your PC** (`manual`) — in a project with a UI, run
+  `/execgoals cdp` (or `/fixproject cdp`) once and check: an isolated browser starts, the evidence
+  (snapshot, console, failed requests) lands in the item's Proof, the browser closes, and no
+  browser process or temporary profile is left behind. This is the only check that exercises the
+  model following the paragraph; the tests prove the text and the launch sequence, not the model's
+  behavior, and only Linux was exercised while planning.
+- [ ] **C18.17 Decide the catalog follow-ups** (`manual`) — `chrome-devtools-mcp` (npm 1.10.1,
+  `ChromeDevTools/chrome-devtools-mcp`; its flags were not evaluated here) as an optional catalog
+  entry, and pinning the catalogued Playwright MCP, which is `@playwright/mcp@latest` today, in the
+  spirit of R17.23. Separate changes; nothing in this goal depends on them.
+
+### Explicitly out of scope
+
+- A new command, skill or menu entry (the count stays 21); an always-on debug port; any change to
+  the default that DOM/accessibility-tree tooling is how a UI is tested.
+- Attaching to the user's real browser profile, screen control and desktop screenshots — the rules
+  in `### UI verification & screen control` stand unchanged.
+- Driving code inside base_project (a CDP client, page helpers): the drivers are the tools the
+  rule already names; the smoke only proves the launch sequence.
+- The token on other commands (`/ship`, `/pr`, `/designreview`, `/scanproject`): the mechanism
+  makes it a one-paragraph change later, but each would need its own contract.
+- Found while planning, unrelated: `source/opencode/command/scanproject.md` reads
+  `project-standards.md` from `~/.claude/base_project/references/`, while every other opencode
+  command uses `~/.config/opencode/base_project/references/`. It works only because the installer
+  populates both trees; a one-line fix for a separate change.
+
+### Sources consulted
+
+- [Chrome for Developers — Changes to remote debugging switches](https://developer.chrome.com/blog/remote-debugging-port)
+  — from Chrome 136 `--remote-debugging-port` and `--remote-debugging-pipe` are ignored on the
+  default data directory and need a non-standard `--user-data-dir`; Google points automation at
+  Chrome for Testing.
+- `npx @playwright/mcp@latest --help` (2026-09-29) — `--cdp-endpoint`, `--cdp-header`,
+  `--cdp-timeout`, `--isolated`, `--user-data-dir`, `--headless`.
+- npm registry — `chrome-devtools-mcp` 1.10.1 (`ChromeDevTools/chrome-devtools-mcp`); flags not
+  evaluated.
+- Local probe, 2026-09-29 (Linux, the environment's Playwright Chromium build 1194): throwaway
+  profile + `--remote-debugging-port=0` + `DevToolsActivePort` + `connectOverCDP` — listening on
+  `127.0.0.1` only; accessibility snapshot before and after a click, console errors and a failed
+  request read as text; profile removed. The first attempt crashed in the probe's own port check
+  and left seven Chrome processes running, which is why C18.2 clause 5 exists.
+- This repository: `source/claude/commands/newgoal.md` step 4b and the Codex `newgoal` skill
+  step 5 (the pairing precedent), `dev/tests/ui-verification-rule.test.js`,
+  `dev/tests/codex.test.js`, `dev/scripts/install-codex.js` (`syncReferences`).
+
+---
+
+<a id="goals-17-audit-remediation-ci-hooks-installer-safety"></a>
+## GOALS 17 — Audit Remediation: CI, Hooks, Installer Safety (base_project fix)
+
+Executes the fix-type findings of `dev/auditoria-2026-09-24.md` (F1–F14) that need no product
+decision, ordered by severity and dependency. Every item states repro → root cause → fix →
+regression test, per `goal-types/fix.md`. Findings that need a material choice only the owner can
+make — the unified layer's future, the always-on MCP set, replacement database servers,
+typecheck policy, ledger retention, branch protection and the release tag — are recorded as
+`manual` decision items and stay open until decided.
+
+```mermaid
+flowchart TD
+    CI[Unblock CI: tests, 3-OS matrix, validator, archive GOALS 8] --> Hooks[Hooks: visible warnings, matchers, fast format]
+    CI --> Installer[Installer: preserve opencode.jsonc]
+    CI --> Layer[Unified layer: resolvable paths, parity, adapter target]
+    CI --> Ledger[Ledger: no crash on growth, redaction]
+    Hooks --> Uninstall[Uninstall: user-data tier, every engine]
+    Installer --> Uninstall
+    Ledger --> Uninstall
+    Layer --> Catalog[Catalog: drop broken and vulnerable entries]
+    Uninstall --> Docs[Docs, privacy, registration]
+    Catalog --> Docs
+    Docs --> Decisions[Owner decisions - manual]
+```
+
+Suggested: opus · high — cross-cutting fixes across hooks, both installers, four command projections, and CI, where a wrong edit silently degrades every user's sessions.
+
+### Unblock CI
+
+- [x] **R17.1 Make the doctor test platform-independent** (`coder`) — Repro: `npm test` on Linux
+  fails "doctor detects broken symlink and suggests apply --fix"; CI has been red since run #21.
+  Root cause: `dev/tests/doctor.test.js` calls `doctor.js --json` through `execSync`, which throws
+  when doctor correctly exits 1; on Windows the symlink cannot be created, so the fallback branch
+  hides the failure. Fix: run it through `spawnSync` and assert the real contract. **Done when:**
+  the test passes on Linux and asserts exit status 1, `healthy === false`, and a broken-symlink
+  issue — so it fails if doctor stops reporting the broken link.
+- [x] **R17.2 Restore and automate the goals-archive checksum index** (`coder`) — Repro: "completed
+  GOALS archive preserves navigable bodies and recorded checksums" fails. Root cause: commit
+  `0710eb5` rewrote 10 of the 11 checksums in `dev/goals-archive/README.md` with values that match
+  no committed body (the bodies are unchanged since `ebb61e6`). Fix: `dev/scripts/goals-archive-index.js`
+  with `--check`/`--write` recomputes the checksum column from the files, so it is never hand-edited
+  again. **Done when:** the existing test passes, `--check` exits 0 on the real archive, and a
+  regression test proves `--check` fails for a tampered body.
+- [x] **R17.3 Run the unit tests on all three OSes** (`coder`) — Root cause of a month of unnoticed
+  red CI: tests run only on Ubuntu while validation happens locally on Windows, so platform-dependent
+  tests pass on one side and fail on the other. Fix: add `npm ci` + `npm test` to the existing
+  `install-test` matrix in `.github/workflows/ci.yml`. **Done when:** `dev/tests/ci-contract.test.js`
+  asserts the step exists and passes; execution on Windows/macOS is confirmed by the first PR run.
+  **Confirmed** on PR #8's first run (Actions run 36002927137): `validate` and `install-test` on
+  Ubuntu, Windows and macOS all green, including `install.ps1` and its new MCP/parked-store asserts.
+- [x] **R17.4 Validator checks real item definitions** (`coder`) — Repro: two checklist items
+  both defined as `S16.1` (or `H.1`) produce no finding. Root cause: `ITEM_ID` in
+  `dev/scripts/validate-goals-structure.js` matched a bold span containing *only* an `A.1`-style
+  ID anywhere in the text, so every real item — written with its title inside the bold, and with
+  a plan-numbered ID since GOALS 14 — was never checked, while mere mentions in prose were.
+  Fix: detect IDs only where a checklist line defines them, accepting both ID formats.
+  **Done when:** regression tests reject duplicated titled and plan-numbered definitions, ignore
+  mentions in prose, and the real `GOALS.md` still passes.
+- [x] **R17.5 Archive GOALS 8** (`coder`) — every item is `[x]` but the plan is still listed as
+  active. **Done when:** its body lives in `dev/goals-archive/goals-08-...md` with a checksum row
+  produced by R17.2's script, the root file no longer lists it, and the structure test passes.
+
+### Hooks
+
+- [x] **R17.6 Deliver hook warnings through `additionalContext`** (`coder`) — Repro: five identical
+  tool calls or a malformed `GOALS.md` produce a warning the model never receives. Root cause:
+  `loop-detect.js` and `validate-goals.js` write to stderr and exit 0; Claude Code documents that
+  exit-0 stderr "goes to the debug log only … Claude never sees it", and Codex ignores it too. Fix:
+  print `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":…}}` on stdout —
+  the shape both runtimes document for PostToolUse — and nothing when there is no warning.
+  **Done when:** tests assert the stdout JSON for the warning case and empty stdout otherwise,
+  and neither hook ever exits non-zero.
+- [x] **R17.7 Register the edit-only hooks with an edit-tool matcher in Claude Code** (`coder`) —
+  Repro: every `Read`/`Grep`/`Bash` call starts four `node` processes. Root cause:
+  `install.sh`/`install.ps1` register `post-edit-format` and `validate-goals` without a `matcher`
+  (the Codex projection already uses one). Fix: `"matcher": "Edit|Write|MultiEdit"` for those two
+  entries in both installers. **Done when:** an install into a scratch `HOME` yields exactly one
+  entry per hook with that matcher, and a second run stays idempotent.
+- [x] **R17.8 Format with the project's own Biome binary, never `npx`** (`coder`) — Repro: each
+  edit of a `.js/.ts/.json/.css` file costs ~500 ms with local Biome and ~900 ms plus a registry
+  lookup without it. Root cause: `npx --no-install biome` in `post-edit-format.js` (in projects
+  without local Biome it resolves the unrelated `biome@0.3.3` package — the pitfall this repo's own
+  `CLAUDE.md` documents). Fix: walk up from the edited file to the nearest `biome.json(c)`; if found,
+  run the closest `node_modules/.bin/biome` directly; otherwise do nothing. **Done when:** tests prove
+  a file under a Biome config is formatted, a file without one is untouched, and no `npx` is spawned.
+- [x] **R17.9 Bound the session-start git context** (`coder`) — Repro: a work tree with hundreds of
+  changed files injects the whole `git diff --stat` into context. Root cause:
+  `session-start-git-context.js` never caps `diffStat`. Fix: keep the first 20 lines plus a
+  one-line remainder count. **Done when:** a regression test with a long diffstat gets a capped
+  output.
+
+### Installer safety
+
+- [x] **R17.10 Merge `opencode.jsonc` instead of replacing it** (`coder`) — Repro: an existing
+  `opencode.jsonc` with the user's own `instructions` entry and MCP server loses both after
+  `install.sh`; a single `//` comment makes the installer recreate the file from scratch while
+  printing "other keys preserved". Root cause: the `jq`/`ConvertFrom-Json` step assigns `.instructions`
+  and `.mcp` wholesale and treats JSONC as invalid JSON. Fix: one Node helper,
+  `dev/scripts/install-opencode.js`, called by both installers — tolerant JSONC parsing, targeted
+  text edits that keep comments outside the edited values, user `instructions` and non-base_project
+  MCP servers preserved, managed server names tracked in `~/.base_project/`, and an abort (never a
+  reset) on unparseable input. **Done when:** regression tests cover the comment, user-MCP,
+  user-instructions, fresh-file, and unparseable cases, and an install into a scratch `HOME`
+  reproduces the fix end to end.
+
+### Unified layer (fixes only — its future is R17.22)
+
+- [x] **R17.11 Resolve unified-layer scripts from the base_project clone** (`coder`) — Repro:
+  `/bootstrap`, `/scanproject`, `/audit --agent` in any consumer project run
+  `node dev/scripts/*.js`, which does not exist there. Root cause: relative paths in the Claude,
+  opencode dense and opencode lite variants (the Codex skills already resolve the clone through
+  `~/.base_project/repo-path.txt`). Fix: resolve `<repo>` from `repo-path.txt` in every variant, and
+  make the `fix` hints printed by `doctor.js` absolute. **Done when:** a contract test fails if any
+  shipped command or skill runs `node dev/scripts/...` relative to the current project.
+- [x] **R17.12 Installer parity for the unified layer and stale-command pruning** (`coder`) — Root
+  cause: `install.ps1` copies 17 unified-layer scripts that cannot find `adapters.json` once
+  installed (they see 0 adapters) and initializes `~/.agents`, while `install.sh` does neither; the
+  stale-command prune lists also differ. Fix: stop copying the non-functional copies (the commands
+  now run the clone's scripts), initialize the canonical store from both installers through the
+  clone, and prune the same stale commands on both sides. **Done when:** a scratch-`HOME` install
+  on Linux initializes `~/.agents` and prunes a managed `doctor.md`, and the PowerShell diff is
+  reviewed line by line (no PowerShell in this environment; its Windows execution is confirmed
+  together with R17.3's first PR run).
+- [x] **R17.13 Project Claude Code MCP config to `.mcp.json`** (`coder`) — Root cause: the
+  `claude-code` adapter writes `<project>/.claude.json`, which Claude Code does not read; its
+  project-scope MCP file is `.mcp.json`. **Done when:** adapter, doctor candidates and tests use
+  `.mcp.json`, and `apply`→`drift` round-trips in-sync.
+- [x] **R17.14 `sync.js` without shell interpolation, fast-forward-only pull** (`coder`) — Root
+  cause: `commit` builds `git commit -m "<msg>"` through a shell (a `$(...)` in the message would
+  execute) and `pull` is a plain `git pull`, although `/bootstrap` promises fast-forward only.
+  Fix: `execFileSync("git", [...])` and `pull --ff-only`. **Done when:** a test commits a message
+  containing `$(...)` literally and the pull uses `--ff-only`.
+
+### Ledger
+
+- [x] **R17.15 Ledger readers survive a growing ledger** (`coder`) — Repro: `/usagebp` crashes
+  with `Maximum call stack size exceeded` above ~125–130k events (~4 months of heavy use). Root
+  cause: `Math.min(...dates)`/`Math.max(...dates)` in `usage-baseline.js` and
+  `lines.push(...split)` in `diary-source.js` spread one argument per event. Fix: loops instead of
+  argument spreading. **Done when:** a regression test with 200k synthetic events passes for
+  `buildBaseline` and the diary parser.
+- [x] **R17.16 Redact secret-like values before writing the ledger** (`coder`) — Root cause:
+  `usage-log.js` stores the start of every prompt and tool input (Bash commands with tokens,
+  `Authorization` headers) in plain text, indefinitely. Fix: mask well-known token shapes and
+  `key/token/secret/password=value` assignments before truncation. **Done when:** tests prove
+  masking for each pattern and that file paths and ordinary commands survive unchanged.
+
+### Uninstall
+
+- [x] **R17.17 Uninstall protects user data and covers every engine** (`coder`) — Root cause: the
+  usage ledger lives inside the namespace Tier A calls "100% reversible by re-running the
+  installer", yet it is the only source for `/diario` and cannot be restored; the Claude/opencode
+  variants still look for the removed `mcp.file`/`~/.config/opencode/mcp.json` shape and ignore
+  Codex, Kimi and `~/.agents`. Fix: a separate Tier D for user data (ledger, diaries) that defaults
+  to keeping it, current opencode `mcp` handling, and all-engine inventory in the Claude, opencode
+  dense and lite variants, matching the Codex skill. **Done when:** the deterministic contract
+  harness still passes and a new contract asserts the user-data tier in all four variants.
+
+### Catalog
+
+- [x] **R17.18 Remove the test fixture and the broken or vulnerable database entries** (`coder`) —
+  Root cause: `marketplace-demo` is a test fixture shipped to users; `sqlite` installs
+  `@modelcontextprotocol/server-sqlite`, which does not exist on npm (404), and the official Python
+  server it was meant to be has an unpatched SQL injection (Trend Micro, June 2025); `postgres`
+  installs `@modelcontextprotocol/server-postgres@0.6.2`, deprecated with an unpatched SQL injection
+  that bypasses read-only mode (Datadog Security Labs). Fix: remove the three entries and their
+  profile references; replacements are the owner's call (R17.24). **Done when:**
+  `npm run validate:plugins` passes and no shipped doc still lists them as available.
+
+### Docs, privacy, registration
+
+- [x] **R17.19 Correct documentation drift** (`coder`) — README install table, stale
+  `~/.config/opencode/mcp.json` references, `/status` vs `/wpp`, the `/bootstrap` menu line, undocumented
+  Kimi support, ARCHITECTURE counts and adapter map, and the uninstall tiers. **Done when:** every
+  row of the audit's F11 table is either corrected or explicitly left to a manual item.
+- [x] **R17.20 Neutral example in the distributed autonomy rule** (`coder`) — the rules shipped to
+  every user cite "The ERP database compatibility test", a private project. Fix: a generic example
+  with the same meaning in the three rule blocks. **Done when:** the three blocks stay consistent
+  and their parity tests pass.
+- [x] **R17.21 Register the remediation** (`coder`) — ROADMAP entry, ARCHITECTURE hooks/installer
+  sections, README changelog, `package.json` version `1.2.0`. **Done when:** `npm run verify` and
+  `npm run test:harness` pass on the final tree.
+
+### Execution evidence (2026-09-24)
+
+- `npm run verify`: 170/170 tests, Biome, TypeScript, plugin schema, unused deps, `npm audit`
+  (0 vulnerabilities); `npm run test:harness` ok; `goals-archive-index.js --check` 12/12.
+- Every fix item has a regression test that fails against the previous code (checked by
+  mutation copies or `git stash`): doctor exit contract, archive checksums, item-ID
+  definitions, hook JSON output, Biome resolution, opencode merge, command paths, `sync.js`
+  shell/ff-only, 150k-event ledger, uninstall user-data tier.
+- The Linux/macOS `install-test` steps of `.github/workflows/ci.yml` were replayed verbatim
+  into a scratch `HOME` (stubbed `gh`/`graphify`/`repomix`/`biome`/`claude`): artifacts,
+  hook matchers, canonical store, idempotent second run, and the lite-profile switch all pass.
+- Measured: format hook ~500 ms → ~130 ms per edit (54 ms without Biome, no network);
+  `/usagebp` on a synthetic 4-month ledger (~300k lines) crash → ~3 s.
+- Found and fixed during execution: the distributed autonomy rule required human approval
+  for "data/state outside base_project's own repository" — every action in a user's project;
+  now "outside the current repository".
+- Not verifiable here: `install.ps1` (no PowerShell in this environment; diff reviewed line
+  by line) and the Windows/macOS test matrix — both confirmed by R17.3's first PR run.
+- README's "31 agents / verified transforms" claim and the GitHub repository description
+  are left to R17.22 and R17.27 respectively.
+
+### Owner decisions (manual — stay open until decided)
+
+- [x] **R17.22 Decide the unified layer's future** (`manual`) — park it (recommended: 22 of its 31
+  adapters reduce to an `AGENTS.md` those tools already read, and projecting files into projects
+  contradicts the zero-footprint rule) or redesign it as explicit per-project adoption. Unwired
+  scripts (`wizard`, `marketplace`, `history`, `tasks`, `snapshot`, `secrets`, `lint-config`,
+  `context`) follow this decision. **Decided: parked** (ROADMAP item 55). `/bootstrap`,
+  `/scanproject` and `/audit` no longer run it in any of the four variants, the menus and README
+  no longer offer it, both installers stopped initializing `~/.agents`, and CI now asserts that
+  `~/.agents/rules` and `~/.agents/config.json` are not created. Restore point: `3d47516`.
+- [ ] **R17.22b Remove the parked code from the tree** (`manual`) — the scripts, schemas,
+  `source/adapters.json`, both `config-model.md` references and their 11 tests stay until the owner
+  approves the deletion (the session's permission policy blocked it); then add stale-copy pruning
+  for the installed `config-model.md`, following the dashboard precedent (ROADMAP item 13).
+- [x] **R17.23 Decide the always-on MCP set** (`manual`) — `filesystem` and `git` showed zero calls
+  in GOALS 9; `git` is `mcp-git@0.0.4` (individual maintainer, last release April 2025); all three
+  run through unpinned `npx -y`. Options: keep only `context7`, pin versions, or both.
+  **Decided: both.** `source/opencode/mcp.json` ships only `@upstash/context7-mcp@4.1.1`;
+  `filesystem` (pinned) and the official `mcp-server-git` (pinned, via `uvx`) are optional catalog
+  entries. `source/opencode/mcp-previous.json` + `dev/scripts/mcp-servers.js` retire or upgrade an
+  existing install's entries in Claude Code, Codex and opencode only while they still hold a
+  definition base_project wrote; Codex MCP handling moved from the two shell installers into
+  `install-codex.js`, rooted where Codex reads it. Verified: all three pinned servers answer
+  `initialize`; an old-install `HOME` upgraded end to end; tests fail on each mutated rule.
+- [x] **R17.24 Choose replacement database MCP servers, if any** (`manual`) — candidates need a
+  trust decision (for Postgres, the patched `@zeddotdev/postgres-context-server` ships no `bin`,
+  so it is not an `npx` drop-in). **Decided: Google's MCP Toolbox for Databases**
+  (`@toolbox-sdk/server@1.12.0`, Apache-2.0, binaries as pinned per-platform npm packages, no
+  runtime download) as the optional `toolbox-postgres` and `toolbox-sqlite` entries — new ids, so
+  an old `postgres` registration is never mistaken for them. Verified live: Postgres 16 with a
+  SELECT-only role (29 tools; `INSERT` denied with SQLSTATE 42501; the `COMMIT; DROP` escape
+  refused) and SQLite (`mode=ro` blocks `INSERT`, but `ATTACH` reopens the file read-write), so
+  the entries put the boundary in the database role or a file copy, never in a read-only claim.
+- [x] **R17.25 Decide the typecheck policy** (`manual`) — `checkJs: false` makes `tsc` report no
+  type errors; enable it progressively (`// @ts-check`) or drop the step, then settle Dependabot's
+  TypeScript 7 PR. **Decided: progressive.** All five hooks and the three installer helpers that
+  edit user config carry `// @ts-check` (a contract test covers every current and future hook);
+  `strict` with `noImplicitAny: false`, `@types/node` 22. It reported 9 errors in six places, all
+  inference gaps (fixed with JSDoc or an `instanceof Error` guard, no runtime change), and now
+  rejects a mistyped property it used to pass. TypeScript
+  7.0.2 was verified on the same setup (0.5 s) and adopted here, which supersedes PR #3.
+- [x] **R17.26 Decide ledger retention** (`manual`) — raw events are kept forever; `/diario`
+  depends on history, so any automatic pruning needs an owner-chosen window. **Decided: keep by
+  default, prune only on request.** `dev/scripts/ledger-prune.js --keep-days <N>` (or
+  `--before <date>`) is a dry run unless `--apply` is passed, removes whole
+  `YYYY-MM-DD-<session>.jsonl` files dated before the cutoff (the cutoff day stays), never touches
+  anything else in the directory, and says which `/diario` range stops being recoverable.
+  Tests fail if the cutoff day is pruned or a dry run deletes.
+- [ ] **R17.27 Protect `main` and cut the release** (`manual`) — require the `validate` and
+  `install-test` checks before merge (GitHub settings), merge the Dependabot action/Biome PRs once
+  CI is green, and tag `v1.2.0`. **Progress:** the four Dependabot updates were folded into PR #8
+  and verified by its CI — `actions/checkout` and `actions/setup-node` v4 → v7 (#1, #2), Biome
+  2.5.8 → 2.5.14 with its config schema migrated (#7), TypeScript 7 (#3). Left: the `v1.2.0` tag
+  after the merge and branch protection, which is a GitHub setting only the owner can change.
+
+### Explicitly out of scope
+
+- A single Node installer core with an install manifest, generated command variants, and Claude
+  Code plugin packaging (audit §6.1–6.3): architectural changes to plan separately.
+- Rewriting archived GOALS bodies or `dev/ROADMAP.md` history to remove private project details:
+  archived bodies are immutable by design; that clean-up is part of R17.22's broader call.
+
+### Sources consulted
+
+- `dev/auditoria-2026-09-24.md` — findings F1–F14, measurements, and reproduction steps.
+- [Claude Code hooks](https://code.claude.com/docs/en/hooks) — exit-0 stderr never reaches Claude;
+  `additionalContext`; matchers; hooks run in parallel.
+- [Codex hooks](https://learn.chatgpt.com/docs/hooks) — PostToolUse ignores plain stdout and accepts
+  `hookSpecificOutput.additionalContext`.
+- [Claude Code MCP](https://code.claude.com/docs/en/mcp) — project-scope servers live in `.mcp.json`.
+- [Datadog Security Labs](https://securitylabs.datadoghq.com/articles/mcp-vulnerability-case-study-SQL-injection-in-the-postgresql-mcp-server/) — Postgres reference server read-only bypass.
+- [Trend Micro](https://www.trendmicro.com/en_us/research/25/f/why-a-classic-mcp-server-vulnerability-can-undermine-your-entire-ai-agent.html) — SQLite reference server SQL injection, won't be fixed.
 
 ---
 
@@ -851,177 +1405,5 @@ flowchart LR
   isolated subagent context.
 - [Claude Agent SDK cost tracking](https://code.claude.com/docs/en/agent-sdk/cost-tracking)
   — cache TTL and why short sessions can lose cache benefits.
-
----
-
-<a id="goals-8-harness--loop-engineering-adoption-base_project-feature"></a>
-## GOALS 8 — Harness & Loop Engineering Adoption (base_project feature)
-
-Converts `dev/analise-harness-loop-engineering-2026.md`'s own roadmap (§4) into checkable
-items — that document already did the research (harness engineering, loop engineering, and
-4 adjacent trends, all sourced); this section doesn't re-research, it makes the plan
-executable.
-
-```mermaid
-flowchart TD
-    Design[Design: pick target commands\nfor eval coverage] --> Eval[Eval harness\nvia claude plugin eval]
-    Design --> Loop4[Formalize Loop 4\nfrom /usagebp]
-    Eval --> CI[Wire into CI\nalongside npm test]
-    Progressive[Document Progressive Delivery\nas a named pattern] --> Drift[Chain drift.js\ninto /bootstrap]
-    CI --> Teams[Prototype Agent Teams\nfor /execgoals - experimental]
-    Loop4 --> Teams
-```
-
-### Design rationale
-
-- The single highest-leverage gap identified: `npm test`/Biome/`tsc` cover this project's
-  *scripts* thoroughly (92 tests) but zero automated coverage exists for whether the 21
-  commands/agents themselves produce correct behavior when a model actually runs them — every
-  verification of a command this session (`/bootstrap`, `/scanproject`, `/ship`, etc.) was
-  manual. `claude plugin eval` (native Claude Code capability — eval suites, JSON/report,
-  sandbox, CI) closes exactly this gap without inventing new tooling.
-- Explicitly out of scope for Phase 1: eval coverage for all 21 commands at once — start with
-  the 3-5 already carrying the most explicit safety logic in their own text (`/ship`,
-  `/fixproject`, `/uninstall`), where a regression is most costly, per the source analysis's
-  own prioritization.
-- Agent Teams (GOALS 8's Teams node) stays a prototype, not a production dependency, while
-  `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` remains experimental — same reasoning `dev/ROADMAP.md`
-  already applies elsewhere to not betting production behavior on Anthropic-side experimental
-  flags.
-
-### Research: eval harness mechanism (H.1/H.2 historical research; informs optional live-model work)
-
-`claude plugin eval` and `skill-creator`'s `evals.json` were both investigated live and ruled
-out (see the historical decision below). The external live-model path was researched to answer
-what would be needed for a high-fidelity eval and whether there was a better tool than
-hand-rolling one. The implemented local harness deliberately avoids that dependency:
-
-- **Better tool found for a future live-model eval — not required by the local harness**:
-  [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action), the
-  official Anthropic GitHub Action. Its "agent mode" runs a direct prompt non-interactively
-  (the same underlying mechanism as `claude -p`, packaged as a ready-made Action instead of
-  plumbing auth/invocation/output-parsing by hand), accepts `--json-schema` in `claude_args`
-  and exposes a schema-validated `structured_output` — closer to a real grading report than
-  parsing raw `claude -p --output-format json` text ourselves would be. Runs on your own
-  runner, calls go straight to the Anthropic API — no marketplace packaging, no early-access
-  gate, no interactive-only constraint (the exact three problems that ruled out both prior
-  candidates). If a future live-model eval is authorized, it would need scenario definitions
-  plus assertions against `structured_output`, not hand-built invocation plumbing.
-- **Confirmed real, not assumed**: `claude -p "<prompt>"` headless mode exists, exits with a
-  status code, never opens a permission dialog. Supports `--output-format
-  text|json|stream-json`, `--allowedTools`, `--permission-mode` (pre-approves tools so a run
-  never hangs), and `ANTHROPIC_API_KEY` takes precedence over subscription auth in `-p` mode —
-  the determinism CI needs. `claude-code-action`'s agent mode wraps exactly this.
-- **Still open only if a future live-model eval is authorized**:
-  1. **Scenario isolation.** Each scenario needs its own throwaway `CLAUDE_HOME` + scratch git
-     repo with base_project's own commands actually installed (same pattern the existing
-     `install-test` CI job already uses, `$RUNNER_TEMP/claude-home`) — otherwise `/ship` etc.
-     don't resolve as real commands inside the eval run. Open question: does
-     `claude-code-action` expose a way to point at a custom config/`CLAUDE_HOME`, or does the
-     workflow need to run `install.sh` against a scratch home as its own step first, then
-     invoke the action inside that environment?
-  2. **Tool access shape per scenario.** A refusal scenario (e.g. "`/ship` must refuse to
-     commit a staged secret") is only a real test if Claude genuinely *has* the tool access to
-     attempt the risky action and chooses not to — not a test that passes only because the
-     tool was withheld. `--allowedTools` needs to be scoped deliberately per scenario, not
-     just "as open as possible" or "as locked as possible."
-  3. **Assertion strategy.** Prefer deterministic checks (git log/diff state, file existence,
-     exit codes) over LLM-as-judge grading wherever the outcome is a hard fact — matches this
-     project's own harness-engineering research (`dev/analise-harness-loop-engineering-2026.md`)
-     that determinism beats probabilistic compliance. Reserve judge-based grading only for
-     genuinely qualitative outcomes (e.g. "did it explain the refusal clearly"), and treat those
-     results with less confidence than the deterministic ones.
-  4. **Cost and trigger strategy.** Each scenario run is a real, billed API call. Needs a
-     decision: run on every push (cost scales with commit volume) vs. on a schedule vs.
-     PR-label-triggered; which model per scenario (a cheaper/faster model for routine runs vs.
-     the model users would actually run these commands with — a real fidelity/cost tradeoff,
-     not free to ignore).
-  5. **A new secret, and a new attack surface.** This repo's CI has no `ANTHROPIC_API_KEY`
-     today — it only tests the *installer*, never makes a real model call. Adding one means a
-     real, spendable credential as a GitHub Actions secret. `CONTRIBUTING.md` says this project
-     accepts outside PRs — the workflow trigger needs to be scoped so an external PR can't run
-     with access to that secret (`pull_request` vs. `pull_request_target` matters here, not a
-     detail to skip). This is a real security/cost decision, not just a wiring task.
-  6. **Scenario spec per command**, concrete enough to actually write: `/ship` — staged secret
-     must never reach `git commit`; force-push never happens regardless of phrasing; detached
-     HEAD stops and asks. `/uninstall` — a Tier C action never runs without its own separate
-     confirmation, declining Tier A doesn't skip to Tier B/C. `/fixproject` — never commits
-     automatically; a finding needing a user-only decision stops and asks instead of guessing.
-
-### Implementation
-
-- [x] **H.1 Deterministic contract harness for `/ship`, `/fixproject`, `/uninstall`** (`architect` then
-  `coder`) — implemented `dev/scripts/eval-harness.js` and `dev/harness/scenarios.json` using
-  only Node's standard library. It checks all 12 command artifacts (Claude, opencode dense/
-  lite, and Codex) for the required safety contracts and evaluates 16 compliant, blocked, and
-  unsafe action traces. The harness never invokes an LLM, network, CLI, or credential, so it
-  removes the billed external-eval dependency. **Explicit limitation:** it proves source
-  contract presence and deterministic policy classification, not that a probabilistic model
-  will obey the text; live-model evaluation remains optional and separately scoped.
-- [x] **H.2 Wire the deterministic harness into CI** (`coder`) — added `npm run test:harness`,
-  a named CI step, and regression assertions in `dev/tests/ci-contract.test.js`. The step uses
-  no secret, network, model, or external service.
-- [x] **H.3 Formalize Loop 4 (hill-climbing) from `/usagebp`** (`architect` then `coder`) —
-  **mechanism decided**: a small self-owned state file,
-  `~/.claude/base_project/usage/.zero-use-tracking.json` (`{ id: firstFlaggedDateISO }`) — not
-  a note auto-written into a tracked project file, since that would conflict with this
-  project's own "never write unasked" norm (`/diario`, the plugin-suggestion rule); this stays
-  entirely within `/usagebp`'s own existing "report only, on demand" contract, just makes
-  the on-demand report itself remember across runs. Added to step 4a (all 3 variants): first
-  sighting gets dated, repeat sightings report elapsed days, past 60 days (this command's own
-  "two months" bar) gets called out explicitly, and a finding that resolves gets removed from
-  tracking rather than staying stuck reporting zero. **Verification limit, stated honestly**:
-  this is prompt/instruction text, not executable code — no unit test can prove an LLM follows
-  it, the same class GOALS 7 already names for `/newgoal`/`/repertoire`. What's actually
-  verified: the instruction text exists in all 3 files (`grep` confirmed), `npx biome
-  check`/`npx tsc` stay clean. Not verified: an actual two-run escalation, which needs a real
-  zero-use catalog entry and two real `/usagebp` invocations spaced apart — first live use
-  is the real test, same honesty `dev/ROADMAP.md` item 40 already applies to an unexercised
-  `/ship` code path.
-- [x] **H.4 Document Progressive Delivery as a reusable pattern** (`coder`) — added
-  `CONTRIBUTING.md` § "Rolling out a risky change to a command/agent", naming the
-  `command-lite`/`command` split (flag, default unchanged, persisted state, promote after
-  validation) as the reusable template for any future risky command/agent change. Verified:
-  section exists, references the lite/dense implementation by name and path.
-- [x] **H.5 Chain `drift.js` into `/bootstrap`** (`coder`) — added to step 0 of all 3
-  `bootstrap.md` variants, right after `sync.js pull`. **Design correction made live, not as
-  originally written**: ran `drift.js --project . --json` against this repo before writing the
-  instruction, and it flagged ~40 lines of `"status": "missing"` (every agent base_project
-  itself never adopted) alongside one genuine `"status": "drift"` entry — a literal reading of
-  the original item text ("report any drift finding") would have made `/bootstrap` spam
-  "missing" noise on every run for any project that hasn't opted into the unified layer, which
-  is most projects. The instruction now explicitly filters to `"status": "drift"` only, ignores
-  `"missing"`, and points at `apply.js --agent <id> --fix` as the concrete remedy.
-- [x] **H.6 Prototype Agent Teams for `/execgoals`** (`architect`, prototype only — not a
-  production dependency) — **skipped for now, deliberately, not forgotten**:
-  `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` prototype stays unscheduled — nothing to execute
-  without the flag actually set and a real multi-area `GOALS.md` to test dispatch against, and
-  betting effort on an Anthropic-side experimental feature isn't worth it yet. Not blocking
-  anything else in this section. Revisit once the flag graduates past experimental.
-
-### Tests
-
-- [x] **H.7 Regression coverage for H.5** (`coder`) — extended `dev/tests/drift.test.js` with
-  a new case asserting `drift --json`'s exact `"missing"` vs `"drift"` distinction the new
-  `/bootstrap` step depends on: a never-adopted project reports zero `"drift"` entries, and
-  mutating a projected file flips exactly that entry (and only that one) to `"drift"`. Verified
-  by actually running it: `node --test dev/tests/drift.test.js` — both cases pass. Full suite
-  `npm test`: 93/93 (up from 92). `npx biome check .`/`npx tsc` clean.
-
-### Registration
-
-- [x] **H.8 Register the deterministic harness and its evidence** (`coder`) — updated
-  `dev/ROADMAP.md`, this plan, the research addendum, and all three command menus. The menus
-  describe coverage as part of the existing `/ship`, `/fixproject`, and `/uninstall` flows;
-  no new user-facing command was created. The original external live-model eval remains
-  explicitly documented as optional rather than being represented as completed.
-
-### Sources consulted
-
-Already gathered in `dev/analise-harness-loop-engineering-2026.md` — see that file's own
-"Fontes consultadas" section (LangChain's loop engineering framework, Faros.ai's harness
-engineering breakdown, PluginEval/`claude plugin eval`, Claude Code Agent Teams) rather than
-re-listing them here; this section converts that research into execution items; it doesn't
-re-derive it.
 
 ---

@@ -219,6 +219,22 @@ documentação pública do Claude Code não descreve esse campo.
 
 Formato: **sintoma** → **causa** → **correção**. Mais recente no topo.
 
+### #8 — "Read-only" de MCP de banco que não é fronteira de segurança
+- **Sintoma**: o catálogo oferecia `postgres` (`@modelcontextprotocol/server-postgres`) como
+  leitura segura, mas uma query `COMMIT; DROP TABLE ...` saía da transação `READ ONLY` do
+  servidor (Datadog Security Labs). Ao avaliar o substituto SQLite, `SQLITE_DATABASE=file:<db>?mode=ro`
+  recusou `INSERT`, e mesmo assim `ATTACH DATABASE 'file:<db>?mode=rw' AS w; INSERT INTO w.t ...`
+  gravou no arquivo original (testado com `@toolbox-sdk/server@1.12.0`, 2026-09-24).
+- **Causa**: "read-only" imposto pelo cliente — uma transação, um modo de abertura — é
+  contornável por SQL que o próprio cliente executa. Só o que o servidor de banco impõe vale
+  como fronteira.
+- **Correção**: nas entradas de banco (`toolbox-postgres`, `toolbox-sqlite`), a fronteira é o
+  papel do banco (PostgreSQL: papel só-`SELECT`; `INSERT` recusado com SQLSTATE 42501 e o
+  multi-comando recusado, testado ao vivo) ou uma cópia do arquivo (SQLite). O texto da entrada
+  diz isso, e nunca promete read-only que o servidor MCP não garante.
+- **Lição**: antes de catalogar um MCP de banco, tente escrever pelo caminho "read-only" com SQL
+  de verdade — `ATTACH`, multi-comando, `COMMIT` — em vez de confiar na descrição.
+
 ### #7 — Plugin genuinamente instalado (via `claude plugin install`) aparece como "não instalado" na sidebar, mesmo já corrigido o `/api/setup-check`
 - **Sintoma**: instalei `impeccable` e `frontend-design` de verdade (`claude plugin list --json` confirma), mas a sidebar do dashboard (checklist do catálogo) continuava mostrando o checkbox vazio pra eles — só sumiam do card de "Configuração pendente", não ganhavam ✓ na sidebar.
 - **Causa**: `/api/snapshot` (a rota que alimenta a sidebar) e `/api/setup-check` (o card de pendências) usavam **fontes de verdade diferentes e desconectadas** pra responder a mesma pergunta ("esse plugin está instalado?"). `/api/setup-check` já tinha `installedClaudePlugins()` (via `claude plugin list --json`, ver erro #6) desde a correção anterior — mas `/api/snapshot` calculava `installed` só como `usedIds.has(p.id)`, isto é, só olhava se o plugin **já apareceu em algum evento do `usage.jsonl`**, nunca se está instalado-mas-nunca-usado.

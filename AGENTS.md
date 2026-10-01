@@ -85,10 +85,23 @@ invocam (`dev/scripts/validate-plugins.js` etc.) continuam apontando pra dentro 
 - `biome.json` (raiz) escopa o lint a `source/hooks/**/*.js`, `dev/scripts/*.js`,
   `dev/tests/**/*.js` — sem isso, o Biome varre `.opencode/`, `graphify-out/`, e qualquer
   coisa gerada/de terceiros.
-- `tsconfig.json` (raiz) existe só para permitir `npx tsc` rodar sem erro de "no inputs" —
-  `checkJs` fica `false` de propósito.
+- `tsconfig.json` (raiz): `checkJs` fica `false` no global e cada arquivo entra na checagem com
+  `// @ts-check` — hoje todos os hooks (`source/hooks/*.js`, inclusive os que vierem depois) e os
+  helpers que editam config do usuário (`install-opencode.js`, `install-codex.js`,
+  `mcp-servers.js`); o `ci-contract.test.js` exige o pragma. `strict` com `noImplicitAny: false`:
+  pega propriedade inexistente, `null` e aridade sem exigir JSDoc em todo parâmetro — anote com
+  JSDoc só onde a inferência falha. TypeScript 7 (nativo, ~0,5 s) e `@types/node` na major do
+  Node do CI (22). Antes disso o `tsc` não checava arquivo nenhum e o passo não dava sinal.
 - `npm run validate:plugins` (= `node dev/scripts/validate-plugins.js`) roda no CI e valida
   `source/plugins.json` contra `dev/schemas/plugins.schema.json` antes de qualquer merge.
+- `npm test` roda no job `validate` (Ubuntu) **e** em cada SO da matriz `install-test`
+  (Ubuntu/Windows/macOS). Não confie em "passou aqui": um teste dependente de plataforma
+  passou no Windows e ficou vermelho no CI do Linux de 24/08 a 24/09/2026 sem ninguém ver, e
+  um PR foi mergeado com o CI vermelho. Confira o resultado do CI antes de dar merge.
+- A coluna de checksums de `dev/goals-archive/README.md` nunca é editada à mão: rode
+  `node dev/scripts/goals-archive-index.js --write` depois de arquivar um plano (e `--check`
+  para conferir). Um commit já reintroduziu checksums antigos colando o índice de uma cópia
+  desatualizada.
 
 ### Bug histórico: CI rodava um Biome fantasma (`biome@0.3.3`)
 

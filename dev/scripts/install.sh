@@ -188,7 +188,9 @@ if command -v jq &>/dev/null; then
 
     # Loop-detection, auto-format, and GOALS validation hooks are synchronous
     # (not async) so their warning/output lands before the next tool call.
-    # None ever throws or blocks (swallow-all-errors by design).
+    # None ever throws or blocks (swallow-all-errors by design). Format and GOALS
+    # validation only act on edits, so they carry an edit-tool matcher instead of
+    # starting a node process on every Read/Grep/Bash call; loop-detect needs every call.
     LOOP_DETECT_PATH="$CLAUDE_HOOKS_DIR/loop-detect.js"
     LOOP_DETECT_MARKER="base_project/hooks/loop-detect.js"
     POST_EDIT_FORMAT_PATH="$CLAUDE_HOOKS_DIR/post-edit-format.js"
@@ -213,8 +215,8 @@ if command -v jq &>/dev/null; then
         '.hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($dashMarker)) | not)))
          | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($loopMarker)) | not))) + [{"hooks": [{"type": "command", "command": $loopCmd, "async": false}]}]
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]
-         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($goalsMarker)) | not))) + [{"hooks": [{"type": "command", "command": $goalsCmd, "async": false}]}]' \
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($formatMarker)) | not))) + [{"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": $formatCmd, "async": false}]}]
+         | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(select((.hooks // []) | map(.command // "") | any(contains($goalsMarker)) | not))) + [{"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": $goalsCmd, "async": false}]}]' \
         > "$SETTINGS_PATH"
     ok "settings.json (loop-detect + post-edit-format + validate-goals hooks merged, stale dashboard hooks pruned)"
 
@@ -266,7 +268,9 @@ fi
 #     Only removes what carries the managed marker, mirroring sync_managed - a
 #     file written by hand at the same path is left alone even if the name matches.
 # ---------------------------------------------------------------------
-for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dashboard.md" "$CLAUDE_COMMANDS_DIR/newproject.md" "$OPENCODE_COMMAND_DIR/newproject.md" "$CLAUDE_COMMANDS_DIR/reviewusage.md" "$OPENCODE_COMMAND_DIR/reviewusage.md"; do
+# Same list as install.ps1 (doctor/context/explain were briefly shipped as commands).
+for stale_name in dashboard doctor context explain newproject reviewusage; do
+  for stale_cmd in "$CLAUDE_COMMANDS_DIR/$stale_name.md" "$OPENCODE_COMMAND_DIR/$stale_name.md"; do
     [ -f "$stale_cmd" ] || continue
     if grep -q 'base_project:managed' "$stale_cmd"; then
         rm -f "$stale_cmd"
@@ -274,6 +278,7 @@ for stale_cmd in "$CLAUDE_COMMANDS_DIR/dashboard.md" "$OPENCODE_COMMAND_DIR/dash
     else
         warn "Kept $stale_cmd - not managed by base_project (looks like your own file)"
     fi
+  done
 done
 for stale_dir in "$CLAUDE_HOME/base_project/dashboard" "$OPENCODE_HOME/base_project/dashboard"; do
     if [ -d "$stale_dir" ]; then
@@ -283,45 +288,18 @@ for stale_dir in "$CLAUDE_HOME/base_project/dashboard" "$OPENCODE_HOME/base_proj
 done
 
 # ---------------------------------------------------------------------
-# 4. opencode.jsonc — inline instructions + mcp servers, preserve the rest
+# 4. opencode.jsonc - merge base_project's instructions path and MCP servers
+#    into the user's config instead of replacing it. One Node implementation
+#    (shared with install.ps1) parses JSONC, edits only what base_project owns,
+#    keeps the user's own entries and comments, and leaves an unparseable file
+#    untouched instead of recreating it.
 # ---------------------------------------------------------------------
 step "Updating $OPENCODE_HOME/opencode.jsonc..."
-
-OPENCODE_CONFIG_PATH="$OPENCODE_HOME/opencode.jsonc"
-INSTRUCTIONS_PATH="$SOURCE_DIR/opencode-instructions.md"
-MCP_SRC_PATH_FOR_CONFIG="$SOURCE_DIR/opencode/mcp.json"
-
-if command -v jq &>/dev/null; then
-    if [ -f "$OPENCODE_CONFIG_PATH" ] && jq empty "$OPENCODE_CONFIG_PATH" 2>/dev/null; then
-        BASE_JSON="$(cat "$OPENCODE_CONFIG_PATH")"
-    else
-        if [ -f "$OPENCODE_CONFIG_PATH" ]; then
-            cp "$OPENCODE_CONFIG_PATH" "$OPENCODE_CONFIG_PATH.bak"
-            warn "opencode.jsonc could not be parsed (comments or invalid JSON) - backed up to opencode.jsonc.bak and starting fresh"
-        fi
-        BASE_JSON='{"$schema": "https://opencode.ai/config.json"}'
-    fi
-    # opencode's schema wants "instructions" as an array of paths, and "mcp" as a map
-    # of server name -> { type: "local", command: [...] } | { type: "remote", url,
-    # headers }, defined inline - not a pointer to an external file (that "mcp.file"
-    # shape doesn't exist in opencode's config schema and fails validation on startup).
-    echo "$BASE_JSON" | jq \
-        --arg instr "$INSTRUCTIONS_PATH" \
-        --argjson mcpsrc "$(cat "$MCP_SRC_PATH_FOR_CONFIG")" \
-        '.instructions = [$instr]
-         | .mcp = ($mcpsrc.mcpServers | with_entries(
-             .value = (
-               if .value.type == "remote" then
-                 {type: "remote", url: .value.url} + (if .value.headers then {headers: .value.headers} else {} end)
-               else
-                 {type: "local", command: ([.value.command] + (.value.args // []))} + (if .value.env then {environment: .value.env} else {} end)
-               end
-             )
-           ))' \
-        > "$OPENCODE_CONFIG_PATH"
-    ok "opencode.jsonc (instructions + mcp servers inlined, other keys preserved)"
+if command -v node &>/dev/null; then
+    node "$SCRIPT_DIR/install-opencode.js" --opencode-home "$OPENCODE_HOME" \
+        || warn "opencode.jsonc was left untouched - fix the problem reported above, then re-run this script."
 else
-    warn "'jq' not found - skipping opencode.jsonc merge. Install jq, then re-run this script."
+    warn "Node.js not found - skipped the opencode.jsonc merge. Install Node.js (https://nodejs.org), then re-run this script."
 fi
 
 # ---------------------------------------------------------------------
@@ -394,51 +372,23 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
             warn "Could not auto-register '$name'. Add manually: claude mcp add --scope user $name ${env_args[*]} -- $cmd ${args[*]}"
         fi
     done
+    # Servers earlier versions registered and no longer ship (source/opencode/mcp-previous.json)
+    # are removed only while they still have base_project's exact definition.
+    while IFS= read -r retired_name; do
+        [ -n "$retired_name" ] || continue
+        if claude mcp remove "$retired_name" --scope user &>/dev/null; then
+            ok "retired '$retired_name' (no longer shipped; it still had base_project's definition)"
+        fi
+    done < <(node "$SCRIPT_DIR/mcp-servers.js" --claude-retirements 2>/dev/null || true)
 else
     warn "'claude' CLI or 'jq' not found - skipping Claude Code MCP registration."
 fi
 
 # ---------------------------------------------------------------------
-# 6b. MCP servers for Codex CLI - appended as [mcp_servers.NAME] tables to
-#     ~/.codex/config.toml. Append-only and guarded by an existence check: this
-#     script has no TOML parser, so it must never rewrite a file it can't fully
-#     understand. A table appended at the end of a TOML file cannot alter the
-#     tables above it, which is what makes append the safe operation here - and
-#     why an already-present server is skipped rather than "updated".
+# 6b. MCP servers for Codex CLI are merged into config.toml by install-codex.js
+#     (step 8d-2): one implementation for both installers that upgrades or retires
+#     only tables still holding a definition base_project wrote.
 # ---------------------------------------------------------------------
-if [ -d "$HOME/.codex" ] && [ -f "$MCP_SRC_PATH" ] && command -v jq &>/dev/null; then
-    step "Registering MCP servers with Codex CLI..."
-    CODEX_CONFIG="$HOME/.codex/config.toml"
-    touch "$CODEX_CONFIG"
-    CODEX_APPENDED=0
-    for name in $(jq -r '.mcpServers | keys[]' "$MCP_SRC_PATH"); do
-        if grep -qF "[mcp_servers.$name]" "$CODEX_CONFIG"; then
-            ok "'$name' already in config.toml - left as is"
-            continue
-        fi
-        cmd="$(jq -r ".mcpServers[\"$name\"].command // empty" "$MCP_SRC_PATH")"
-        if [ -z "$cmd" ]; then
-            warn "'$name' is a remote MCP server - add it to $CODEX_CONFIG manually (url-based syntax not emitted here)."
-            continue
-        fi
-        if [ "$CODEX_APPENDED" -eq 0 ]; then
-            printf '\n# --- base_project managed MCP servers (safe to edit; re-added if removed) ---\n' >> "$CODEX_CONFIG"
-        fi
-        {
-            printf '\n[mcp_servers.%s]\n' "$name"
-            printf 'command = "%s"\n' "$cmd"
-            printf 'args = [%s]\n' "$(jq -r ".mcpServers[\"$name\"].args // [] | map(tojson) | join(\", \")" "$MCP_SRC_PATH")"
-            if [ "$(jq -r ".mcpServers[\"$name\"].env // {} | length" "$MCP_SRC_PATH")" != "0" ]; then
-                printf '[mcp_servers.%s.env]\n' "$name"
-                jq -r ".mcpServers[\"$name\"].env | to_entries[] | \"\(.key) = \(.value|tojson)\"" "$MCP_SRC_PATH"
-            fi
-        } >> "$CODEX_CONFIG"
-        CODEX_APPENDED=$((CODEX_APPENDED + 1))
-        ok "appended '$name' to config.toml"
-    done
-elif [ ! -d "$HOME/.codex" ]; then
-    warn "Codex CLI not detected ($HOME/.codex missing) - skipped its MCP registration."
-fi
 
 # ---------------------------------------------------------------------
 # 6c. MCP servers for Kimi Code CLI. Kimi reads a standard mcpServers JSON via

@@ -6,6 +6,7 @@ const {
   entryFor,
   installEntryFrom,
   ledgerFile,
+  redact,
   truncate,
 } = require("../../source/hooks/usage-log.js");
 
@@ -111,4 +112,59 @@ test("ledger file is per session and per day, which is what removes write conten
   assert.ok(path.basename(a).includes("sess-1"));
   // path separators in a session id must never escape the ledger directory
   assert.equal(path.dirname(ledgerFile("../../evil")), path.dirname(a));
+});
+
+test("redact masks well-known secret shapes before anything reaches the ledger", () => {
+  const cases = [
+    [
+      "export ANTHROPIC_API_KEY=sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123",
+      "export ANTHROPIC_API_KEY=[REDACTED]",
+    ],
+    [
+      '{"command":"curl -H \\"Authorization: Bearer abc.def-123\\" https://api.example.com"}',
+      '{"command":"curl -H \\"Authorization: Bearer [REDACTED]\\" https://api.example.com"}',
+    ],
+    ['{"password":"hunter2hunter2"}', '{"password":"[REDACTED]"}'],
+    [
+      "git push https://ghp_abcdefghijklmnopqrstuvwxyz0123456789@github.com/x/y",
+      "git push https://[REDACTED]@github.com/x/y",
+    ],
+    [
+      "psql postgres://app:s3cr3t@db.internal/prod --password=other",
+      "psql postgres://app:[REDACTED]@db.internal/prod --password=[REDACTED]",
+    ],
+    ["key AKIAIOSFODNN7EXAMPLE end", "key [REDACTED] end"],
+    [
+      "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaA\n-----END OPENSSH PRIVATE KEY-----",
+      "[REDACTED PRIVATE KEY]",
+    ],
+  ];
+  for (const [input, expected] of cases) assert.equal(redact(input), expected);
+});
+
+test("redact leaves file paths and ordinary commands untouched", () => {
+  for (const text of [
+    '{"file_path":"/proj/src/token-utils.js"}',
+    '{"command":"npm test -- --watch=false"}',
+    '{"command":"git commit -m \\"fix tokenizer edge case\\""}',
+    "C:\\\\proj\\\\secrets\\\\README.md",
+  ]) {
+    assert.equal(redact(text), text);
+  }
+});
+
+test("entryFor redacts prompts and tool input before truncating them", () => {
+  const prompt = entryFor({
+    hook_event_name: "UserPromptSubmit",
+    prompt: "use token=abcdef123456 please",
+  });
+  assert.equal(prompt.prompt, "use token=[REDACTED] please");
+  const tool = entryFor({
+    hook_event_name: "PostToolUse",
+    tool_name: "Bash",
+    tool_input: {
+      command: `${"x".repeat(280)} API_KEY=sk-abcdefghijklmnopqrstuvwx`,
+    },
+  });
+  assert.ok(!tool.input.includes("sk-abcdef"));
 });

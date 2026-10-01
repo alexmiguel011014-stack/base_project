@@ -6,12 +6,12 @@ Fonte única do menu “o que você deseja fazer agora?”. Editar só aqui — 
 
 O que você deseja fazer agora?
 
-- `$bootstrap` — sincroniza o projeto e o armário unificado `~/.agents/`, detecta drift real e mapeia o código com repomix + graphify.
+- `$bootstrap` — sincroniza o projeto com o remoto e mapeia o código com repomix + graphify.
 - `$newgoal` — pesquisa e escreve o plano executável em `GOALS.md`; nunca implementa o plano.
 - `$repertoire` — pesquisa profundamente o domínio de um projeto ou um assunto avulso; declara limites e sempre confirma antes.
 - `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição.
 - `$scanproject` — audita identidade, CI, testes, lint, segurança básica e estrutura. Comece aqui.
-- `$audit` — aprofunda segurança ou mostra as camadas de configuração aplicadas a um projeto e agente.
+- `$audit` — aprofunda a parte de segurança: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `$cleanproject` — procura arquivos mortos, pastas erradas e duplicação sem alterar nada.
 - `$fixproject` — corrige os achados de `$scanproject` e `$cleanproject` e verifica cada correção; os contratos de escopo e decisão são testados localmente.
 - `$undo` — reverte o último lote de mudanças com confirmações separadas por risco.

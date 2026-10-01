@@ -53,11 +53,12 @@ needed elsewhere, `dev/schemas/plugins.schema.json` validates the shape.
 Run the same checks CI runs:
 
 ```bash
-npx biome check .
-npx tsc
-npm run validate:plugins
-npm test
+npm run verify    # Biome, tsc, plugin schema, unused deps, tests, npm audit
+npm run test:harness
 ```
+
+`tsc` checks only files that opt in with `// @ts-check`: every hook in `source/hooks/` and the
+installer helpers that edit user config. A new hook must carry the pragma (a test enforces it).
 
 For non-trivial changes to `source/claude/commands/*.md`, `source/opencode/command/*.md`,
 or `source/codex/skills/*/SKILL.md`,

@@ -26,7 +26,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 2. **Implement** — use the `coder` subagent for surgical, scoped edits.
 3. **Review** — use the `reviewer` subagent to inspect the diff and run the project's lint, typecheck, and tests. It never commits unless explicitly asked.
 4. **Plan is not execution** — a planning or research skill such as `$newgoal` or `$repertoire` never implements its output in the same turn. `$execgoals`, or a separate explicit request, performs execution.
-5. **Tiered autonomy** — classify every action before taking it: **auto-approved** for routine, reversible work inside the current repository; **notify-and-proceed** for an in-scope, reversible change whose visible effect should be stated before continuing; and **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice, data/state outside base_project's own repository, sensitive data, credentials, external publication, or screen control (see *UI verification & screen control*). Decide from reversibility, scope of affected state, and data sensitivity — not from whether the action merely looks technically easy. The ERP database compatibility test is the model case for human-in-the-loop: even a copied test database was external sensitive data, so it required explicit approval first.
+5. **Tiered autonomy** — classify every action before taking it: **auto-approved** for routine, reversible work inside the current repository; **notify-and-proceed** for an in-scope, reversible change whose visible effect should be stated before continuing; and **human-in-the-loop** for an irreversible or hard-to-recover action, a material scope choice, data/state outside the current repository, sensitive data, credentials, external publication, or screen control (see *UI verification & screen control*). Decide from reversibility, scope of affected state, and data sensitivity — not from whether the action merely looks technically easy. Model case: a test run against a copy of a production database is still human-in-the-loop — even a copy is external, sensitive data, so it needs explicit approval first.
 
 ### Autonomy and Confirmations
 - Once the user authorizes a task, perform ordinary, reversible, in-scope implementation and verification without repeatedly asking permission.
@@ -39,9 +39,9 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Do not repeat a suggestion in the same session after it was mentioned or declined.
 
 ### WhatsApp-Style Menu
-- Show the menu only at the start of a session when the first request is not already specific, and after completing a substantial task.
+- Show the menu only at the start of a session, and only when the first request is not already specific.
+- Never show it after finishing a task or after any reply: a finished task ends with its result, not with a list of commands. The user can ask for it at any time with `$wpp`.
 - Read `~/.codex/base_project/references/command-menu.md` and render it verbatim. Never reconstruct it from memory.
-- Skip the menu whenever the user has already made a direct request.
 
 ### Contribution Diary
 - After substantial work, mention once that `$diario` can record it. Never write a diary unless asked.

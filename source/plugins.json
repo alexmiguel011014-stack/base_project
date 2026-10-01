@@ -7,8 +7,6 @@
     "full": [
       "playwright",
       "supabase",
-      "postgres",
-      "sqlite",
       "strix",
       "skill-ui",
       "emil-design-eng",
@@ -45,6 +43,33 @@
       "opencode": { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } }
     },
     {
+      "id": "toolbox-postgres",
+      "name": "PostgreSQL (Google MCP Toolbox)",
+      "kind": "mcp",
+      "summary": "Google's MCP Toolbox for Databases, PostgreSQL prebuilt: list tables and schemas, inspect indexes, locks and query plans, and run SQL (29 tools). Replaces the postgres entry removed in v1.2.0 (@modelcontextprotocol/server-postgres: deprecated, with an SQL injection that escapes its read-only mode) — if you installed that one, remove it with `claude mcp remove postgres`. `execute_sql` has no read-only mode: it runs whatever the database role may run.",
+      "recommend_if": "The project talks to PostgreSQL (pg, postgres, psycopg, asyncpg, a prisma/sqlalchemy postgresql datasource, or a postgres service in docker-compose) and you want the agent to inspect the schema or data. Connect with a dedicated role granted only what the agent should do (SELECT alone for read-only): the server enforces privileges, so SQL cannot escape them the way it escaped the old read-only wrapper. Never a production database without explicit approval.",
+      "source": "https://mcp-toolbox.dev/integrations/postgres/prebuilt-configs/postgresql/",
+      "requires_input": [
+        "POSTGRES_HOST, POSTGRES_PORT and POSTGRES_DATABASE of the database to inspect",
+        "POSTGRES_USER and POSTGRES_PASSWORD of a dedicated least-privilege role (SELECT-only for read-only use) — never an owner, admin, migration, or application-write account"
+      ],
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@toolbox-sdk/server@1.12.0", "--prebuilt", "postgres", "--stdio"], "env": { "POSTGRES_HOST": "<host>", "POSTGRES_PORT": "5432", "POSTGRES_DATABASE": "<database>", "POSTGRES_USER": "<least-privilege-role>", "POSTGRES_PASSWORD": "<password>" } },
+      "opencode": { "command": "npx", "args": ["-y", "@toolbox-sdk/server@1.12.0", "--prebuilt", "postgres", "--stdio"], "env": { "POSTGRES_HOST": "<host>", "POSTGRES_PORT": "5432", "POSTGRES_DATABASE": "<database>", "POSTGRES_USER": "<least-privilege-role>", "POSTGRES_PASSWORD": "<password>" } }
+    },
+    {
+      "id": "toolbox-sqlite",
+      "name": "SQLite (Google MCP Toolbox)",
+      "kind": "mcp",
+      "summary": "Google's MCP Toolbox for Databases, SQLite prebuilt: `list_tables` and `execute_sql` on one database file. Replaces the sqlite entry removed in v1.2.0 (its npm package never existed; the official Python server has an SQL injection that will not be fixed). `execute_sql` runs any statement: a `file:<path>?mode=ro` URI stops accidental writes, but ATTACH can reopen the file read-write (verified), so it is not a security boundary.",
+      "recommend_if": "The project has a *.db, *.sqlite or *.sqlite3 file or a sqlite dependency, and you want the agent to query it. Point it at a copy of the file, never the only copy of data you care about.",
+      "source": "https://mcp-toolbox.dev/integrations/sqlite/prebuilt-configs/sqlite/",
+      "requires_input": [
+        "SQLITE_DATABASE — path to a copy of the database file (as file:<path>?mode=ro to stop accidental writes)"
+      ],
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@toolbox-sdk/server@1.12.0", "--prebuilt", "sqlite", "--stdio"], "env": { "SQLITE_DATABASE": "file:<path-to-a-copy.db>?mode=ro" } },
+      "opencode": { "command": "npx", "args": ["-y", "@toolbox-sdk/server@1.12.0", "--prebuilt", "sqlite", "--stdio"], "env": { "SQLITE_DATABASE": "file:<path-to-a-copy.db>?mode=ro" } }
+    },
+    {
       "id": "github",
       "name": "GitHub Copilot MCP",
       "kind": "mcp",
@@ -57,22 +82,25 @@
       "claude": { "instruction": "claude mcp add --scope user --transport http github https://api.githubcopilot.com/mcp/ --header \"Authorization: Bearer <your-real-token>\"" }
     },
     {
-      "id": "postgres",
-      "name": "Postgres MCP",
+      "id": "filesystem",
+      "name": "Filesystem MCP",
       "kind": "mcp",
-      "summary": "Query and inspect a local/remote Postgres database directly from the agent.",
-      "recommend_if": "package.json/requirements has pg/psycopg/prisma-with-postgres, or a DATABASE_URL pointing at postgres:// is set in .env.",
-      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres", "<connection-string>"] },
-      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-postgres", "<connection-string>"] }
+      "summary": "Reads, writes and searches files through MCP, confined to the directories passed as arguments. Part of base_project's always-on set until v1.2.0 — removed because Claude Code, opencode and Codex already have native file tools (GOALS 9 measured zero calls in 16 days).",
+      "recommend_if": "Only on explicit request — e.g. to confine a client without native file tools to specific directories. A coding agent with its own file tools gains nothing from it.",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem@2026.8.31", "."] },
+      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem@2026.8.31", "."] }
     },
     {
-      "id": "sqlite",
-      "name": "SQLite MCP",
+      "id": "git",
+      "name": "Git MCP (official)",
       "kind": "mcp",
-      "summary": "Query and inspect a local SQLite database file directly from the agent.",
-      "recommend_if": "A .sqlite/.db file exists in the project, or package.json depends on better-sqlite3/sqlite3. NOT sqlcipher/@journeyapps/sqlcipher — confirmed by direct test (copied a real @journeyapps/sqlcipher database, tried opening it with a plain, non-SQLCipher SQLite driver): the file has no plain-SQLite header at all and fails to open outright ('file is not a database'). This server's driver has no SQLCipher decryption support, so it cannot connect to an encrypted-SQLite project regardless of how well `recommend_if` matches — don't recommend it there.",
-      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] },
-      "opencode": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "<path-to-db>"] }
+      "summary": "Git status, diff, log, branch and commit tools through MCP — the official reference server (Python, run with uvx). Replaces the `mcp-git` npm package base_project kept always-on until v1.2.0 (individual maintainer, unpinned, zero measured calls).",
+      "recommend_if": "Only on explicit request — the agents already run git through their shell.",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+      "requires": ["uv (provides uvx)"],
+      "claude": { "scope": "local", "command": "uvx", "args": ["mcp-server-git@2026.8.18"] },
+      "opencode": { "command": "uvx", "args": ["mcp-server-git@2026.8.18"] }
     },
     {
       "id": "strix",
@@ -193,15 +221,6 @@
         "args": ["-y", "skills", "add", "DietrichGebert/ponytail", "-g", "-a", "opencode", "-y"],
         "note": "lands in ~/.agents/skills/ — also copy the ponytail* folders into ~/.config/opencode/skills/ afterward so opencode (which reads skills from its own confirmed skills/ dir) definitely picks them up. The 'opencode-ponytail' npm package is deprecated, do not use it."
       }
-    },
-    {
-      "id": "marketplace-demo",
-      "name": "Marketplace Demo",
-      "kind": "marketplace",
-      "summary": "Example marketplace plugin that decomposes into canonical skills — used to validate marketplace fetcher and scan-skill pre-trust.",
-      "recommend_if": "Testing marketplace fetch; not auto-installed.",
-      "source": "https://github.com/spxrogers/agentsync",
-      "claude": { "instruction": "marketplace fetch marketplace-demo" }
     }
   ]
 }

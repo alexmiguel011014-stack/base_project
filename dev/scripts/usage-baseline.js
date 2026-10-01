@@ -120,7 +120,9 @@ function readLedger(directory) {
     const parsed = parseLedgerText(
       fs.readFileSync(path.join(directory, file), "utf8"),
     );
-    events.push(...parsed.events);
+    // A loop, not push(...events): spreading one argument per event overflows V8's
+    // argument limit once a single file holds more than ~125k events.
+    for (const event of parsed.events) events.push(event);
     invalidLines += parsed.invalidLines;
   }
   return { events, invalidLines, files: files.length };
@@ -575,13 +577,10 @@ function buildBaseline({
     }
     bucket.duration_ms.total += durationMs(promptTools);
     bucket.duration_ms.maximum_tool_ms =
-      Math.max(
+      promptTools.reduce(
+        (maximum, tool) =>
+          typeof tool.ms === "number" && tool.ms > maximum ? tool.ms : maximum,
         bucket.duration_ms.maximum_tool_ms || 0,
-        ...promptTools
-          .map((tool) =>
-            typeof tool.ms === "number" && tool.ms >= 0 ? tool.ms : 0,
-          )
-          .filter((ms) => ms > 0),
       ) || null;
     if (sampleDate) {
       bucket.first_sample_at = bucket.first_sample_at
@@ -610,10 +609,17 @@ function buildBaseline({
       bucket.duration_ms.total / bucket.prompt_events;
   }
 
-  const dates = events
-    .map((event) => event.ts)
-    .filter(isValidDate)
-    .map((value) => Date.parse(value));
+  // Earliest/latest in one pass: Math.min(...dates) spread one argument per event and
+  // crashed /usagebp with "Maximum call stack size exceeded" past ~125k events
+  // (dev/auditoria-2026-09-24.md, F5).
+  let dateStart = null;
+  let dateEnd = null;
+  for (const event of events) {
+    if (!isValidDate(event.ts)) continue;
+    const time = Date.parse(event.ts);
+    if (dateStart === null || time < dateStart) dateStart = time;
+    if (dateEnd === null || time > dateEnd) dateEnd = time;
+  }
   const sessions = new Set(
     events
       .map((event) => event.session)
@@ -628,12 +634,9 @@ function buildBaseline({
         type: "local-activity-ledger",
         files,
         invalid_lines: invalidLines,
-        date_start: dates.length
-          ? new Date(Math.min(...dates)).toISOString()
-          : null,
-        date_end: dates.length
-          ? new Date(Math.max(...dates)).toISOString()
-          : null,
+        date_start:
+          dateStart === null ? null : new Date(dateStart).toISOString(),
+        date_end: dateEnd === null ? null : new Date(dateEnd).toISOString(),
         sessions: sessions.size,
         prompt_events: prompts.length,
         tool_events: tools.length,
