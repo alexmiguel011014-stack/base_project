@@ -288,7 +288,10 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   found one defect in the procedure itself: a 62-character `TMPDIR` crashes Chrome at startup (see the clause added
   to C18.2) — the reference now carries the rule, the smoke applies it (`browserEnv`, pinned by tests) and a run that
   opens no port now prints Chrome's exit status and stderr tail, so a red Windows or macOS job explains itself.
-  Only Linux was exercised here; the other two systems wait for C18.11.
+  Reading the Windows branch before handing it to CI found a second one: `netstat -an -p TCP` lists IPv4
+  sockets only and would hide a wildcard IPv6 listener, so the smoke and the reference now say plain
+  `netstat -an` (the parser skips UDP rows, which carry no LISTENING state). Only Linux was exercised here;
+  the other two systems wait for C18.11.
 
 ### Tests
 
@@ -319,7 +322,8 @@ Suggested: sonnet · high — mutation checks are what make these tests worth ha
   `cdp: not applicable` removed; classifier and arguments — 0.0.0.0 accepted, empty listing accepted, `/proc` or
   `netstat` parsing ignoring the LISTEN state, big-endian decoding, `--disable-web-security` added, `--user-data-dir`
   dropped, CHROME_BIN or CHROME_PATH tried late, LISTENING not matched; TMPDIR and spawn options — sentence lost,
-  limit changed, no override, override on Windows, process group or stderr pipe dropped, environment ignored. The
+  limit changed, no override, override on Windows, process group or stderr pipe dropped, environment ignored;
+  listing arguments — Windows back to `-p TCP`, the reference reworded to match (2). The
   first round left two survivors (netstat ignoring the LISTEN state — its fixture shared the loopback address; the
   CHROME_BIN order — only one candidate existed); both fixtures were strengthened and now fail. The mutation harness
   had also stopped copying `cdp-smoke.js`, which made every result a false positive until its control run showed
@@ -402,6 +406,15 @@ Suggested: sonnet · medium — mostly mechanical, but the menus are user-langua
   against a scratch `HOME` (as in GOALS 17), and the CI run of the PR (all jobs green). **Done
   when:** all pass on the final tree and the PR's CI result was read on the merge head, not
   assumed.
+  **Progress:** the local part is done on the final tree (2026-10-05): `npm run verify` exit 0 (lint, typecheck, plugin schema,
+  unused dependencies, 211 tests, production audit), `npm run test:harness` 12/12 artifacts and 16/16 scenarios,
+  `goals-archive-index.js --check` (12 checksums OK), the GOALS structure check, the replay of the Linux
+  `install-test` steps against a scratch `HOME` (install, idempotent re-run, lite profile — all PASS, including the
+  new `cdp-verification.md` assertions), `cdp-smoke.js` with `CI=true` (all checks passed), the language-drift grep
+  (only the five allowed files) and `CLAUDE.md` = `AGENTS.md`. Still open: the pull request's CI run, all jobs green on
+  the merge head and read there, not assumed — it also settles C18.11, and this branch has no pull request yet.
+  Not exercised anywhere yet: Windows and macOS (smoke, PowerShell assertions) and the model following the
+  paragraph (C18.16).
 
 ### Owner acceptance and decisions (manual — stay open until done)
 

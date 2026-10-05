@@ -500,6 +500,16 @@ test("the smoke starts Chrome exactly as the reference documents", () => {
   }
   assert.ok(args.includes("--user-data-dir=/tmp/profile"));
   assert.equal(args.at(-1), "http://127.0.0.1:1/");
+  // The listing commands the smoke runs are the ones the reference names.
+  assert.deepEqual(smoke.netstatArgs("darwin"), ["-an", "-p", "tcp"]);
+  assert.deepEqual(smoke.netstatArgs("win32"), ["-an"]);
+  assert.ok(reference.includes("macOS `netstat -an -p tcp`"));
+  assert.ok(
+    reference.includes(
+      "Windows `netstat -an` (not `-p TCP`, which lists IPv4 only)",
+    ),
+    "Windows reads every socket, IPv6 included",
+  );
   assert.ok(!args.includes("--no-sandbox"), "the sandbox stays on by default");
   assert.ok(
     smoke

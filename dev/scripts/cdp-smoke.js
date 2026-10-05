@@ -189,6 +189,13 @@ function isLoopbackOnly(addresses) {
   );
 }
 
+// Windows needs plain `-an`: `-p TCP` lists IPv4 sockets only and would hide a wildcard IPv6
+// listener; the UDP rows carry no LISTENING state, so the parser skips them. On macOS `-p tcp`
+// lists tcp4, tcp6 and tcp46 together.
+function netstatArgs(platform) {
+  return platform === "win32" ? ["-an"] : ["-an", "-p", "tcp"];
+}
+
 function listenAddresses(port, platform = process.platform) {
   if (platform === "linux") {
     return ["/proc/net/tcp", "/proc/net/tcp6"].flatMap((file) => {
@@ -199,9 +206,9 @@ function listenAddresses(port, platform = process.platform) {
       }
     });
   }
-  const args =
-    platform === "win32" ? ["-an", "-p", "TCP"] : ["-an", "-p", "tcp"];
-  const result = spawnSync("netstat", args, { encoding: "utf8" });
+  const result = spawnSync("netstat", netstatArgs(platform), {
+    encoding: "utf8",
+  });
   return parseNetstat(result.stdout || "", port);
 }
 
@@ -574,6 +581,7 @@ module.exports = {
   classifyAddress,
   findChrome,
   isLoopbackOnly,
+  netstatArgs,
   parseNetstat,
   parseProcNet,
   spawnSpec,
