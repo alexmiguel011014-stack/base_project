@@ -2457,6 +2457,77 @@ das emissões depois de tarefa.
 
 ---
 
+## 57. Verificação de UI num navegador real: o modificador `cdp` (GOALS 18) (2026-10-05)
+
+**Origem**: o dono perguntou se valia um "comando parasita" — algo que se chama junto de outro
+comando (por exemplo `/execgoals`) quando se quer teste CDP — ou se o CDP deveria ficar sempre
+ligado. Registrado como GOALS 18 em 2026-09-29 e executado em 2026-10-05.
+
+**Opções avaliadas** (medidas neste repositório em 2026-09-29):
+
+1. *CDP sempre ligado.* O bloco de regras é carregado em toda sessão de todo projeto, inclusive
+   nos sem UI (este repositório não tem nenhuma), e uma porta de depuração é controle total de um
+   navegador: desde o Chrome 136 `--remote-debugging-port` é ignorada no perfil padrão e exige um
+   `--user-data-dir` próprio, porque atacantes usavam a porta para roubar cookies. O padrão que
+   importa já existia — o bloco "UI verification & screen control" faz das ferramentas por
+   DOM/árvore de acessibilidade o jeito padrão de testar uma UI. Faltava um jeito de exigir prova
+   em navegador real *numa execução*.
+2. *Um comando `/cdp` de verdade.* O único precedente de par no repositório, `/newgoal
+   /repertoire`, funciona porque o `newgoal.md` (passo 4b) procura o outro comando na mesma
+   mensagem — aqui um "parasita" é um token que o hospedeiro reconhece. Um 22º comando mexeria
+   nos quatro arquivos de comando, no menu das três plataformas, nos `21` fixos de
+   `dev/tests/codex.test.js` (2 asserts) e do `ci.yml` (bash e PowerShell) e em cerca de uma
+   dúzia de linhas de README/ARCHITECTURE — para algo que não roda sozinho.
+3. *Um token — escolhida.* Um arquivo de referência, um parágrafo por hospedeiro, nenhuma
+   contagem, linha de menu ou contagem de CI muda, e custo zero quando não é digitado.
+
+**Mudança**: o token é a palavra inteira `cdp` (também `/cdp`, `$cdp`, `--cdp`), lida só dos
+argumentos da chamada — nunca de `GOALS.md` nem de arquivo algum —, reconhecida por `/execgoals`
+e `/fixproject` nas quatro variantes (Claude, opencode denso, opencode lite, Codex). Ao casar, o
+hospedeiro diz uma vez que o modo CDP está ligado, lê `references/cdp-verification.md` por
+inteiro antes do primeiro item e só dá o item como feito (ou corrigido) com a evidência que esse
+arquivo define: snapshot de acessibilidade/DOM antes e depois, console e requisições falhas,
+como texto. Item sem UI: `cdp: not applicable`. Sem a palavra: nenhum navegador com porta de
+depuração. A referência fixa o contrato de segurança — o token autoriza exatamente uma coisa
+(navegador isolado, só em loopback, perfil descartável, dirigido e fechado); ordem de drivers
+(ferramenta que gerencia o próprio navegador, senão navegador próprio mais um driver que o
+ambiente já tem; ferramenta ligada ao navegador do usuário, como o Claude in Chrome, **fica de
+fora**, porque não consegue honrar o isolamento); lançamento (`--user-data-dir` novo,
+`--remote-debugging-port=0`, porta lida de `DevToolsActivePort`, checagem de loopback,
+`--no-sandbox` só onde a plataforma força); evidência como texto; limpeza em todo desfecho. A
+quarta linha do bloco "UI verification & screen control" (idêntica nos três arquivos de regra)
+diz que a porta de depuração é opt-in. `/fixproject` lia `$ARGUMENTS` como foco — `/fixproject
+cdp` leria "cdp" como um achado a corrigir — e agora exclui a palavra no passo 1.
+
+**O que foi e o que não foi provado**:
+- Sonda local de 2026-09-29 (Linux, Chromium 1194 do Playwright): perfil descartável + porta 0 +
+  `DevToolsActivePort` + `connectOverCDP`, ouvindo só em `127.0.0.1`; snapshot antes e depois de
+  um clique, erros de console e uma requisição falha lidos como texto. A primeira tentativa
+  quebrou na checagem de porta da própria sonda e deixou sete processos do Chrome rodando — por
+  isso a limpeza em todo desfecho é cláusula da referência.
+- `dev/scripts/cdp-smoke.js` (`npm run smoke:cdp`) refaz essa sequência e checa seis
+  propriedades; passou em Linux (root, Chromium 141), e mutantes que pulam a remoção do perfil ou
+  o kill do grupo de processos falham as checagens certas. Achou um defeito real do procedimento:
+  com `TMPDIR` de 62 caracteres o Chrome cai na partida, em silêncio — a referência agora manda
+  usar `TMPDIR=/tmp` acima de 50.
+- `dev/tests/cdp-modifier.test.js` (sem navegador) fixa o texto: os 8 hospedeiros, as duas cópias
+  da referência com 23 cláusulas, o classificador de loopback contra as listagens de Linux, macOS
+  e Windows.
+- **Não provado**: Windows e macOS só são exercitados quando um PR roda o CI nas três
+  plataformas; e o modelo seguindo o parágrafo só se prova no uso real (aceite manual, C18.16).
+
+**Como chega à máquina**: só pelo instalador (referência em `~/.claude/base_project/references/`,
+`~/.config/opencode/base_project/references/` e `~/.codex/base_project/references/`; parágrafos
+nos comandos/skills; a regra no bloco global) e vale a partir da próxima sessão.
+
+**Deixado de fora de propósito**: um comando, skill ou linha de menu `cdp` (a contagem segue 21);
+porta de depuração sempre ligada; qualquer mudança no padrão de que DOM/árvore de acessibilidade é
+como se testa uma UI. Seguimentos separados, decisão do dono (C18.17): `chrome-devtools-mcp` como
+entrada opcional do catálogo e fixar a versão do Playwright MCP do catálogo (hoje
+`@playwright/mcp@latest`).
+
+---
+
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
 
 - **Zero pegada no repositório do projeto instalado** — nada é escrito dentro do projeto
@@ -2466,6 +2537,9 @@ das emissões depois de tarefa.
   sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
 - **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
   custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
+- **Prova de UI em navegador real é um token opt-in, `cdp` (item 57)** — nem porta de depuração
+  sempre ligada, nem um 22º comando; só `/execgoals` e `/fixproject` o reconhecem, e ele autoriza
+  um navegador isolado, só em loopback, nunca o perfil real do usuário.
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

@@ -11,11 +11,11 @@ O que você deseja fazer agora?
 - `/bootstrap` — botão de inicialização: sincroniza o projeto com o remoto (`git pull` se atrás), depois mapeia o projeto (repomix + graphify) e abre o mapa visual HTML. Se falhar, guia passo a passo.
 - `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
 - `/repertoire` — pesquisa um assunto a fundo: o domínio real de um projeto (científico, regulatório, cultural, midiático) antes do `/newgoal` planejar, **ou** um tópico/tendência avulso que você ouviu falar e quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar. Sempre confirma. Combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho.
-- `/execgoals` — executa o `GOALS.md` ativo gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade e checando a estrutura do plano após lotes de edição.
+- `/execgoals` — executa o `GOALS.md` ativo gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade e checando a estrutura do plano após lotes de edição. Aceita o modificador `cdp`: prova a interface num navegador real e isolado, via CDP.
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
 - `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.
-- `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`, com contrato determinístico de escopo, decisão do usuário e verificação.
+- `/fixproject` — executa as correções apontadas pelo `/scanproject` e/ou `/cleanproject`, com contrato determinístico de escopo, decisão do usuário e verificação. Aceita o modificador `cdp`: prova cada correção de interface num navegador real e isolado, via CDP.
 - `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.
 - `/diario` — registra o que foi feito no diário de contribuições deste projeto (entradas datadas + tabela de horas), a partir do que já foi gravado automaticamente. Os diários ficam numa pasta fora de todos os repositórios — nunca vão pro GitHub.
 - `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar. O contrato de segurança também é coberto por um harness local sem API paga.

@@ -33,8 +33,9 @@ base_project/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
 │   │   ├── commands/*.md       → ~/.claude/commands/     (21 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
-│   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
-│   │                            research, lidos por /newgoal pra classificar cada meta)
+│   │                            command-menu.md, cdp-verification.md — só lido quando um comando
+│   │                            recebe o modificador `cdp` —, goal-types/*.md — build/fix/feature/
+│   │                            process/research, lidos por /newgoal pra classificar cada meta)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
 │   │   ├── command/*.md        → ~/.config/opencode/command/   (perfil "dense", default — mesmos
@@ -45,7 +46,7 @@ base_project/
 │   │   │                        justificativa embutida, pra modelos fracos que perdem o fio em
 │   │   │                        instrução condicional densa; nunca os dois instalados juntos)
 │   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
-│   │                            formato opencode)
+│   │                            formato opencode, inclusive cdp-verification.md)
 │   │   ├── mcp.json            → seção `mcp` do opencode.jsonc, `claude mcp add`, config.toml do
 │   │   │                          Codex e ~/.kimi/mcp.json (hoje só o context7, versão fixada)
 │   │   └── mcp-previous.json   → não instalado: definições já distribuídas, para aposentar/atualizar
@@ -53,7 +54,7 @@ base_project/
 │   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
 │   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
 │   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 21 workflows; invocação `$nome`)
-│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex; standards/goal-types compartilhados)
+│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex; standards, goal-types e cdp-verification.md compartilhados)
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
 │   └── hooks/*.js              → ~/.claude/base_project/hooks/
 │
@@ -70,6 +71,7 @@ base_project/
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
 │   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md
 │   │   ├── goals-archive-index.js    ← CLI: --check/--write da coluna de checksums de dev/goals-archive/README.md
+│   │   ├── cdp-smoke.js              ← CLI (`npm run smoke:cdp`): roda a sequência de lançamento do modificador `cdp` — Chrome headless, perfil novo, porta só em loopback, limpeza — e falha se uma propriedade não vale; passo do CI em cada SO
 │   │   ├── paths.js, config-store.js, resolve-layers.js, adapters/, apply.js, drift.js, audit.js,
 │   │   │   doctor.js, lint-config.js, context.js, wizard.js, sync.js, tasks.js, history.js,
 │   │   │   snapshot.js, secrets.js, marketplace.js, check-plugin-updates.js, adapter-interface.md
@@ -160,10 +162,10 @@ não foi usada porque perderia descoberta implícita e o empacotamento progressi
 |---|---|
 | `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
 | `/repertoire` | Pesquisa um assunto a fundo — o domínio real de um projeto (científico, regulatório/legal, cultural, mídia) alimentando o `/newgoal`, ou um tópico/tendência avulso que o usuário quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar; sempre confirma. |
-| `/execgoals` | Executa o `GOALS.md` ativo item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade e checa a estrutura após cada lote de edição. |
+| `/execgoals` | Executa o `GOALS.md` ativo item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade e checa a estrutura após cada lote de edição. Aceita o modificador `cdp` (§ 4.5). |
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
-| `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
+| `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". Aceita o modificador `cdp` (§ 4.5). |
 | `/undo` | Reverte o último lote de mudança — não commitada, arquivo novo não rastreado, ou o último commit — com confirmação em tiers separados por risco. Nunca `git reset --hard`/force-push sem um gate explícito à parte; commit já enviado é desfeito com `git revert`, nunca reescrito. |
 | `/diario` | Registra o que foi feito no diário de contribuições do projeto (entradas datadas + tabela de horas), sintetizado do ledger de uso + histórico git. Os diários ficam num diretório central **fora de todos os repositórios** — garantia arquitetural de que nunca chegam ao GitHub. |
 | `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
@@ -266,6 +268,33 @@ com todos os registros antigos, sem migração nem divisão de histórico.
 Quando um hook Codex é novo ou muda, o Codex pede revisão/confiança do usuário antes de executá-
 lo. O installer faz o merge idempotente, mas nunca tenta burlar essa fronteira de segurança.
 
+### 4.5 Modificadores — o `cdp`
+
+Um **modificador** é um token que o comando-hospedeiro reconhece nos argumentos da chamada —
+o mesmo mecanismo que `/newgoal /repertoire` já usa. Não é um comando: a contagem continua
+em 21 e nenhum menu ganha linha. O `cdp` (também `/cdp`, `$cdp`, `--cdp`) é reconhecido por
+`/execgoals` e `/fixproject`, nas quatro variantes de cada (Claude, opencode denso, opencode
+lite, Codex): com ele, todo item que tem UI alcançável por navegador só é dado como feito
+(`/execgoals`) ou corrigido (`/fixproject`) com evidência de um navegador real dirigido pelo
+Chrome DevTools Protocol. O texto que manda ler a referência fica no próprio comando; a
+referência (`references/cdp-verification.md`, duas cópias idênticas — a do Claude também
+chega ao Codex, a do opencode é separada) só é lida quando o token aparece.
+
+Por que modificador, e não porta de depuração sempre ligada nem um 22º comando: uma porta
+CDP aberta dá controle total do navegador a qualquer processo local, então a regra global é
+que ela é **opt-in** (a quarta linha do bloco "UI verification & screen control", idêntica
+nos três arquivos de regra); e um comando à parte teria de repetir o que `/execgoals` e
+`/fixproject` já fazem. O token autoriza exatamente uma coisa — um navegador isolado, só em
+loopback, com perfil descartável, dirigido e fechado ao fim. Nunca o navegador ou o perfil
+real do usuário (por isso uma ferramenta ligada ao navegador do usuário, como o Claude in
+Chrome, não conta como driver), e o token só vale quando digitado: texto em `GOALS.md` ou
+em arquivos do projeto nunca o ativa. Sem o token, as ferramentas que gerenciam o próprio
+navegador (painel Browser, Playwright MCP) continuam sendo o jeito padrão de testar uma UI.
+
+O que os testes provam: o texto (`cdp-modifier.test.js`) e a sequência de lançamento
+(`cdp-smoke.js`, no CI). O que só o uso real prova — o modelo seguindo o parágrafo — fica
+como aceite manual no GOALS 18.
+
 ---
 
 ## 5. O catálogo de plugins (`plugins.json`)
@@ -358,7 +387,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 |---|---|---|
 | **`/bootstrap`** | comando | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
 | **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
-| **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão e ao fechar tarefa substancial — lista todos os comandos em linguagem simples. |
+| **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão (e sob demanda com `/wpp`; nunca depois de uma tarefa) — lista todos os comandos em linguagem simples. |
 | **context7** | MCP (sempre ativo, versão fixada) | Busca documentação atualizada de biblioteca/framework. |
 | **filesystem** | MCP opcional (`/plugins`) | Acesso a arquivo restrito aos diretórios passados. Saiu do conjunto sempre-ativo na v1.2.0 (zero uso medido; os agentes têm ferramentas de arquivo nativas). |
 | **git** | MCP opcional (`/plugins`) | Operações git estruturadas pelo servidor oficial (`mcp-server-git`, via `uvx`). Substitui o `mcp-git` sempre-ativo (mantenedor individual, sem versão fixada, zero uso medido). |
@@ -502,6 +531,11 @@ Codex reutilizam esse caminho compartilhado.
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
   e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
   isolado como prova
+- `cdp-modifier.test.js` — o modificador `cdp`, sem navegador: os 8 hosts (`/execgoals` e
+  `/fixproject` × Claude, opencode denso, opencode lite, Codex) citam a própria referência e
+  trazem os três comportamentos, as duas cópias da referência idênticas e com cada cláusula
+  de segurança, nenhum comando/skill/linha de menu `cdp`, e o classificador de loopback do
+  smoke contra as listagens de Linux, macOS e Windows
 - `install-opencode.test.js` — merge do `opencode.jsonc`: comentários, entradas do usuário,
   idempotência, posse dos MCPs, arquivo ilegível intocado
 - `mcp-servers.test.js` — `config.toml` do Codex (formato antigo dos dois instaladores,
@@ -539,7 +573,11 @@ Dois jobs:
    installer uma 2ª vez pra confirmar idempotência. Desde o GOALS 17 também roda
    `npm ci` + `npm test` em cada SO: até então os testes só rodavam no Ubuntu enquanto a
    validação do dia a dia acontecia no Windows, e um teste dependente de plataforma ficou
-   vermelho no CI por um mês sem ninguém notar.
+   vermelho no CI por um mês sem ninguém notar. Desde o GOALS 18 roda também
+   `npm run smoke:cdp` em cada SO: abre o Chrome do próprio runner com um perfil descartável
+   e confere a sequência que o modificador `cdp` manda o modelo seguir (porta de debug só em
+   loopback, limpeza completa). As imagens hospedadas trazem Chrome; sem ele o passo falha —
+   em CI, navegador ausente é runner quebrado, não motivo de pular.
 
 `biome.json`/`tsconfig.json` (raiz — ver seção 2 sobre por que não estão em `dev/`)
 escopam `source/hooks/**/*.js`, `dev/scripts/*.js`, `dev/tests/**/*.js` — sem isso o

@@ -9,11 +9,11 @@ O que você deseja fazer agora?
 - `$bootstrap` — sincroniza o projeto com o remoto e mapeia o código com repomix + graphify.
 - `$newgoal` — pesquisa e escreve o plano executável em `GOALS.md`; nunca implementa o plano.
 - `$repertoire` — pesquisa profundamente o domínio de um projeto ou um assunto avulso; declara limites e sempre confirma antes.
-- `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição.
+- `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição. Aceita o modificador `cdp`: prova a interface num navegador real e isolado, via CDP.
 - `$scanproject` — audita identidade, CI, testes, lint, segurança básica e estrutura. Comece aqui.
 - `$audit` — aprofunda a parte de segurança: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `$cleanproject` — procura arquivos mortos, pastas erradas e duplicação sem alterar nada.
-- `$fixproject` — corrige os achados de `$scanproject` e `$cleanproject` e verifica cada correção; os contratos de escopo e decisão são testados localmente.
+- `$fixproject` — corrige os achados de `$scanproject` e `$cleanproject` e verifica cada correção; os contratos de escopo e decisão são testados localmente. Aceita o modificador `cdp`: prova cada correção de interface num navegador real e isolado, via CDP.
 - `$undo` — reverte o último lote de mudanças com confirmações separadas por risco.
 - `$diario` — registra contribuições no diário externo ao repositório, usando o histórico já coletado.
 - `$ship` — valida, commita e envia as mudanças sem force-push nem resolução automática de conflitos; a segurança é coberta por um harness local sem API paga.

@@ -153,11 +153,11 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
 | `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. It then recommends a model + effort for the plan's highest-complexity module and asks whether to execute or adjust the plan; the recommendation is manual and never switches the model automatically. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
-| `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
+| `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. Add `cdp` to prove each item that has a UI in a real, isolated browser (see *Modifiers* below). |
 | `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
 | `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
-| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
+| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. Add `cdp` to prove each UI fix in a real, isolated browser (see *Modifiers* below). |
 | `/undo` | Reverts the most recent batch of change — uncommitted edits, untracked new files, or the last commit — with confirmation tiered by risk. Never `git reset --hard` or force-push without a separate explicit gate; a pushed commit is undone with `git revert`, never rewritten. |
 | `/diario` | Records what was worked on into this project's contribution diary — dated entries plus an hours table, synthesized from the tool-call ledger `usage-log.js` already writes and from git history. Diaries live in one central directory outside every repository, so they can never reach GitHub. |
 | `/ship` | Commits and pushes the current project's changes. Checks readiness first (clean state, no secrets, lint/test passing, remote configured) and guides through whatever's blocking instead of a raw git error. Never force-pushes, never resolves conflicts automatically. |
@@ -171,6 +171,8 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/updates` | Reports available updates for base_project-managed dependencies, tools, MCPs, and detected optional components. Read-only: never installs, upgrades, pulls, or changes configuration. |
 | `/uninstall` | Cleanly removes everything base_project installed globally, with tiered confirmation — bigger-blast-radius items (hooks, MCP servers) confirmed separately. Never deletes the base_project repo itself. |
 | `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start. It is never shown on its own after a task; this is how to bring it back. |
+
+**Modifiers.** A modifier is a word you add to a command, not a command of its own: the command recognizes it in what you type, the way `/newgoal /repertoire` already works. `/execgoals cdp` and `/fixproject cdp` prove every item that has a UI in a real browser driven over the Chrome DevTools Protocol, and write the evidence (page snapshot before and after, console errors, failed requests) into the item's proof. It is opt-in: without the word nothing opens a browser debug port. With it, the browser is an isolated, loopback-only one with a throwaway profile, closed when the run ends — your own browser profile is never used. The word counts only when you type it (`cdp`, `/cdp`, `$cdp` or `--cdp`), never when it appears in `GOALS.md` or project files.
 
 ---
 
@@ -214,6 +216,7 @@ Append an entry to `source/plugins.json` (id, kind, summary, `recommend_if`, ins
 | **Your usage history is yours** | The local usage ledger (`~/.claude/base_project/usage/`) is kept until you decide otherwise — it is the only source `/diario` has for past hours. To trim it, `node <base_project clone>/dev/scripts/ledger-prune.js --keep-days 180` shows what would go (dry run, deletes nothing); add `--apply` to delete those whole-day files. `/uninstall` asks separately before touching it. |
 | **Nothing is installed per-project** | If you ever stop using base_project, delete the managed block from `~/.claude/CLAUDE.md` and the marked files from the global directories — your projects were never touched. |
 | **Screen control is a last resort** | The global rules make every runtime test UIs through DOM-driven browser tooling and the project's own tests; desktop computer use needs your explicit per-task go-ahead, and screenshots are requested from you rather than captured. |
+| **Debug ports are opt-in** | No runtime starts a browser with a remote-debugging port on its own initiative. The `cdp` modifier (`/execgoals cdp`, `/fixproject cdp`) is your go-ahead for exactly one thing: an isolated, loopback-only browser with a throwaway profile, driven and then closed. It never reaches your own browser profile, and a tool attached to your own browser is not accepted as the driver. |
 
 ---
 
@@ -281,9 +284,10 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ## 📬 Changelog
 
 ### Unreleased
+- New `cdp` modifier: `/execgoals cdp` and `/fixproject cdp` prove a UI in a real, isolated browser over the Chrome DevTools Protocol. Opt-in — no new command, and nothing opens a debug port without the word; a smoke test of the launch sequence (`dev/scripts/cdp-smoke.js`) runs in CI on Linux, Windows and macOS
 - The "what do you want to do now?" menu is no longer printed after a finished task (it cost about a thousand tokens each time and stayed in the context); it still appears at session start, and `/wpp` brings it back on demand
 
-### v1.2.0 (unreleased — tag pending)
+### v1.2.0
 - Audit remediation (GOALS 17, `dev/auditoria-2026-09-24.md`): CI green again and unit tests run on Linux, Windows and macOS
 - Hook warnings now reach the model (`additionalContext`); auto-format no longer goes through `npx` and only runs on edits
 - `opencode.jsonc` is merged, not replaced: your own instructions, MCP servers and comments survive; unparseable files are left untouched

@@ -246,6 +246,108 @@ test("the modifier is not a command: no cdp command, skill or menu line exists",
 });
 
 // ---------------------------------------------------------------------------
+// Registration: menus, README, ARCHITECTURE (C18.12, C18.13).
+// ---------------------------------------------------------------------------
+
+test("every menu says /execgoals and /fixproject accept cdp, on the lines they already had", () => {
+  for (const [menu, prefix] of [
+    [["source", "claude", "references", "command-menu.md"], "/"],
+    [["source", "opencode", "references", "command-menu.md"], "/"],
+    [["source", "codex", "references", "command-menu.md"], "$"],
+  ]) {
+    const lines = read(menu).split("\n");
+    for (const name of ["execgoals", "fixproject"]) {
+      const line = lines.find((candidate) =>
+        candidate.startsWith(`- \`${prefix}${name}\``),
+      );
+      assert.ok(line, `${menu.join("/")} lists ${prefix}${name}`);
+      assert.match(line, /modificador `cdp`/, `${menu.join("/")} ${name}`);
+      assert.match(
+        line,
+        /navegador real e isolado/,
+        `${menu.join("/")} ${name}`,
+      );
+    }
+  }
+});
+
+test("README and ARCHITECTURE register the modifier and keep the command count at 21", () => {
+  const readme = read(["README.md"]);
+  const architecture = read(["ARCHITECTURE.md"]);
+  const row = (text, name) =>
+    text.split("\n").find((line) => line.startsWith(`| \`/${name}\` |`));
+
+  for (const name of ["execgoals", "fixproject"]) {
+    assert.match(row(readme, name) || "", /`cdp`/, `README /${name} row`);
+    assert.match(
+      row(architecture, name) || "",
+      /modificador `cdp`/,
+      `ARCHITECTURE /${name} row`,
+    );
+  }
+  assert.match(
+    readme,
+    /\*\*Modifiers\.\*\* A modifier is a word you add to a command/,
+  );
+  assert.match(readme, /\| \*\*Debug ports are opt-in\*\* \|/);
+  const unreleased = readme.slice(readme.indexOf("### Unreleased"));
+  assert.match(
+    unreleased.slice(0, unreleased.indexOf("\n### ", 5)),
+    /`cdp` modifier/,
+    "the changelog's Unreleased section mentions it",
+  );
+
+  // One regex per engine: the three references lists each name the reference.
+  for (const [engine, pattern] of [
+    [
+      "Claude",
+      /→ ~\/\.claude\/base_project\/references\/ \([\s\S]{0,300}?cdp-verification\.md/,
+    ],
+    [
+      "opencode",
+      /→ ~\/\.config\/opencode\/base_project\/references\/ \([\s\S]{0,200}?cdp-verification\.md/,
+    ],
+    [
+      "Codex",
+      /→ ~\/\.codex\/base_project\/references\/ +\([^\n]*cdp-verification\.md/,
+    ],
+  ]) {
+    assert.match(architecture, pattern, `${engine} references list`);
+  }
+  assert.match(architecture, /cdp-smoke\.js +← CLI/, "the scripts map");
+  assert.match(architecture, /`cdp-modifier\.test\.js` —/, "the tests list");
+  const ci = architecture.slice(architecture.indexOf("## 9. CI"));
+  assert.match(
+    ci.slice(0, ci.indexOf("\n## 10.")),
+    /npm run smoke:cdp/,
+    "the CI description",
+  );
+  assert.match(
+    architecture,
+    /Um \*\*modificador\*\* é um token que o comando-hospedeiro reconhece/,
+    "the pattern is named",
+  );
+  assert.match(
+    architecture,
+    /o mesmo mecanismo que `\/newgoal \/repertoire` já usa/,
+    "and tied to the precedent",
+  );
+
+  // A modifier is not a command: no document counts a 22nd one.
+  for (const [name, text] of [
+    ["README", readme],
+    ["ARCHITECTURE", architecture],
+  ]) {
+    assert.doesNotMatch(
+      text,
+      /\b22 (comandos|commands|skills|workflows)\b/,
+      `${name} still counts 21`,
+    );
+  }
+  assert.match(architecture, /## 4\. Os 21 comandos/);
+});
+
+// ---------------------------------------------------------------------------
 // The smoke's loopback classifier, from the listing format of each OS (C18.8).
 // ---------------------------------------------------------------------------
 

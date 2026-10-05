@@ -355,13 +355,21 @@ Suggested: sonnet · high — mutation checks are what make these tests worth ha
 
 Suggested: sonnet · medium — mostly mechanical, but the menus are user-language text guarded by parity tests.
 
-- [ ] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
+- [x] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
   `source/opencode/references/command-menu.md`, `source/codex/references/command-menu.md`
   (Portuguese — user-facing text): the `/execgoals` and `/fixproject` lines (`$…` in Codex) gain
   one clause saying they accept `cdp` to prove the UI in a real, isolated browser over CDP.
   **Done when:** all three menus say it on both lines, the menu assertions in
   `dev/tests/codex.test.js` and `npm run test:harness` pass, and no new menu line exists.
-- [ ] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
+  **Proof:** the `/execgoals` and `/fixproject` lines of `source/claude/references/command-menu.md`,
+  `source/opencode/references/command-menu.md` and `source/codex/references/command-menu.md` (`$…` in Codex) each end
+  with "Aceita o modificador `cdp`: prova … num navegador real e isolado, via CDP." (Portuguese — the menu is
+  rendered literally). The diff is those six lines and nothing else, so no menu line is new, and the Claude and
+  opencode copies are still byte-identical. `cdp-modifier.test.js` pins the clause on both lines of all three menus
+  and still rejects a menu line that starts with `/cdp`; `codex.test.js` (the menu names every skill) and `npm run test:harness` (12/12
+  artifacts, 16/16 scenarios) pass. Mutation copies: the clause dropped from the Claude `/execgoals` line (1 failing
+  test), from the Codex `/fixproject` line (1), a `/cdp` menu line added (1); the unmodified copy fails none.
+- [x] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
   `/fixproject` rows, a short note on modifiers ("a word you add to a command"), a safety-table
   row ("debug ports are opt-in") and a changelog line under the existing `### Unreleased` heading (no version
   bump — that is the owner's release call); ARCHITECTURE: the references list, the scripts map
@@ -369,9 +377,26 @@ Suggested: sonnet · medium — mostly mechanical, but the menus are user-langua
   modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already
   uses"). **Done when:** each of those places mentions it, checked with grep, and the command
   count still reads 21 everywhere.
-- [ ] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the next free number — 56 is the menu change) with the three options, the evidence from "Design rationale", the probe result
+  **Proof:** README — the `/execgoals` and `/fixproject` rows end with the `cdp` pointer, a **Modifiers.** paragraph follows the
+  commands table and names `/newgoal /repertoire` as the precedent, the safety table has "Debug ports are opt-in",
+  and `### Unreleased` carries the changelog line (no version bump). The heading the v1.2.0 tag had made stale is
+  fixed too: `### v1.2.0 (unreleased — tag pending)` is now `### v1.2.0` (the tag exists, at `8429a9e`). ARCHITECTURE —
+  the three references lists, the scripts map (`cdp-smoke.js`), the tests list (`cdp-modifier.test.js`), the CI
+  description (`npm run smoke:cdp` on every OS), the two command rows, and a new § 4.5 whose first sentence names the
+  pattern. One adjacent fix: the features table still said the menu appears "ao fechar tarefa substancial", left over
+  from the menu change (ROADMAP 56). The command count still reads 21 — no `22 comandos` or `22 commands` anywhere.
+  `cdp-modifier.test.js` pins each of those places (two more tests, 16 in all). Mutation copies — a README row, the
+  safety row, the changelog line, the Modifiers paragraph, a 22nd count, the ARCHITECTURE scripts map, the pattern
+  sentence, each of the three references lines and the CI section — each fail one test. The first round let two
+  survive (the references count was met by § 4.5, `npm run smoke:cdp` by the scripts map); both pins now target
+  their own place.
+- [x] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the next free number — 56 is the menu change) with the three options, the evidence from "Design rationale", the probe result
   and the choice, plus a line under "Decisões já tomadas": modifier token — not an always-on debug
   port and not a 22nd command. **Done when:** the item exists and the test suite still passes.
+  **Proof:** `dev/ROADMAP.md` item 57 ("Verificação de UI num navegador real: o modificador `cdp`"): the origin, the three options
+  with the measurements from the design rationale, the change, what was and was not proved (the 2026-09-29 probe,
+  the smoke, the tests — Windows, macOS and the model's own behavior stay open), how it reaches the machine and what
+  was left out; plus a line under "Decisões já tomadas". `npm test` 211/211 with it in place.
 - [ ] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
   `node dev/scripts/goals-archive-index.js --check`, a replay of the Linux `install-test` steps
   against a scratch `HOME` (as in GOALS 17), and the CI run of the PR (all jobs green). **Done
