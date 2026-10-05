@@ -87,3 +87,49 @@ test("hooks and installer helpers stay type-checked (GOALS 17 R17.25)", () => {
   assert.deepEqual(tsconfig.compilerOptions.types, ["node"]);
   assert.equal(tsconfig.compilerOptions.strict, true);
 });
+
+test("the CDP launch-sequence smoke runs on every OS of the install-test matrix (GOALS 18 C18.11)", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "ci.yml"),
+    "utf8",
+  );
+  const installTest = workflow.slice(workflow.indexOf("install-test:"));
+  // No `if:` on the step: it must run on Linux, Windows and macOS alike.
+  assert.match(
+    installTest,
+    /- name: Smoke-test the CDP launch sequence\n\s+run: npm run smoke:cdp/,
+  );
+  assert.ok(
+    installTest.indexOf("Run unit tests on this OS") <
+      installTest.indexOf("Smoke-test the CDP launch sequence"),
+    "the smoke runs after the unit tests",
+  );
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
+  );
+  assert.equal(manifest.scripts["smoke:cdp"], "node dev/scripts/cdp-smoke.js");
+  assert.ok(
+    !manifest.scripts.verify.includes("smoke:cdp"),
+    "a browser launch does not belong in every contributor's verify run",
+  );
+});
+
+test("both install-test blocks assert the CDP reference on all three engines (GOALS 18 C18.10)", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "ci.yml"),
+    "utf8",
+  );
+  // Bash (Linux/macOS) and PowerShell (Windows): the installed file must exist under the
+  // Claude home, the opencode home and the Codex root.
+  const assertions = [
+    /test -f "\$CLAUDE_HOME\/base_project\/references\/cdp-verification\.md"/,
+    /test -f "\$OPENCODE_HOME\/base_project\/references\/cdp-verification\.md"/,
+    /test -f "\$BASE_PROJECT_CODEX_ROOT\/base_project\/references\/cdp-verification\.md"/,
+    /\$claudeHome "base_project\\references\\cdp-verification\.md"/,
+    /\$opencodeHome "base_project\\references\\cdp-verification\.md"/,
+    /\$env:BASE_PROJECT_CODEX_ROOT "base_project\\references\\cdp-verification\.md"/,
+  ];
+  for (const assertion of assertions) {
+    assert.match(workflow, assertion);
+  }
+});

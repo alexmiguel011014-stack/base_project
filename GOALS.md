@@ -157,6 +157,12 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
      language [repo language rule; the `project-standards.md` footer].
   Added: the app under test is the URL the item names or the project's own documented dev/preview
   command, started and stopped by the run; ask when it is unclear.
+  Added while running C18.8: on Linux and macOS Chrome crashes at startup, silently, when `TMPDIR` is
+  longer than 50 characters, so the browser is started with `TMPDIR=/tmp` then, and a run that
+  opens no port reads Chrome's exit status and stderr first [measured on Chrome 141: a 52-character
+  `TMPDIR` worked, 62 characters ended in SIGTRAP with no message and no `DevToolsActivePort`; the
+  threshold matches Chrome's single-instance socket, created under `TMPDIR`, against the 108-byte
+  socket path limit (104 on macOS) — inferred from the numbers, not read from the Chrome source].
 - [x] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
   - reference: `source/claude/references/cdp-verification.md` (installed to
     `~/.claude/base_project/references/`, and to `~/.codex/base_project/references/` by the
@@ -207,7 +213,8 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   check (`\b(não|para|você|projeto|arquivo)\b` over `source/**/*.md`) still matches only the
   allowed files.
   **Proof:** `source/claude/references/cdp-verification.md` and `source/opencode/references/cdp-verification.md`
-  written on 2026-10-05 (90 lines each, `cmp` identical, managed marker first). Every clause of C18.2
+  written on 2026-10-05 (`cmp` identical, managed marker first; 90 lines each, 92 after C18.8 added the
+  `TMPDIR` rule). Every clause of C18.2
   is in it and pinned by a regex in `dev/tests/cdp-modifier.test.js`; the language-drift grep over
   `source/**/*.md` still matches only the five allowed files.
 - [x] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
@@ -253,7 +260,7 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   `SHARED_BLOCK` in `dev/tests/ui-verification-rule.test.js` matches (the sentence's backticks are
   escaped inside the template literal — unescaped, the test file failed to load). The test passes
   6/6, rewording the sentence in one file fails it, and the sentence has no `/` or `$` spelling.
-- [ ] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
+- [x] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
   dependencies (Node built-ins), exposed as `npm run smoke:cdp`. It serves a page with a known
   `<title>` from a loopback HTTP server, launches Chrome headless on that URL with a fresh
   temporary `--user-data-dir` and `--remote-debugging-port=0`, reads the port from
@@ -268,12 +275,26 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   start otherwise (record that evidence). With no Chrome it prints `skipped: no Chrome found` and
   exits 0 locally, but exits 1 when `CI` is set. **Done when:** it passes locally, and a
   deliberately broken variant that skips the profile removal fails check (4).
+  **Proof:** `dev/scripts/cdp-smoke.js` (zero dependencies) and `npm run smoke:cdp`, kept out of `npm run verify` because it needs a
+  browser (`ci-contract.test.js` pins that). It serves a page with a known title from a loopback server, starts
+  Chrome on it exactly as the reference says, and checks: the debug endpoint answers on loopback, the page target
+  carries the served title, the port listens on loopback only, then — after the kill and the profile removal in a
+  `finally` — the profile directory is gone, the port no longer answers, and no process carrying the run's profile
+  path is left (an extra check, not in the plan). Run on 2026-10-05, Linux as root, Playwright's Chromium 141: the
+  launch (`--no-sandbox` because running as root) and all six checks `ok`, about 1 s, exit 0. Without Chrome it prints
+  `skipped: no Chrome found` and exits 0, and exits 1 with `CI` set. Mutation copies run for real: removing the profile
+  removal fails check 4 (exit 1); removing the process-group kill fails checks 5 and 6 (9 processes alive, exit 1
+  after 24 s — the process exits by timer instead of hanging on the survivor); the unmodified copy passes. Running it
+  found one defect in the procedure itself: a 62-character `TMPDIR` crashes Chrome at startup (see the clause added
+  to C18.2) — the reference now carries the rule, the smoke applies it (`browserEnv`, pinned by tests) and a run that
+  opens no port now prints Chrome's exit status and stderr tail, so a red Windows or macOS job explains itself.
+  Only Linux was exercised here; the other two systems wait for C18.11.
 
 ### Tests
 
 Suggested: sonnet · high — mutation checks are what make these tests worth having, and one of them must cover OS-specific listing formats without a browser.
 
-- [ ] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
+- [x] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
   (a) each of the eight host files (`execgoals` and `fixproject` × Claude, opencode dense,
   opencode lite, Codex) matches `/\bcdp\b/`, cites exactly its own runtime's reference path from
   C18.3, and carries the three behaviors — reads the reference first, `cdp: not applicable` for
@@ -287,20 +308,48 @@ Suggested: sonnet · high — mutation checks are what make these tests worth ha
   **Done when:** the test fails if any host loses the paragraph, if a runtime cites another
   runtime's path, if the reference copies diverge or lose a clause, or if the classifier accepts a
   wildcard listener — checked with mutation copies, as in GOALS 17.
-  **Progress:** parts (a), (b) and (d) are in `dev/tests/cdp-modifier.test.js` (5 tests, 7 mutations caught — see
-  C18.5). Part (c), the loopback-classifier fixtures, waits for `cdp-smoke.js` (C18.8) because it
-  tests that script's exported classifier.
-- [ ] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
+  **Proof:** `dev/tests/cdp-modifier.test.js`, 14 tests, no browser: (a) the eight hosts carry exactly one step each, citing
+  their own runtime's path, with the token grammar, read-first, `cdp: not applicable` and no-debug-port behaviors,
+  and `/fixproject` never reads the word as a focus; (b) the two reference copies are byte-identical, managed, match
+  23 clause regexes and carry no Portuguese; (c) fixtures for Linux `/proc/net/tcp` and `tcp6`, macOS and Windows
+  `netstat`, `classifyAddress`, an empty listing never counting as loopback; (d) no `cdp` command, skill or menu line;
+  plus the smoke's arguments, environment and spawn options tied to the reference. Mutation copies, each failing at
+  least one test while the unmodified copy fails none: hosts and reference — step removed (2), wrong runtime path,
+  diverging copy, lost clause, a `cdp.md` command, step-1 exclusion removed, no-debug-port sentence removed,
+  `cdp: not applicable` removed; classifier and arguments — 0.0.0.0 accepted, empty listing accepted, `/proc` or
+  `netstat` parsing ignoring the LISTEN state, big-endian decoding, `--disable-web-security` added, `--user-data-dir`
+  dropped, CHROME_BIN or CHROME_PATH tried late, LISTENING not matched; TMPDIR and spawn options — sentence lost,
+  limit changed, no override, override on Windows, process group or stderr pipe dropped, environment ignored. The
+  first round left two survivors (netstat ignoring the LISTEN state — its fixture shared the loopback address; the
+  CHROME_BIN order — only one candidate existed); both fixtures were strengthened and now fail. The mutation harness
+  had also stopped copying `cdp-smoke.js`, which made every result a false positive until its control run showed
+  it — the control now reads 0.
+- [x] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
   test in `dev/tests/codex.test.js` to assert `<codex>/base_project/references/cdp-verification.md`
   exists after `install-codex.js`, and add to both `install-test` assertion blocks of
   `.github/workflows/ci.yml` (bash and PowerShell) that the file exists under the Claude home, the
   opencode home and the Codex root. **Done when:** removing either source copy or the Codex sync
   makes a local test or the CI assertion fail.
+  **Proof:** `codex.test.js` asserts that after `install-codex.js` the Codex-projected `cdp-verification.md` exists and equals the
+  source copy; `ci.yml` asserts the file under the Claude home, the opencode home and the Codex root in both
+  `install-test` blocks (bash and PowerShell — the PowerShell lines were read, not run, as there is no `pwsh` here);
+  `ci-contract.test.js` pins those six assertion lines, the smoke step and its absence from `verify`. Mutation
+  copies, each failing at least one test while the unmodified copy fails none: opencode source copy removed (1),
+  Claude source copy removed (4), the Codex sync skipping the reference (1), a PowerShell or a bash assertion line
+  removed (1 each — the first round left that one uncaught, so the six lines are now pinned), the CI smoke step
+  removed (1), the smoke added to `verify` (1). Replay of the Linux `install-test` steps against a scratch `HOME`:
+  install, idempotent re-run and the lite profile all PASS.
 - [ ] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
   `.github/workflows/ci.yml` (all three OS, after the unit tests) running `npm run smoke:cdp`.
   **Done when:** the step is green on Ubuntu, Windows and macOS in the run of the PR that carries
   this goal's execution (run id recorded as Proof); a red run on one OS is investigated as a real
   Chrome or procedure difference, never skipped.
+  **Progress:** the step `Smoke-test the CDP launch sequence` (`npm run smoke:cdp`, after `npm test`, all three systems) is in
+  `.github/workflows/ci.yml` and `ci-contract.test.js` pins it. It has not run on a runner: this branch is not in a
+  pull request, and CI triggers only on pull requests and pushes to main. The hosted images are expected to ship
+  Chrome (`google-chrome` on Ubuntu, `Program Files\Google\Chrome` on Windows, `/Applications/Google Chrome.app` on
+  macOS) — an assumption the first run settles; a missing browser fails the step under `CI` by design. Left open
+  until the run id of a pull request is recorded here.
 
 ### Registration
 

@@ -46,7 +46,9 @@ that item and verify it through the normal channels; that is never a failure.
   watch. Never add `--disable-web-security` or a `--remote-debugging-address`. Add `--no-sandbox`
   only where the platform forces it (for example when running as root) and say so.
 - Read the port Chrome chose from the first line of `<profile>/DevToolsActivePort` (wait for the
-  file to appear).
+  file to appear). If Chrome ends without writing it, read its exit status and stderr before
+  trying again: on Linux and macOS it crashes at startup, silently, when `TMPDIR` is longer than
+  50 characters (it binds a socket under it), so start it with `TMPDIR=/tmp` in that case.
 - Confirm the port listens on loopback only (`127.0.0.1` or `::1`) by reading the listening
   sockets: Linux `/proc/net/tcp` and `/proc/net/tcp6` (do not assume `ss` exists), macOS
   `netstat -an -p tcp`, Windows `netstat -an -p TCP`. If any other address listens, close the

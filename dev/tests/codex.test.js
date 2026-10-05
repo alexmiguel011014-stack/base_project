@@ -309,6 +309,28 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
         path.join(roots.codex, "base_project", "references", "command-menu.md"),
       ),
     );
+    assert.equal(
+      fs.readFileSync(
+        path.join(
+          roots.codex,
+          "base_project",
+          "references",
+          "cdp-verification.md",
+        ),
+        "utf8",
+      ),
+      fs.readFileSync(
+        path.join(
+          repoRoot,
+          "source",
+          "claude",
+          "references",
+          "cdp-verification.md",
+        ),
+        "utf8",
+      ),
+      "the CDP reference reaches the Codex root through the shared-references sync",
+    );
     assert.ok(
       fs.existsSync(path.join(roots.codex, "base_project", "plugins.json")),
     );
