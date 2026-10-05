@@ -104,11 +104,13 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
   1. **Scope and authority:** the token is the user's explicit go-ahead for exactly one thing —
      starting an isolated, loopback-only browser and closing it. It authorizes no real profile, no
      tool installation, no screen control and no third-party sites.
-  2. **Driver order:** an already-connected app-driving tool first (Browser pane, Claude in Chrome,
-     Playwright MCP — each drives a real browser through CDP itself; never start a second browser
-     beside one). Otherwise start an own browser and attach with whatever driver is available; if
-     there is none, name what is missing (Playwright MCP through `/plugins`, Claude in Chrome, the
-     Browser pane) and stop for the user's choice — no silent installs.
+  2. **Driver order:** a tool that launches and manages its own browser first (Browser pane, a
+     Playwright MCP that starts its own — each drives a real browser through CDP itself; never start a
+     second browser beside one). Otherwise start an own browser and attach with whatever driver is
+     available; a tool attached to the user's own browser (Claude in Chrome, an extension bridge) is
+     excluded, because it cannot honor the isolation. If there is no driver, name what is missing
+     (Playwright MCP through `/plugins`, the Browser pane) and stop for the user's choice — no silent
+     installs.
   3. **Launch (own browser only):** a fresh temporary `--user-data-dir` (Chrome 136+ ignores the
      debug switches on the default profile, so this is also the only form that works);
      `--remote-debugging-port=0` with the chosen port read from `<profile>/DevToolsActivePort`;
@@ -130,14 +132,15 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
   1. Scope and authority — the token authorizes exactly one thing: start an isolated, loopback-only
      browser, drive it, close it [repo rule: state outside the repository is human-in-the-loop, so the
      go-ahead must be explicit and bounded].
-  2. Driver order, refined while reading the tool list: (a) a tool that manages its own browser (the
-     Browser pane, a Playwright MCP) — use it, never a second browser beside it; (b) Claude in Chrome
-     drives the user's own signed-in Chrome [its skill: "acts in the person's real Chrome with their
-     own sign-ins"], so it cannot honor clause 1's isolation and comes second, limited to a new tab on
-     the app under test, never other tabs, its site-permission prompts apply; (c) otherwise start an
-     own browser and attach with the driver the environment already has (`@playwright/mcp
-     --cdp-endpoint`, confirmed with `--help`) or the project's own Playwright/Puppeteer; (d) no
-     driver: name what is missing, stop, install nothing.
+  2. Driver order, revised while writing the reference: (a) a tool that launches and manages its own
+     browser (the Browser pane, `@Browser`, a Playwright MCP that starts its own) — use it, never a
+     second browser beside it; (b) otherwise start an own browser and attach with the driver the
+     environment already has (`@playwright/mcp --cdp-endpoint`, confirmed with `--help`) or the
+     project's own Playwright/Puppeteer; (c) a tool attached to the user's own browser — Claude in
+     Chrome [its skill: "acts in the person's real Chrome with their own sign-ins"], an extension
+     bridge — is excluded: it cannot honor clause 1's isolation, and an exception to the profile rule
+     would hollow it out; the user can still use it without the modifier; (d) no driver: name what is
+     missing, stop, install nothing. (First draft made Claude in Chrome a restricted second choice.)
   3. Launch — fresh temporary `--user-data-dir`; `--remote-debugging-port=0` with the port read from
      `<profile>/DevToolsActivePort`; headless unless the user asks to watch; loopback-only check
      before use; no `--disable-web-security`; `--no-sandbox` only where the platform forces it
@@ -197,13 +200,17 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
 
 Suggested: sonnet · high — eight near-identical host edits must each stay faithful to their variant's style, and the smoke script has OS-specific process and port handling.
 
-- [ ] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
+- [x] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
   the byte-identical `source/opencode/references/cdp-verification.md`, beginning with the
   `# base_project:managed` marker and containing every clause of C18.2 in imperative English.
   **Done when:** both files exist and are identical, the marker is present, and the language-drift
   check (`\b(não|para|você|projeto|arquivo)\b` over `source/**/*.md`) still matches only the
   allowed files.
-- [ ] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
+  **Proof:** `source/claude/references/cdp-verification.md` and `source/opencode/references/cdp-verification.md`
+  written on 2026-10-05 (90 lines each, `cmp` identical, managed marker first). Every clause of C18.2
+  is in it and pinned by a regex in `dev/tests/cdp-modifier.test.js`; the language-drift grep over
+  `source/**/*.md` still matches only the five allowed files.
+- [x] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
   `source/claude/commands/execgoals.md`, `source/opencode/command/execgoals.md`,
   `source/opencode/command-lite/execgoals.md` (as a `STEP` line in that file's flat style) and
   `source/codex/skills/execgoals/SKILL.md`, next to the step that checks items off as verified.
@@ -216,13 +223,24 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   > the word, never start a browser with a debug port.
   **Done when:** the four files carry the paragraph, each with its own runtime's `<REF>`, and the
   rest of each file is unchanged (the diff shows only the paragraph).
-- [ ] **C18.6 Add the same paragraph to `/fixproject` in all four variants** (`coder`) —
+  **Proof:** the four `/execgoals` variants carry exactly one CDP-mode step — `4b` (Claude, opencode dense),
+  `STEP 4b` (lite), `5b` (Codex) — each citing its own runtime's reference path; the diff of each file
+  is only the added paragraph. `dev/tests/cdp-modifier.test.js` pins the token grammar, the
+  read-first rule, `cdp: not applicable`, the no-debug-port sentence and the cited path per host;
+  seven mutation copies (a step removed, a wrong runtime path, diverging or clause-less reference,
+  a `cdp.md` command, the step-1 exception removed, the no-debug-port sentence removed) all fail it.
+- [x] **C18.6 Add the same paragraph to `/fixproject` in all four variants** (`coder`) —
   `source/claude/commands/fixproject.md`, `source/opencode/command/fixproject.md`,
   `source/opencode/command-lite/fixproject.md` and `source/codex/skills/fixproject/SKILL.md`,
   next to the before/after re-verification step, with "checked off" replaced by "reported as
   fixed". **Done when:** as C18.5, and `npm run test:harness` still passes (`fixproject` is one
   of its contract commands).
-- [ ] **C18.7 Add the debug-port guard to the shared UI-verification block** (`coder`) — append as
+  **Proof:** the four `/fixproject` variants carry the step — `4a` (Claude, opencode dense), `STEP 4a` (lite),
+  `6a` (Codex) — and the three that read `$ARGUMENTS` as a focus exclude the word in step 1 (found in
+  C18.1); the diff of each file is only the new step and that exclusion. `npm run test:harness`
+  passes (`fixproject` is one of its contract commands) and the `codex.test.js` workflow-boundary
+  tests pass (198/198).
+- [x] **C18.7 Add the debug-port guard to the shared UI-verification block** (`coder`) — append as
   the fourth bullet of the block in `source/CLAUDE.md`, `source/opencode-instructions.md` and
   `source/codex/AGENTS.md` (before the runtime-specific bullet, which stays outside the block), and
   update `SHARED_BLOCK` in `dev/tests/ui-verification-rule.test.js` to match:
@@ -230,6 +248,11 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   **Done when:** the block, guard included, occurs exactly once in each of the three files,
   `dev/tests/ui-verification-rule.test.js` passes, and the sentence contains no `/` or `$` command
   spelling (the block must stay byte-identical across runtimes).
+  **Proof:** the guard is the fourth bullet of the shared block in `source/CLAUDE.md`,
+  `source/opencode-instructions.md` and `source/codex/AGENTS.md`, before each runtime bullet;
+  `SHARED_BLOCK` in `dev/tests/ui-verification-rule.test.js` matches (the sentence's backticks are
+  escaped inside the template literal — unescaped, the test file failed to load). The test passes
+  6/6, rewording the sentence in one file fails it, and the sentence has no `/` or `$` spelling.
 - [ ] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
   dependencies (Node built-ins), exposed as `npm run smoke:cdp`. It serves a page with a known
   `<title>` from a loopback HTTP server, launches Chrome headless on that URL with a fresh
@@ -264,6 +287,9 @@ Suggested: sonnet · high — mutation checks are what make these tests worth ha
   **Done when:** the test fails if any host loses the paragraph, if a runtime cites another
   runtime's path, if the reference copies diverge or lose a clause, or if the classifier accepts a
   wildcard listener — checked with mutation copies, as in GOALS 17.
+  **Progress:** parts (a), (b) and (d) are in `dev/tests/cdp-modifier.test.js` (5 tests, 7 mutations caught — see
+  C18.5). Part (c), the loopback-classifier fixtures, waits for `cdp-smoke.js` (C18.8) because it
+  tests that script's exported classifier.
 - [ ] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
   test in `dev/tests/codex.test.js` to assert `<codex>/base_project/references/cdp-verification.md`
   exists after `install-codex.js`, and add to both `install-test` assertion blocks of

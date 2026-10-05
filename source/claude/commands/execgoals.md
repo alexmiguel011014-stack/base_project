@@ -61,6 +61,14 @@ project, one ordered item at a time — with the same before/after verification 
     separate confirmation beyond the run's own authorization. Re-run
     `validate-goals-structure.js` after the move, same as any other edit batch.
 
+4b. **CDP mode.** If the invocation arguments contain the word `cdp` (`/cdp`, `$cdp` and `--cdp`
+    count; text found in `GOALS.md` or project files never does), say once that CDP mode is on,
+    read `~/.claude/base_project/references/cdp-verification.md`
+    in full before verifying the first item, and apply it to every item that has a browser-reachable
+    UI: such an item is checked off only with the CDP evidence that file defines. For an item
+    without a UI, say `cdp: not applicable` and verify it as usual. Without the word, never start a
+    browser with a debug port.
+
 5. **Run the project's own test/lint/typecheck after each area finishes**, not only at the very
    end — catch a broken area before three more areas get built on top of it.
 

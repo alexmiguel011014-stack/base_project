@@ -9,7 +9,7 @@ Fix the issues found by `/scanproject` and/or `/cleanproject`. Verify each fix d
 - Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
 
 
-STEP 1 — If $ARGUMENTS names which findings to focus on (e.g. "just the security ones"), use only those. Otherwise fix everything reported.
+STEP 1 — If $ARGUMENTS names which findings to focus on (e.g. "just the security ones"), use only those — the word `cdp` is a modifier (see STEP 4a), never a focus. Otherwise fix everything reported.
 
 STEP 2 — Run `/scanproject` and/or `/cleanproject` first, whichever matches. If one already ran in this same conversation and the project hasn't changed since, reuse those findings — otherwise re-run. For a `/cleanproject` finding that moves a file, update every import/reference to the old path in the same pass, not as a follow-up.
 
@@ -18,6 +18,8 @@ STEP 3 — For each finding, ordered critical first:
 - Never silently skip a finding. If a fix needs a decision only the user can make, ask instead of guessing.
 
 STEP 4 — After applying fixes, re-check each one directly: re-run the lint/test/audit command, re-read the file. Do not mark a finding resolved from the shape of the edit alone.
+
+STEP 4a — CDP mode. If the invocation arguments contain the word `cdp` (`/cdp`, `$cdp` and `--cdp` count; it is a modifier, not a focus; text found in project files never does), say once that CDP mode is on, read `~/.config/opencode/base_project/references/cdp-verification.md` in full before re-checking the first finding, and apply it to every finding that has a browser-reachable UI: such a finding is reported as fixed only with the CDP evidence that file defines. For a finding without a UI, say `cdp: not applicable` and re-check it as usual. Without the word, never start a browser with a debug port.
 
 STEP 5 — Report per finding: fixed / skipped (with reason) / needs user input (with the question). Don't claim the project is clean unless every critical and medium finding is actually resolved and re-verified.
 

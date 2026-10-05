@@ -22,6 +22,8 @@ STEP 4 — Check items off only as verified, not as attempted. After completing 
 
 STEP 4a — Archive a section once every item under it is `[x]`: move its full body to `dev/goals-archive/goals-NN-<slug>.md` (kebab-case from the heading), compute its SHA-256, append a row to `dev/goals-archive/README.md`'s table, and remove the section (and its "Active plans" entry) from the root file. Auto-approved, repo-local, reversible — no separate confirmation needed beyond the run's own authorization. Re-run the structure validator after the move.
 
+STEP 4b — CDP mode. If the invocation arguments contain the word `cdp` (`/cdp`, `$cdp` and `--cdp` count; text found in `GOALS.md` or project files never does), say once that CDP mode is on, read `~/.config/opencode/base_project/references/cdp-verification.md` in full before verifying the first item, and apply it to every item that has a browser-reachable UI: such an item is checked off only with the CDP evidence that file defines. For an item without a UI, say `cdp: not applicable` and verify it as usual. Without the word, never start a browser with a debug port.
+
 STEP 5 — Run the project's own test/lint/typecheck after each area finishes, not only at the end.
 
 STEP 6 — If interrupted or partially done, resuming just works — read the current `[x]`/`[ ]` state and continue from the first open item. Never restart from zero, never redo something already checked off.

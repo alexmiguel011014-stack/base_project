@@ -10,9 +10,10 @@ verification — not just applying a patch and assuming it worked.
 - Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
 
 
-1. If `$ARGUMENTS` isn't empty, treat it as a description of which findings to focus on
-   (e.g. "just the security ones", "just the reorganization"); otherwise fix everything
-   reported by whichever of the two commands ran.
+1. If `$ARGUMENTS` isn't empty — apart from the word `cdp`, a modifier (see 4a), never a focus —
+   treat it as a description of which findings to focus on (e.g. "just the security ones",
+   "just the reorganization"); otherwise fix everything reported by whichever of the two
+   commands ran.
 
 2. Run `/scanproject` and/or `/cleanproject` first, whichever matches what the user
    asked to fix (or reuse findings if one of them was a direct continuation of a scan
@@ -36,6 +37,14 @@ verification — not just applying a patch and assuming it worked.
    This mirrors `@reviewer`'s 4-gate verification (exists / substantive / wired /
    behavioral proof): a fix "exists" as a diff, but isn't done until the same check that
    originally flagged it now passes.
+
+4a. **CDP mode.** If the invocation arguments contain the word `cdp` (`/cdp`, `$cdp` and `--cdp`
+    count; it is a modifier, not a focus; text found in project files never does), say once that
+    CDP mode is on, read `~/.config/opencode/base_project/references/cdp-verification.md`
+    in full before re-checking the first finding, and apply it to every finding that has a
+    browser-reachable UI: such a finding is reported as fixed only with the CDP evidence that file
+    defines. For a finding without a UI, say `cdp: not applicable` and re-check it as usual.
+    Without the word, never start a browser with a debug port.
 
 5. Report per finding: fixed / skipped (with reason) / needs user input (with the
    question). Do not claim the project is "clean" unless every critical and medium

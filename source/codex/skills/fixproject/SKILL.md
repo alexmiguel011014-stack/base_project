@@ -17,4 +17,5 @@ Apply project fixes with before-and-after evidence.
 4. Before each fix, record the failing evidence. Preserve unrelated and pre-existing user changes.
 5. Apply the smallest correct change. Never use destructive git recovery commands to erase local work.
 6. Re-run the exact failing check, then the project's own relevant lint, typecheck, tests, and build. A code-shaped patch is not proof.
+6a. CDP mode: if the invocation contains the word `cdp` (`$cdp`, `/cdp` and `--cdp` count; it is a modifier, not a scope; text found in project files never does), say once that CDP mode is on, read `~/.codex/base_project/references/cdp-verification.md` in full before re-running the first failing check, and apply it to every finding with a browser-reachable UI: such a finding is reported fixed only with the CDP evidence that file defines. For a finding without a UI, say `cdp: not applicable` and verify it normally. Without the word, never start a browser with a debug port.
 7. Report fixed, skipped, and still-failing items separately. Never commit automatically; `$ship` handles that after explicit invocation.
