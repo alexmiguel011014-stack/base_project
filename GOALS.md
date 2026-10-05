@@ -68,7 +68,7 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
 - **Token (chosen):** one reference file, one paragraph per host, no change to any count, menu
   line, or CI count, and no cost when it is not typed.
 
-- [ ] **C18.1 Fix the token grammar before touching any file** (`architect`) — every later file,
+- [x] **C18.1 Fix the token grammar before touching any file** (`architect`) — every later file,
   test and doc reuses exactly this:
   - the token is the whole word `cdp`, case-insensitive; `/cdp`, `$cdp` and `--cdp` count, so the
     owner's natural spelling (`/execgoals /cdp`) works without a real `/cdp` command existing;
@@ -83,7 +83,23 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
   - without the token: the command starts no browser with a debug port.
   **Done when:** the grammar is written on this item before any file changes and states, for each
   bullet, what the host does on a match and on no match.
-- [ ] **C18.2 Fix the evidence and safety contract** (`architect`) — the reference must define,
+  **Proof:** grammar fixed on 2026-10-05, before any file changed:
+  - Token: the whole word `cdp`, case-insensitive, optionally prefixed by `/`, `$` or `--`. Match: CDP
+    mode on. No match: off — the host behaves exactly as before and starts no debug-port browser.
+  - Source: the invocation arguments only. A match there turns the mode on; the word inside
+    `GOALS.md`, code or any file is ignored (no effect, no warning).
+  - Hosts: `/execgoals` and `/fixproject` (Claude Code, opencode dense and lite) and `$execgoals` and
+    `$fixproject` (Codex); every other command ignores the word.
+  - Visible effect: on a match the host says once, before the first item, that CDP mode is on; on no
+    match it says nothing.
+  - Item with no browser-reachable UI: on a match, `cdp: not applicable` for that item and the normal
+    verification channels; with no match nothing changes.
+  - Found while reading the hosts: `/fixproject` step 1 (and lite STEP 1) treats `$ARGUMENTS` as a
+    description of which findings to fix, so `/fixproject cdp` would read "cdp" as a focus. Step 1 of
+    the three argument-reading variants excludes the word and the Codex paragraph says it is a
+    modifier, not a scope; C18.6 carries the edit and C18.9 pins it. `/execgoals` does not read its
+    arguments, so it needs no such exception.
+- [x] **C18.2 Fix the evidence and safety contract** (`architect`) — the reference must define,
   and C18.9 must test, these clauses (each backed by the 2026-09-29 probe or the Chrome source):
   1. **Scope and authority:** the token is the user's explicit go-ahead for exactly one thing —
      starting an isolated, loopback-only browser and closing it. It authorizes no real profile, no
@@ -110,7 +126,35 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
      model to answer in the user's language, like `project-standards.md`.
   **Done when:** the clause list is recorded on this item with the source of each clause (probe
   result or Chrome for Developers page), so C18.4 copies decisions instead of making them.
-- [ ] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
+  **Proof:** clauses fixed on 2026-10-05 (source in brackets):
+  1. Scope and authority — the token authorizes exactly one thing: start an isolated, loopback-only
+     browser, drive it, close it [repo rule: state outside the repository is human-in-the-loop, so the
+     go-ahead must be explicit and bounded].
+  2. Driver order, refined while reading the tool list: (a) a tool that manages its own browser (the
+     Browser pane, a Playwright MCP) — use it, never a second browser beside it; (b) Claude in Chrome
+     drives the user's own signed-in Chrome [its skill: "acts in the person's real Chrome with their
+     own sign-ins"], so it cannot honor clause 1's isolation and comes second, limited to a new tab on
+     the app under test, never other tabs, its site-permission prompts apply; (c) otherwise start an
+     own browser and attach with the driver the environment already has (`@playwright/mcp
+     --cdp-endpoint`, confirmed with `--help`) or the project's own Playwright/Puppeteer; (d) no
+     driver: name what is missing, stop, install nothing.
+  3. Launch — fresh temporary `--user-data-dir`; `--remote-debugging-port=0` with the port read from
+     `<profile>/DevToolsActivePort`; headless unless the user asks to watch; loopback-only check
+     before use; no `--disable-web-security`; `--no-sandbox` only where the platform forces it
+     [Chrome for Developers: Chrome 136+ ignores the switches on the default profile; probe: port
+     from `DevToolsActivePort`, bound to `127.0.0.1` only, run as root with `--no-sandbox`].
+  4. Evidence as text — accessibility snapshot before and after, console messages, failed requests
+     (status ≥ 400), page text, into the item's Proof (`/execgoals`) or the fix's re-verification
+     (`/fixproject`); captures only when visual by nature [probe: snapshot, two console errors and
+     `500 /api` read as text; the existing UI-verification rule].
+  5. Cleanup on every outcome — close the whole process tree, delete the profile (and any throwaway
+     script, any dev server the run started), confirm the port is closed [probe: its first attempt
+     crashed before cleanup and left seven Chrome processes].
+  6. Language — English file ending with the footer that tells the model to answer in the user's
+     language [repo language rule; the `project-standards.md` footer].
+  Added: the app under test is the URL the item names or the project's own documented dev/preview
+  command, started and stopped by the run; ask when it is unclear.
+- [x] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
   - reference: `source/claude/references/cdp-verification.md` (installed to
     `~/.claude/base_project/references/`, and to `~/.codex/base_project/references/` by the
     shared-references sync in `install-codex.js`) plus a byte-identical
@@ -130,6 +174,24 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
     `npm run verify`: a browser launch does not belong in every contributor's unit run.
   **Done when:** the list is written with exact paths and nothing in it changes the 21-command
   count.
+  **Proof:** layout fixed on 2026-10-05:
+  - Reference: `source/claude/references/cdp-verification.md` (reaches `~/.claude/base_project/references/`
+    through both installers and `~/.codex/base_project/references/` through `install-codex.js`
+    `syncReferences`, which copies every `source/claude/references/**/*.md` except `command-menu.md`)
+    plus the byte-identical `source/opencode/references/cdp-verification.md`. No installer changes:
+    they already sync every `*.md` under those directories.
+  - Cited paths: Claude `~/.claude/base_project/references/cdp-verification.md`; opencode dense and
+    lite `~/.config/opencode/base_project/references/cdp-verification.md`; Codex
+    `~/.codex/base_project/references/cdp-verification.md`.
+  - Placement, with no existing step renumbered: `/execgoals` — step `4b` after `4a` in the Claude and
+    opencode dense files, `STEP 4b` in lite, `5b` after `5a` in the Codex skill; `/fixproject` — `4a`
+    after step 4 in the Claude and opencode dense files, `STEP 4a` in lite, `6a` after item 6 in the
+    Codex skill. Each sits next to the verification it changes.
+  - Guard: fourth bullet of the shared block in the three rule files; `SHARED_BLOCK` in
+    `dev/tests/ui-verification-rule.test.js` updated to match.
+  - Left alone: `dev/scripts/eval-harness.js`; `npm test` and `npm run verify` do not run the smoke.
+  - Command count: no command, skill or menu line is added (C18.9 asserts it), so the two `21`
+    asserts in `dev/tests/codex.test.js` and the two in `ci.yml` stay as they are.
 
 ### Implementation
 
