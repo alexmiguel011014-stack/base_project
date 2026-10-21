@@ -32,6 +32,9 @@ The document exists, states an actual recommendation or answer (not just "here a
 options, you decide" unless the goal explicitly asked for a neutral survey), and cites real
 sources — not done when research "happened" in conversation but nothing was written down.
 
+In an executor-v1 plan, write this as the item's `check:` field: a command whose exit
+code or output proves it, or `manual — <what the user observes>` for owner work.
+
 ## Ordering rule
 
 Question definition always first — research done before the question is precise tends to

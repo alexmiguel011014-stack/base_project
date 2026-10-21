@@ -32,6 +32,9 @@ fixed in `install.sh` in this project's own history (Area C, GOALS 2): the fix w
 until a fresh install was actually run and shown to succeed, twice, with the real dependency
 (`jq`) present.
 
+In an executor-v1 plan, write this as the item's `check:` field: a command whose exit
+code or output proves it, or `manual — <what the user observes>` for owner work.
+
 ## Ordering rule
 
 Repro and root cause always come before the fix line in the same item — never write "fix X"

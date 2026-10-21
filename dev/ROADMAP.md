@@ -2455,6 +2455,23 @@ que o instalador não rodou desde antes da v1.2.0.
 primeiro pedido não é específico) e a sugestão de uma linha do `/diario` — o dono pediu só o fim
 das emissões depois de tarefa.
 
+## 57. Planos executor-v1, despacho por tier e padrão de escrita para IA (GOALS 19) (2026-10-21)
+
+O dono não lê o `GOALS.md` e quer que o modelo caro pense uma vez e um modelo barato execute.
+
+- D1: plano novo traz `Format: executor-v1`; cada item tem `tier`, `gate`, `after`, `files`, `do`, `check`.
+- D2: tiers neutros; Claude Code mapeia light/standard/strong para haiku/sonnet/opus; opencode e Codex ficam consultivos.
+- D3: o `/execgoals` roda o `check:`; o relato do executor não é prova.
+- D4: escada de falha: mesmo tier, tier acima, `blocked:`.
+- D5: `## Owner backlog` só para planos executor-v1.
+- D6: piloto pareado (plano novo, executores todos em sonnet contra tiers) decide se o roteamento fica.
+- D7: `ai-writing-standard.md` parafraseia o ASD-STE100; respostas ao usuário em BLUF.
+- D8: rejeitada uma notação comprimida "só para IA" (Markdown já é enxuto; compressão não foi medida em seguir instruções).
+- D9: reescrever os ~84 arquivos executados pelo modelo fica para depois do piloto; docs para pessoas continuam humanos.
+- D10: planos existentes (GOALS 12–18) não mudam.
+
+Aberto: piloto L19.15 e decisão L19.16 (dono). Baseline do `report:ai-style` no L19.14.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
@@ -2464,6 +2481,7 @@ das emissões depois de tarefa.
   central à identidade do projeto, não é negociável só porque ECC faz diferente.
 - **Unified layer estacionada (item 55)** — não religar sem demanda real por outro agente e
   sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
+- **Plano executor-v1 + despacho por tier (item 57)** — sem notação comprimida; planos antigos não são convertidos.
 - **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
   custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só

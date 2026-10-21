@@ -32,6 +32,9 @@ The feature is done when it's used the way a user would use it, not just when it
 project's own convention: menu, `/status`, both engines), not only present in
 `source/*/commands/`.
 
+In an executor-v1 plan, write this as the item's `check:` field: a command whose exit
+code or output proves it, or `manual — <what the user observes>` for owner work.
+
 ## Ordering rule
 
 Design rationale before implementation (a feature written before its shape is settled tends to

@@ -75,7 +75,7 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
     default (a real fork like monolith vs. microservices or SQL vs. NoSQL, not "which test
     runner" when the stack has one obvious pick), run `/council` on that specific decision —
     including its own confirmation gate — before writing the choice into `GOALS.md`. Record
-    the President's verdict as the item, not the full 5-advisor transcript.
+    the President's verdict as a `### Decisions` line, not the full 5-advisor transcript.
 
 4b. **If `/repertoire` was invoked together with this command** (e.g. `/newgoal /repertoire` in
     the same message): let `/repertoire` finish first
@@ -84,51 +84,61 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
     research. `/repertoire` researches *what the project is about*; this step researches *how to
     build it*; don't let the two blur into one pass or skip reading the briefing once it exists.
 
-5. **Write `GOALS.md` in English**, regardless of the conversation's language — this file is
-   meant to be read by `/execgoals` as much as by the user, and the user
-   asked for it explicitly. Structure it as concrete, checkable items grouped by the chosen
-   module's areas, not prose paragraphs — each item should be something a future execution pass
-   can look at and know whether it's done, tagged `(manual)` per that module's convention
-   wherever `/execgoals` cannot just run it alone. Order the items using the chosen module's
-   ordering rule: what has to exist before what.
-
-   Immediately under each `GOALS N` heading, include a short Mermaid `flowchart` diagram
-   showing the dependency order between that section's areas or major items — the same
-   ordering already being decided for the checklist itself, just made visually scannable
-   (GitHub renders Mermaid natively, and ordering mistakes in a large plan are far easier to
-   spot in a graph than in a list). Keep it to area/subsystem-level nodes, not one node per
-   checkbox — a node per item is noise past a handful of items.
-
-5a. **Annotate each module with a suggested model + effort**, right after that module's
-    flowchart: one line, `Suggested: <model> · <effort> — <one-clause reason>`. Pick `<model>`
-    from `{haiku, sonnet, opus}` and `<effort>` from `{low, medium, high, xhigh}` per that
-    module's own risk/complexity — never one fixed setting for the whole plan:
-    - **haiku / low** — mechanical, low-risk, fully-specified (boilerplate, config, doc edits).
-    - **sonnet / medium** — typical implementation work, normal verification needs.
-    - **sonnet / high** or **opus / high** — nontrivial logic, ambiguous scope, or a module
-      spanning multiple systems.
-    - **opus / xhigh** — irreversible or high-cost-of-failure work: migrations, auth/security,
-      infra, destructive operations, or anything `/execgoals` cannot safely retry.
-    This is a suggestion the user applies by hand (a session's model/effort is a user choice,
-    not something switched automatically mid-session) — it exists so a plan run end-to-end on
-    one setting can be dialed down for the modules that don't need it.
+5. **Write `GOALS.md` in English as an executor-v1 plan.** Read
+   `~/.claude/base_project/references/ai-writing-standard.md` first. Follow its Part A and its
+   glossary. The user does not read this file; `/execgoals` and its executors do. Write for an
+   executor that cannot ask questions and makes no design choice.
+   - Under the `## GOALS N — <title> (<project> <type>)` heading, write the line
+     `Format: executor-v1`. Then write a scope of three sentences or fewer.
+   - Write `### Decisions` next, one line per decision:
+     `- D<n> <decision>. Why: <one clause>. Source: <URL or file>.` Settle every choice there.
+     An item never holds an open choice.
+   - Group the items by the goal type's areas, in the type's order. Write each item in this
+     shape:
+     ```
+     - [ ] **<ID> <imperative title>**
+       - tier: <light|standard|strong> · <low|medium|high|xhigh>
+       - gate: <auto|notify|ask>
+       - after: <item IDs, or none>
+       - files: `<path>` (new|edit), ...
+       - do:
+         1. <one instruction>
+       - check: `<command run from the project root>` → <expected exit code or output>
+       - stop-if: <condition>
+     ```
+     `stop-if:` is optional. Every other field is required.
+   - One item is one executor run: 5 files or fewer and 10 steps or fewer. Split a larger item.
+   - Give the executor everything it needs: the exact text to write, the exact anchor line,
+     exact names and values. Put long text in a fenced block inside the step.
+   - `check:` must be a command whose exit code or output proves the item. The executor's own
+     report is never proof.
+   - For work only the user can do, write `tier: user`, `gate: ask`, and
+     `check: manual — <what the user observes>`.
+   - Choose the tier from the work: `light` when the step gives the exact content to write;
+     `standard` for code from a clear spec; `strong` for logic across files, open debugging, or
+     security. Use effort `xhigh` only for irreversible, security, or migration work.
+   - Choose the gate with the Tiered autonomy rule: `auto` for reversible work inside the
+     repository; `notify` when the effect is visible; `ask` for irreversible or external work,
+     credentials, or a material choice.
+   - Do not write a Mermaid diagram or a `Suggested:` line. `after:` is the dependency order;
+     `tier:` is the routing.
 
 6. **Never overwrite silently.** If `GOALS.md` already exists, read the active root file first
    and merge new findings rather than discarding them. If `dev/goals-archive/README.md` exists,
    read that index too; open an individual archived plan only when historic scope or evidence is
-   relevant, so completed detail does not become default planning context. Say plainly what
-   changed if this was called directly. `GOALS.md` is meant to be tracked in version control like
+   relevant, so completed detail does not become default planning context. Read the
+   `## Owner backlog` section of the root `GOALS.md` if it exists; do not repeat its items in a
+   new plan. Say plainly what changed if this was called directly. `GOALS.md` is meant to be tracked in version control like
    `README.md`, not gitignored: it's project documentation the user keeps, not a regenerable
    artifact.
 
-7. Report: the file path (or, for a standalone `research`-type deliverable, that file's
-   path instead), and — when this ran standalone, not backgrounded — a short outline of the
-   sections written, not the full content (the file has that).
-   After the path/outline, add one sentence in the user's language recommending the model +
-   effort best suited to the plan's highest-complexity/highest-risk module, using the module-level
-   `Suggested:` lines already defined in the plan. State that this is a manual recommendation only
-   and does not switch the model or effort automatically. Then ask, in the user's language, whether
-   the user wants to proceed with `/execgoals` or adjust the plan first.
+7. **Report in the user's language, answer first, in five lines or fewer:** the file path
+   (or, for a standalone research deliverable, that file's path); the number of items per tier;
+   the items with `gate: ask` or `tier: user`; and the session model for `/execgoals`. The
+   `/execgoals` session only dispatches, runs checks and escalates, so recommend
+   `sonnet · medium` unless an `ask` item needs more. This is a recommendation only; it
+   switches nothing. Do not describe the items: the user asks for status when they want it.
+   Then ask whether to run `/execgoals` or adjust the plan.
 
 8. **Never execute.** This command writes `GOALS.md` (or the standalone research deliverable)
    — full stop. It never edits other files, never runs installs/builds/scaffolding, and never

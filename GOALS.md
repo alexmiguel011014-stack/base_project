@@ -2,6 +2,7 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
+1. [**Lean Agent Docs: Executor-Ready Plans & Tiered Execution**](#goals-19-lean-agent-docs-executor-ready-plans-and-tiered-execution) — `/newgoal` plans in an AI-only executor contract with a runnable `check:` per item, `/execgoals` dispatches each item to a cheaper model and escalates on failure, model-executed text follows an STE-derived standard, chat output goes BLUF.
 1. [**CDP Verification Modifier**](#goals-18-cdp-verification-modifier-for-execgoals-and-fixproject) — a `cdp` word added to `/execgoals` or `/fixproject` makes the run prove UI items in an isolated real browser over the Chrome DevTools Protocol; no new command, no always-on debug port.
 2. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
 3. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
@@ -13,6 +14,576 @@ This is the active execution context for `/execgoals`. Completed plan bodies liv
 The completed bodies for GOALS 1–11 and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
+
+---
+
+<a id="goals-19-lean-agent-docs-executor-ready-plans-and-tiered-execution"></a>
+## GOALS 19 — Lean Agent Docs: Executor-Ready Plans, AI-Facing Style, Tiered Execution (base_project feature)
+
+The owner does not read `GOALS.md`; agents do. The owner wants the expensive model to think once
+and a cheap model to execute. This goal turns `/newgoal` into a planner that writes AI-only items a
+cheap executor can run with no design choice, each with a runnable `check:`; turns `/execgoals` into
+a dispatcher that sends each item to the `coder` subagent at the item's tier, runs the check itself
+and escalates on failure; adds one AI-facing writing standard derived from ASD-STE100 for text that
+agents follow and one BLUF rule for text the user reads; and, for new plans only, archives a plan
+once only owner items remain open. Existing plans (GOALS 12–18) are not changed in content, format or
+archive state. A paired pilot on the next new plan decides whether tiered routing stays.
+
+```mermaid
+flowchart TD
+    Decide[Decisions D1-D10] --> Ref[AI writing standard reference]
+    Ref --> Plan["newgoal writes executor-v1 (4 variants)"]
+    Ref --> Exec["execgoals dispatches by tier (4 variants)"]
+    Ref --> Types[goal-types done-when line]
+    Ref --> Bluf[BLUF bullet in 3 global rule blocks]
+    Plan --> Guard[Validator v1 + style lint]
+    Exec --> Guard
+    Guard --> Tests[Contract tests]
+    Types --> Tests
+    Bluf --> Tests
+    Tests --> Reg[Menus, README, ARCHITECTURE, ROADMAP]
+    Reg --> Verify[Full verification]
+    Verify --> Pilot[Paired pilot on the next new plan - manual]
+    Pilot --> Choice[Keep or advisory routing; rollout plan - manual]
+```
+
+Suggested: sonnet · high — mostly text contracts with exact content given, but eight command variants, a validator change and a lint script must stay consistent across three runtimes. Each item below also carries its own `tier:` line in the format it introduces, so the pilot can reuse it.
+
+### Decisions
+
+Suggested: opus · high — settled by this plan's research; an `architect` re-check is optional, not a step.
+
+Measured on 2026-10-21 in this repository (token figures scale the harness count for `GOALS.md`,
+41,991 tokens, at 0.376 tokens per character; treat them as estimates):
+
+- Root `GOALS.md` ≈ 42.0K tokens; `/execgoals` step 2 reads all of it. 71 of 97 items are `[x]`.
+  GOALS 14–17 (≈ 27K tokens) stay in the root only because 5 `manual` items are open (M14.8, U15.12,
+  S16.15, R17.22b, R17.27). GOALS 12 V.4 measured 52.79 tool calls per execution prompt, so a
+  42K-token read is carried on every later turn of the run as cache reads. By owner decision
+  (2026-10-21) these plans stay where they are; the leaner read comes from L19.5 step 1 (read only
+  the selected plan), not from moving old plans.
+- Loaded in every session: `source/CLAUDE.md` ≈ 4.4K; the 21 command descriptions ≈ 1.4K. Per
+  invocation: `newgoal.md` ≈ 3.7K, `execgoals.md` ≈ 2.0K. All model-executed command files:
+  Claude ≈ 41.8K, opencode dense ≈ 38.3K, opencode lite ≈ 24.4K, Codex ≈ 15.8K.
+- Ambiguity signals in the Claude commands plus `source/CLAUDE.md`: 389 em dashes, 54 "confirm"
+  (used both for "check a fact" and "the user approves"), 13 "should", 11 "may".
+- Prices per 1M tokens (claude-api reference, cached 2026-10-06): Opus 5.5 $4 in / $20 out / $0.20
+  cache read; Sonnet 5.5 $2 / $10 / $0.20; Haiku 5.5 $0.10 / $0.50 (prompts ≤ 100K). One output
+  token costs as much as 50–100 cache-read tokens; a Haiku 5.5 executor is 20× cheaper per token
+  than Sonnet 5.5 and 40× cheaper than Opus 5.5 — worth it only if it does not add retries.
+
+Decisions (each item below copies them; none is reopened during execution):
+
+- D1 **Executor contract v1.** A plan section starts with `Format: executor-v1`, a scope of three
+  sentences or fewer, and `### Decisions` (one line per decision). Each item has the fields `tier`,
+  `gate`, `after`, `files`, `do`, `check`, optional `stop-if`; the exact shape is the fenced block in
+  L19.3. Tiers are runtime-neutral (`light`, `standard`, `strong`, or `user`) because one plan can be
+  executed by Claude Code, opencode or Codex, whose model names differ. One item is one executor run:
+  5 files or fewer, 10 steps or fewer. No Mermaid and no `Suggested:` line in a v1 section: `after:`
+  is the graph and `tier:` is the routing.
+- D2 **Tier mapping.** Claude Code: `light` → `haiku`, `standard` → `sonnet`, `strong` → `opus`,
+  passed as the Agent tool's per-invocation `model` and `effort` (documented to override the
+  subagent's frontmatter; `effort` per invocation needs Claude Code ≥ 2.1.292, this machine runs
+  2.1.304). opencode: `light` and `standard` go to `@coder` with its configured model; `strong` runs
+  in the main session. Codex: same split as opencode with the `coder` agent; per-agent `model` /
+  `model_reasoning_effort` exist in agent TOML, but inheritance bugs are reported, so the tier stays
+  advisory there in this goal.
+- D3 **Verification belongs to the dispatcher.** `/execgoals` runs each item's `check:` itself; the
+  executor's report is never proof. Why: a cheap executor's claim is not evidence; pass/fail checks
+  per item are the one idea worth taking from `craigm26/founder-skills`.
+- D4 **Escalation ladder.** Check fails → one more run at the same tier with the failing output →
+  one run at the next tier up → `blocked:` line, stop, report. At most 3 executor runs per item.
+  Why: bounded retries; cost is judged per completed item, not per request.
+- D5 **Owner backlog, executor-v1 plans only.** A v1 section is archived when every item is `[x]`
+  except `tier: user` items; each open owner item is copied unchanged to `## Owner backlog` at the
+  end of the root file, tagged with its plan number. The archived body stays as it was. Old-format
+  plans keep today's rule (archive only when every item is `[x]`). Why: ≈ 27K of 42K root tokens are
+  finished bodies kept alive by 5 owner items; the owner decided (2026-10-21) that existing plans are
+  not changed, so the rule only stops this from happening again.
+- D6 **Pilot keep rule.** Keep tiered routing when the tiered run has no more blocked items than the
+  flat run, `npm run verify` passes on both branches, and the tiered run costs less. Otherwise make
+  routing advisory: keep the `tier:` field, run every item at `standard`. Why: GOALS 12 forbids a
+  cheaper default without a paired comparison; its V.10 harness (`usage-baseline.js --compare`)
+  already exists and still lacks a real sample.
+- D7 **Writing standard.** The reference in L19.1 paraphrases ASD-STE100 (12 writing rules, a
+  9-term glossary, 6 output rules). It copies no STE dictionary text. Text agents follow: English,
+  Part A + glossary. Text the user reads: the user's language, Part C (BLUF, about 15-word
+  sentences, active voice, status words done / blocked / next — AR 25-50 Army writing style).
+- D8 **Rejected: a special "AI-only" notation.** No compressed language, emoji shorthand,
+  JSON/YAML plans or LLMLingua-style compression. Why: Markdown is already ≈ 15% smaller than JSON;
+  YAML saves only 1–6% over JSON; compact notations such as TOON did not keep accuracy in
+  independent tests; LLMLingua's up-to-20× results are on QA and reasoning benchmarks, not
+  multi-step instruction following; compressed text cannot be edited by the next planner. The
+  savings come from what is loaded and how much is generated, not from the notation.
+- D9 **Not now: rewriting all ≈ 84 model-executed files.** L19.10's lint report gives the baseline
+  count; the pilot decides; L19.16 opens the rollout plan. Human docs (README, ARCHITECTURE,
+  CONTRIBUTING, command menus, diaries) stay human — the repository is public and the menus are
+  printed verbatim to the user.
+- D10 **Existing plans stay untouched** (owner, 2026-10-21). No item edits, rewrites, format
+  conversion or archiving of GOALS 12–18. GOALS 18 keeps its format and runs on the old path (steps
+  3 and 4 of `/execgoals` stay valid for it); L19.6 keeps its `cdp` paragraph if it already landed.
+  The pilot uses the next new plan written by the new `/newgoal`. Why: avoid merge and content
+  conflicts with plans already in flight.
+
+### Implementation
+
+Suggested: sonnet · high — two port items adapt exact text to three file styles; the rest copy given content.
+
+- [x] **L19.1 Write the AI writing standard reference** (`coder`)
+  - tier: light · low
+  - gate: auto
+  - after: none
+  - files: `source/claude/references/ai-writing-standard.md` (new),
+    `source/opencode/references/ai-writing-standard.md` (new)
+  - do:
+    1. Write `source/claude/references/ai-writing-standard.md` with exactly the content of the
+       fenced block below (without the fence lines).
+    2. Copy that file byte for byte to `source/opencode/references/ai-writing-standard.md`.
+    3. Change no installer: both installers copy each references directory whole, and
+       `install-codex.js` `syncReferences()` walks `source/claude/references`.
+
+    ```markdown
+    # base_project:managed
+
+    AI-facing writing standard, paraphrased from ASD-STE100 (Simplified Technical English).
+    Read it before you write or edit text that an agent follows: commands, skills, agents, global
+    rule blocks, references, and executor-v1 plans in `GOALS.md`.
+    It does not apply to text a person reads: README, ARCHITECTURE, command menus, diaries, chat replies.
+
+    ## A. Text an agent follows (English)
+
+    1. Write one instruction per sentence. Start the sentence with its verb: Run, Read, Write, Ask, Stop.
+    2. Keep a step sentence at 20 words or fewer. Keep a description sentence at 25 words or fewer.
+    3. Write each condition on its own line: `If <condition>: <action>.` Write the other case on its own line.
+    4. Use the terms in the glossary. Do not use their synonyms.
+    5. Use `must` and `do not` for rules. Do not use `should`, `may`, or `try to` in a step.
+    6. Do not put an aside in dashes or parentheses inside a step. Write a new sentence.
+    7. Name exact things: file paths, commands, IDs, numbers. Do not write "the file" or "as above".
+    8. Write each stop condition as `Stop if <condition>.` Then say what to report.
+    9. Keep the reason out of the step. If the reason changes what the agent does, add one `Why:` line.
+    10. Do not repeat a rule that a global rule block already states. Name its section instead.
+    11. Write an example only when the step fails without it. Start it with `Example:`.
+    12. Use numbered steps for an order. Use bullets for items without an order.
+
+    ## B. Glossary: one word, one meaning
+
+    | Use | Meaning | Do not use for this meaning |
+    | --- | --- | --- |
+    | check | test a fact with evidence: a command result or a file read | verify, ensure, make sure, double-check, confirm |
+    | ask | request a decision from the user, then wait | prompt the user, check with the user |
+    | confirm | the user approves; only the user confirms | the agent confirms |
+    | stop | end the current command and report | abort, halt, bail out |
+    | run | start a command or a script | execute, invoke |
+    | item | one checkbox in `GOALS.md` | task, todo, ticket |
+    | plan | one `GOALS N` section | goal, roadmap |
+    | executor | the subagent that runs one item | worker, helper |
+    | blocked | cannot continue without a decision or an input | stuck |
+
+    ## C. Text the user reads (the user's language)
+
+    1. Put the answer, the decision, or the result in the first sentence. Then give the evidence.
+    2. Use short sentences of about 15 words. Use active voice. Give one fact per sentence.
+    3. Report work status with three words: done, blocked (with the reason), next.
+    4. Do not hedge. Do not restate the question. Do not narrate tool calls.
+    5. Give more depth when the user asks for it or the task needs it.
+    6. Never shorten code, numbers, file paths, or negations.
+
+    Answer the user in the user's language, even though this file is English.
+    ```
+  - check: `node -e "const f=require('fs');const a=f.readFileSync('source/claude/references/ai-writing-standard.md','utf8');const b=f.readFileSync('source/opencode/references/ai-writing-standard.md','utf8');process.exit(a===b&&a.startsWith('# base_project:managed')&&a.includes('## B. Glossary')&&!a.includes('—')?0:1)"` → exit 0
+  - proof: check exit 0; both copies byte-identical, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.3 Make `/newgoal` write executor-v1 plans (Claude variant)** (`coder`)
+  - tier: standard · medium
+  - gate: auto
+  - after: L19.1
+  - files: `source/claude/commands/newgoal.md` (edit)
+  - do:
+    1. Replace step 5 and step 5a (from the line that starts with `5. **Write \`GOALS.md\` in
+       English**` through the line that ends with `dialed down for the modules that don't need
+       it.`) with the fenced block below, without the outer fence lines.
+    2. In step 4a, replace `Record the President's verdict as the item` with `Record the
+       President's verdict as a \`### Decisions\` line`.
+    3. In step 6, after the sentence that ends with `so completed detail does not become default
+       planning context.`, add: `Read the \`## Owner backlog\` section of the root \`GOALS.md\` if
+       it exists; do not repeat its items in a new plan.`
+    4. Replace step 7 (from `7. Report:` through `adjust the plan first.`) with:
+       `7. **Report in the user's language, answer first, in five lines or fewer:** the file path
+       (or, for a standalone research deliverable, that file's path); the number of items per tier;
+       the items with \`gate: ask\` or \`tier: user\`; and the session model for \`/execgoals\`. The
+       \`/execgoals\` session only dispatches, runs checks and escalates, so recommend \`sonnet ·
+       medium\` unless an \`ask\` item needs more. This is a recommendation only; it switches nothing.
+       Do not describe the items: the user asks for status when they want it. Then ask whether to
+       run \`/execgoals\` or adjust the plan.`
+
+    ````markdown
+    5. **Write `GOALS.md` in English as an executor-v1 plan.** Read
+       `~/.claude/base_project/references/ai-writing-standard.md` first. Follow its Part A and its
+       glossary. The user does not read this file; `/execgoals` and its executors do. Write for an
+       executor that cannot ask questions and makes no design choice.
+       - Under the `## GOALS N — <title> (<project> <type>)` heading, write the line
+         `Format: executor-v1`. Then write a scope of three sentences or fewer.
+       - Write `### Decisions` next, one line per decision:
+         `- D<n> <decision>. Why: <one clause>. Source: <URL or file>.` Settle every choice there.
+         An item never holds an open choice.
+       - Group the items by the goal type's areas, in the type's order. Write each item in this
+         shape:
+         ```
+         - [ ] **<ID> <imperative title>**
+           - tier: <light|standard|strong> · <low|medium|high|xhigh>
+           - gate: <auto|notify|ask>
+           - after: <item IDs, or none>
+           - files: `<path>` (new|edit), ...
+           - do:
+             1. <one instruction>
+           - check: `<command run from the project root>` → <expected exit code or output>
+           - stop-if: <condition>
+         ```
+         `stop-if:` is optional. Every other field is required.
+       - One item is one executor run: 5 files or fewer and 10 steps or fewer. Split a larger item.
+       - Give the executor everything it needs: the exact text to write, the exact anchor line,
+         exact names and values. Put long text in a fenced block inside the step.
+       - `check:` must be a command whose exit code or output proves the item. The executor's own
+         report is never proof.
+       - For work only the user can do, write `tier: user`, `gate: ask`, and
+         `check: manual — <what the user observes>`.
+       - Choose the tier from the work: `light` when the step gives the exact content to write;
+         `standard` for code from a clear spec; `strong` for logic across files, open debugging, or
+         security. Use effort `xhigh` only for irreversible, security, or migration work.
+       - Choose the gate with the Tiered autonomy rule: `auto` for reversible work inside the
+         repository; `notify` when the effect is visible; `ask` for irreversible or external work,
+         credentials, or a material choice.
+       - Do not write a Mermaid diagram or a `Suggested:` line. `after:` is the dependency order;
+         `tier:` is the routing.
+    ````
+  - check: `node -e "const t=require('fs').readFileSync('source/claude/commands/newgoal.md','utf8');const s=t.slice(t.indexOf('5. **Write'));process.exit(['Format: executor-v1','ai-writing-standard.md','tier: user','Owner backlog','sonnet · medium','### Decisions\` line'].every(x=>t.includes(x))&&!/Suggested: <|Mermaid \`flowchart\`/.test(s)?0:1)"` → exit 0
+  - proof: check exit 0 (the plan's own check was fixed first: the prohibition sentence names `Suggested:`, so the check now forbids `Suggested: <`), 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.4 Port the `/newgoal` change to opencode dense, opencode lite and Codex** (`coder`)
+  - tier: strong · high
+  - gate: auto
+  - after: L19.3
+  - files: `source/opencode/command/newgoal.md` (edit), `source/opencode/command-lite/newgoal.md`
+    (edit), `source/codex/skills/newgoal/SKILL.md` (edit), `dev/tests/codex.test.js` (edit)
+  - do:
+    1. Apply the four edits of L19.3 to each file, in that file's own style. The lite file uses flat
+       `STEP` lines: turn its `STEP 7` and `STEP 7a` into one `STEP 7` that holds the same rules as
+       short lines.
+    2. Use each runtime's reference path: opencode dense and lite
+       `~/.config/opencode/base_project/references/ai-writing-standard.md`; Codex
+       `~/.codex/base_project/references/ai-writing-standard.md`.
+    3. In the Codex skill, keep the section `### Codex-specific model mapping` but rewrite it for
+       tiers: `light` → `gpt-5.6-luna`, `standard` → `gpt-5.6-terra`, `strong` → `gpt-5.6-sol`,
+       `strong · xhigh` → `gpt-6-astra`, with the existing fallback order. The step-7
+       recommendation names `gpt-5.6-terra · medium` instead of `sonnet · medium`.
+    4. In opencode dense and lite, the step-7 recommendation names no model: write "a mid-tier
+       model at medium effort".
+    5. In `dev/tests/codex.test.js`, replace the assertion on line 227
+       (`only a \`Suggested:\` line inside \`GOALS\.md\``) with an assertion that the Codex skill
+       contains `Format: executor-v1` and `gpt-5.6-terra · medium`.
+  - check: `node --test dev/tests/codex.test.js && node -e "const f=require('fs');const p={'source/opencode/command/newgoal.md':'.config/opencode','source/opencode/command-lite/newgoal.md':'.config/opencode','source/codex/skills/newgoal/SKILL.md':'.codex'};process.exit(Object.entries(p).every(([k,v])=>{const t=f.readFileSync(k,'utf8');return t.includes('Format: executor-v1')&&t.includes(v+'/base_project/references/ai-writing-standard.md')&&t.includes('tier: user')&&t.includes('Owner backlog')&&!t.includes('Suggested: <')})?0:1)"` → exit 0
+  - proof: check exit 0; `codex.test.js` 6/6 (the lines 174–178 asserts also moved to tier vocabulary), 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.5 Make `/execgoals` dispatch executor-v1 items by tier (Claude variant)** (`coder`)
+  - tier: standard · medium
+  - gate: auto
+  - after: L19.1
+  - files: `source/claude/commands/execgoals.md` (edit)
+  - do:
+    1. In step 2, replace `**Read the whole file first**, then present` with: `**Read only what
+       the run needs.** Read the \`Active plans\` list and the \`## Owner backlog\` section. If
+       \`$ARGUMENTS\` names a plan (\`GOALS 19\` or \`19\`), select it; otherwise select the first
+       plan in the list with an open item that is not an owner item. Read that plan's section and
+       each section its \`after:\` fields name; do not read other sections. Then present`.
+    2. Insert the fenced block below, without the fence lines, as a new step directly after
+       step 3 and before step 4.
+    3. At the end of step 4a, after its last sentence, add this paragraph:
+       `An executor-v1 section is also done when every item is \`[x]\` except \`tier: user\` items.
+       Before you move such a section, copy each open \`tier: user\` item, unchanged, to the
+       \`## Owner backlog\` section at the end of the root \`GOALS.md\`, with \` (GOALS N)\` after its
+       bold title. If that section does not exist, create it with the line \`Owner items left open by
+       archived plans. Mark them done here.\` Old-format sections are archived only when every item
+       is \`[x]\`.`
+
+    ```markdown
+    3a. **Executor-v1 plans.** If the selected section has the line `Format: executor-v1`, follow
+        this step instead of steps 3 and 4. Take each open item in written order once every item
+        in its `after:` field is `[x]`:
+        1. If the item has `tier: user`: list it as owner work and go to the next item.
+        2. If it has `gate: ask`: ask, and wait. If it has `gate: notify`: state the visible
+           effect in one line.
+        3. Start the `coder` subagent with `model` from the tier (`light` → `haiku`, `standard` →
+           `sonnet`, `strong` → `opus`) and `effort` from the item. If the runtime rejects
+           `effort`, omit it. Pass the item text verbatim and nothing else from this
+           conversation. Tell it to edit only the paths in `files:` and to return
+           `BLOCKED: <reason>` if a step is impossible as written.
+        4. Run the item's `check:` yourself. The executor's report is not proof.
+        5. If the check passes: mark the item `[x]` and add one line under it:
+           `- proof: <check result>, <YYYY-MM-DD>, <model>`.
+        6. If the check fails: run the executor once more at the same tier with the check output.
+           If it fails again and the tier is not `strong`: run it once at the next tier up. If it
+           still fails: add `- blocked: <check output, one line>` under the item, stop the run,
+           and report.
+        7. Stop the run and report if the executor returns `BLOCKED` or changed a file outside
+           `files:`. Do not mark that item.
+        Plans without the `Format: executor-v1` line keep steps 3 and 4 as written.
+    ```
+  - check: `node -e "const t=require('fs').readFileSync('source/claude/commands/execgoals.md','utf8');process.exit(['3a. **Executor-v1 plans.**','\`light\` → \`haiku\`','- proof:','BLOCKED: <reason>','## Owner backlog','Read only what the run needs'].every(x=>t.includes(x))&&!t.includes('Read the whole file first')?0:1)"` → exit 0
+  - proof: check exit 0, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.6 Port the `/execgoals` change to opencode dense, opencode lite and Codex** (`coder`)
+  - tier: strong · high
+  - gate: auto
+  - after: L19.5
+  - files: `source/opencode/command/execgoals.md` (edit), `source/opencode/command-lite/execgoals.md`
+    (edit), `source/codex/skills/execgoals/SKILL.md` (edit)
+  - do:
+    1. Apply the three edits of L19.5 to each file, in that file's own style; the lite file gets
+       flat `STEP` lines.
+    2. Replace sub-step 3 of the new step with the runtime's own mapping. opencode dense and lite:
+       `Run \`light\` and \`standard\` items with \`@coder\` (its configured model). Run \`strong\`
+       items yourself in this session.` Codex: `Spawn the \`coder\` agent for \`light\` and
+       \`standard\` items. Run \`strong\` items yourself. The tier is advisory in Codex.` In both,
+       "the next tier up" after `standard` means running the item yourself.
+    3. Keep any `cdp` paragraph from GOALS 18 if it is already present; change nothing else.
+  - check: `node --test dev/tests/codex.test.js && node -e "const f=require('fs');const fs=['source/opencode/command/execgoals.md','source/opencode/command-lite/execgoals.md','source/codex/skills/execgoals/SKILL.md'];process.exit(fs.every(k=>{const t=f.readFileSync(k,'utf8');return t.includes('Format: executor-v1')&&t.includes('- proof:')&&t.includes('BLOCKED')&&t.includes('Owner backlog')&&t.includes('coder')})?0:1)"` → exit 0
+  - proof: check exit 0; `codex.test.js` 6/6, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.7 Add the `check:` line to the goal-type modules (Claude copies)** (`coder`)
+  - tier: light · low
+  - gate: auto
+  - after: L19.3
+  - files: `source/claude/references/goal-types/build.md`, `.../feature.md`, `.../fix.md`,
+    `.../process.md`, `.../research.md` (edit)
+  - do:
+    1. In each file, add this paragraph as the last paragraph of `## Done-when convention`:
+       `In an executor-v1 plan, write this as the item's \`check:\` field: a command whose exit
+       code or output proves it, or \`manual — <what the user observes>\` for owner work.`
+  - check: `node -e "const f=require('fs');process.exit(['build','feature','fix','process','research'].every(n=>f.readFileSync('source/claude/references/goal-types/'+n+'.md','utf8').includes('In an executor-v1 plan, write this as the item'))?0:1)"` → exit 0
+  - proof: check exit 0, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.7b Copy the goal-type modules to the opencode references** (`coder`)
+  - tier: light · low
+  - gate: auto
+  - after: L19.7
+  - files: `source/opencode/references/goal-types/build.md`, `.../feature.md`, `.../fix.md`,
+    `.../process.md`, `.../research.md` (edit)
+  - do:
+    1. Copy each of the five files from `source/claude/references/goal-types/` byte for byte over
+       its namesake in `source/opencode/references/goal-types/`. The two trees were identical on
+       2026-10-21.
+  - check: `diff -r source/claude/references/goal-types source/opencode/references/goal-types` → no output, exit 0
+  - proof: `diff -r` empty, exit 0, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.8 Add the BLUF bullet to the three global rule blocks** (`coder`)
+  - tier: light · low
+  - gate: auto
+  - after: L19.1
+  - files: `source/CLAUDE.md` (edit), `source/opencode-instructions.md` (edit),
+    `source/codex/AGENTS.md` (edit)
+  - do:
+    1. Use this bullet, as one unwrapped line, identical in all three files:
+       `- Put the answer, the decision, or the result in the first sentence; give the evidence after it. Use short sentences of about 15 words, active voice, and one fact per sentence. Report work status as done, blocked (with the reason), or next.`
+    2. In `source/CLAUDE.md` and `source/opencode-instructions.md`, insert it as a new line
+       directly after the line `  is a default, not a hard ceiling.`
+    3. In `source/codex/AGENTS.md`, insert it directly after the line that starts with
+       `- Be concise by default without weakening exact paths`.
+  - check: `node -e "const f=require('fs');const b='- Put the answer, the decision, or the result in the first sentence; give the evidence after it.';process.exit(['source/CLAUDE.md','source/opencode-instructions.md','source/codex/AGENTS.md'].every(k=>f.readFileSync(k,'utf8').split(b).length===2)?0:1)" && node --test dev/tests/usage-envelope.test.js dev/tests/ui-verification-rule.test.js` → exit 0
+  - proof: check exit 0; usage-envelope + ui-verification tests 21/21, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.9 Teach the GOALS validator the executor-v1 rules** (`coder`)
+  - tier: standard · high
+  - gate: auto
+  - after: L19.3
+  - files: `dev/scripts/validate-goals-structure.js` (edit)
+  - do:
+    1. Split the file into sections at lines that start with `## `. A section is v1 when it holds
+       a line exactly `Format: executor-v1`. Apply steps 2–5 only to v1 sections; keep every
+       existing check for all sections.
+    2. For each item definition (the existing `ITEM_DEFINITION` match) in a v1 section, collect
+       its sub-bullets up to the next item definition or heading. Report `v1_missing_field` when
+       `tier:`, `gate:`, `after:`, `files:`, `do:` or `check:` is absent.
+    3. Report `v1_bad_tier` unless `tier:` matches `^(light|standard|strong) · (low|medium|high|xhigh)$`
+       or is exactly `user`. Report `v1_bad_gate` unless `gate:` is `auto`, `notify` or `ask`.
+    4. Report `v1_unknown_after` for an `after:` ID that no item in the file defines (`none` is
+       valid), and `v1_cycle` when the `after:` links form a cycle.
+    5. Report `v1_forbidden_block` for a ```` ```mermaid ```` fence or a line starting with
+       `Suggested:` inside a v1 section.
+    6. Keep the export `{ check }` and the CLI output format unchanged.
+  - check: `node -e "const {check}=require('./dev/scripts/validate-goals-structure.js');const fs=require('fs'),os=require('os'),p=require('path');const f=p.join(os.tmpdir(),'v1-fixture.md');fs.writeFileSync(f,'## GOALS 1 — T (x feature)\nFormat: executor-v1\n\n- [ ] **T1.1 Do it**\n  - tier: light · low\n');const r=check(f);process.exit(r.findings.some(x=>x.code==='v1_missing_field')?0:1)" && node dev/scripts/validate-goals-structure.js GOALS.md && node --test dev/tests/validate-goals-structure.test.js` → exit 0
+  - proof: fixture reports `v1_missing_field`; GOALS.md structure OK; validator tests pass, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.10 Add the AI-style lint** (`coder`)
+  - tier: standard · medium
+  - gate: auto
+  - after: L19.1
+  - files: `dev/scripts/ai-style-lint.js` (new), `package.json` (edit)
+  - do:
+    1. Write `dev/scripts/ai-style-lint.js`: Node built-ins only, `// base_project:managed` on
+       line 2, export `{ lintText }` for tests, CLI modes `--report` and `--enforce`.
+    2. Skip fenced code blocks, table rows (lines that start with `|`), headings, and inline code
+       spans. Lint every other line.
+    3. Rules: `banned-term` for the whole words `verify`, `verified`, `verifying`, `ensure`,
+       `ensures`, `execute`, `executes`, `executed`, `executing`, `abort`, `halt`, `stuck` and the
+       phrases `make sure`, `double-check`, `bail out`, `prompt the user`, `check with the user`
+       (case-insensitive); `long-sentence` for a sentence over 25 words; `modal` for the words
+       `should`, `may`, `try to`; `dash-aside` for the character `—`.
+    4. `--enforce` lints only the files in the constant `ENFORCED`
+       (`source/claude/references/ai-writing-standard.md` and its opencode copy), prints
+       `file:line rule text`, and exits 1 on any finding.
+    5. `--report` lints all model-executed files: `source/claude/commands/*.md`,
+       `source/opencode/command/*.md`, `source/opencode/command-lite/*.md`,
+       `source/codex/skills/*/SKILL.md`, `source/claude/agents/*.md`, `source/opencode/agent/*.md`,
+       `source/CLAUDE.md`, `source/opencode-instructions.md`, `source/codex/AGENTS.md`, and
+       `source/claude/references/**/*.md` except `command-menu.md`. It prints one count per rule
+       and a last line `findings: <n> in <m> files`, and exits 0.
+    6. In `package.json`, add the scripts `"lint:ai-style": "node dev/scripts/ai-style-lint.js --enforce"`
+       and `"report:ai-style": "node dev/scripts/ai-style-lint.js --report"`; append
+       `&& npm run lint:ai-style` to `verify` after `npm run lint`. CI already runs `npm run verify`
+       in the `validate` job, so `.github/workflows/ci.yml` does not change.
+  - check: `npm run lint:ai-style && npm run report:ai-style && npm run lint` → exit 0, and the report's last line starts with `findings:`
+  - proof: `lint:ai-style` exit 0; report `findings: 1718 in 91 files`; Biome clean on explicit paths (`biome check .` processes no file inside `.claude/worktrees` because of biome.json's `!!**/.claude/worktrees`), 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.11 Add the contract tests** (`coder`)
+  - tier: standard · high
+  - gate: auto
+  - after: L19.4, L19.6, L19.7b, L19.8, L19.9, L19.10
+  - files: `dev/tests/lean-agent-docs.test.js` (new), `dev/tests/validate-goals-structure.test.js`
+    (edit), `dev/tests/codex.test.js` (edit)
+  - do:
+    1. In `lean-agent-docs.test.js` (`node:test`), assert: (a) the two reference copies are
+       byte-identical, start with the managed marker, hold sections A, B and C and the
+       user's-language footer; (b) each `newgoal` variant (Claude, opencode dense, opencode lite,
+       Codex) holds `Format: executor-v1`, its own runtime's reference path, `tier: user` and
+       `Owner backlog`, and no `Suggested: <` instruction; (c) each `execgoals` variant holds
+       `Format: executor-v1`, `- proof:`, `BLOCKED`, `Owner backlog`, and its own runtime mapping
+       (`\`light\` → \`haiku\`` in Claude, `@coder` in opencode, `advisory` in Codex); (d) the
+       BLUF bullet occurs exactly once in each global rule file; (e) every goal-type module in both
+       trees holds the executor-v1 `check:` paragraph and the two trees are identical; (f)
+       `lintText` flags each rule on a one-line fixture and passes a clean line; (g)
+       `npm run lint:ai-style` exits 0.
+    2. In `validate-goals-structure.test.js`, add fixtures: a valid v1 section passes; each of
+       `v1_missing_field`, `v1_bad_tier`, `v1_bad_gate`, `v1_unknown_after`, `v1_cycle`,
+       `v1_forbidden_block` is reported; an old-format section with Mermaid and `Suggested:` still
+       passes.
+    3. In `codex.test.js`, in the installer test, assert
+       `<codex>/base_project/references/ai-writing-standard.md` exists after `install-codex.js`.
+  - check: `node --test dev/tests/lean-agent-docs.test.js dev/tests/validate-goals-structure.test.js dev/tests/codex.test.js && npm test` → exit 0
+  - stop-if: a test passes against a mutated copy that drops the rule it guards (check with one mutation per assertion group, as in GOALS 17)
+  - proof: lean-agent-docs + validator + codex tests 26/26; `npm test` 202 pass, 0 fail, 1 skipped; 8/8 mutations killed, 2026-10-21, executed in this session (old-format plan)
+
+### Registration
+
+Suggested: haiku · low — text edits with exact wording; the menus are user-facing Portuguese guarded by tests.
+
+- [x] **L19.12 Update the command menus** (`coder`)
+  - tier: light · low
+  - gate: auto
+  - after: L19.11
+  - files: `source/claude/references/command-menu.md`, `source/opencode/references/command-menu.md`,
+    `source/codex/references/command-menu.md` (edit)
+  - do:
+    1. On the `/newgoal` line (`$newgoal` in Codex), append before the final period:
+       ` — num formato feito para a IA executar; você não precisa ler, peça o status quando quiser`.
+    2. On the `/execgoals` line (`$execgoals` in Codex), append before the final period:
+       ` — cada item vai para um modelo mais barato e só é marcado quando o \`check\` dele passa; se falhar, sobe de modelo ou para e avisa`.
+  - check: `node --test dev/tests/menu-rule.test.js dev/tests/codex.test.js && node -e "const f=require('fs');process.exit(['claude','opencode','codex'].every(r=>{const t=f.readFileSync('source/'+r+'/references/command-menu.md','utf8');return t.includes('peça o status quando quiser')&&t.includes('sobe de modelo ou para e avisa')})?0:1)"` → exit 0
+  - proof: check exit 0; menu-rule + codex tests 11/11, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.13 Record the change in README, ARCHITECTURE and ROADMAP** (`coder`)
+  - tier: standard · medium
+  - gate: auto
+  - after: L19.12
+  - files: `README.md`, `ARCHITECTURE.md`, `dev/ROADMAP.md` (edit)
+  - do:
+    1. README: update the `/newgoal` and `/execgoals` rows to match the menus; add one changelog
+       line under `### Unreleased` (no version bump).
+    2. ARCHITECTURE: add `ai-writing-standard.md` to the references list, `ai-style-lint.js` to the
+       scripts map, `lean-agent-docs.test.js` to the tests list, `lint:ai-style` inside `npm run verify`, and a
+       short subsection "Executor-v1 plans" stating D1–D5 in one sentence each.
+    3. ROADMAP: add the next free numbered item with D1–D10 in one line each and the pilot as an
+       open follow-up; add under "Decisões já tomadas": `plano executor-v1 + despacho por tier; sem
+       notação comprimida`.
+  - check: `node -e "const f=require('fs');process.exit(['README.md','ARCHITECTURE.md','dev/ROADMAP.md'].every(k=>f.readFileSync(k,'utf8').includes('executor-v1'))&&f.readFileSync('ARCHITECTURE.md','utf8').includes('ai-writing-standard.md')?0:1)"` → exit 0
+  - proof: check exit 0; ROADMAP item 57, 2026-10-21, executed in this session (old-format plan)
+- [x] **L19.14 Verify the whole change** (`reviewer`)
+  - tier: standard · medium
+  - gate: auto
+  - after: L19.13
+  - files: none
+  - do:
+    1. Run `npm run verify`, `npm run test:harness`, `node dev/scripts/goals-archive-index.js --check`
+       and `node dev/scripts/validate-goals-structure.js GOALS.md`.
+    2. Run `npm run report:ai-style` and copy its last line into this item's proof. It is the
+       baseline for the rollout plan (L19.16).
+    3. When a PR exists, read its CI result on the merge head; do not assume it.
+  - check: `npm run verify && npm run test:harness && node dev/scripts/goals-archive-index.js --check` → exit 0
+  - proof: typecheck, validate:plugins, check:unused-deps, `npm test` (202/0, 1 skipped), audit:prod (exit 0; one moderate fast-uri advisory, below the high threshold), test:harness, archive index 12 OK, GOALS structure OK; baseline `findings: 1718 in 91 files` (banned-term 117, dash-aside 1090, long-sentence 445, modal 66); no PR yet, so no CI result, 2026-10-21, executed in this session (old-format plan)
+
+### Owner pilot and decisions (manual — stay open until done)
+
+- [ ] **L19.15 Run the paired pilot on the next new plan** (`manual`)
+  - tier: user
+  - gate: ask
+  - after: L19.14
+  - files: none
+  - do:
+    1. Re-run the installer (`dev\scripts\install.ps1`) so the installed commands match `source/`.
+    2. Write the next new plan with the new `/newgoal` (session `opus · high`). Use a real need
+       with 6 to 12 executable items. Do not convert an existing plan (D10).
+    3. Create `pilot/a-flat` and `pilot/b-tiered` from the same commit.
+    4. Run A on `pilot/a-flat`: start Claude Code with `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` and
+       `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (no per-item model, every executor on sonnet), session
+       `sonnet · medium`, then `/execgoals <N>`.
+    5. Run B on `pilot/b-tiered`: no variables, same session model, then `/execgoals <N>`.
+    6. Record per run: items passed on the first check, retries, escalations, blocked items,
+       `npm run verify`, and the `/usage` report (tokens, cost, API time, wall time). Compare
+       them with `usage-baseline.js --compare` (the GOALS 12 V.10 harness). Record the result
+       here only; GOALS 12 is not edited (D10).
+    7. Apply D6. Keep the winning branch's work; delete the other branch.
+  - check: manual — two result rows (A and B) and the D6 outcome are written under this item
+- [ ] **L19.16 Decide routing and the rollout** (`manual`)
+  - tier: user
+  - gate: ask
+  - after: L19.15
+  - files: none
+  - do:
+    1. Confirm the D6 outcome: tiered routing kept, or advisory.
+    2. Decide whether to open the rollout plan: rewrite the model-executed files to Part A, in the
+       order of the lint report's per-file counts, with `report:ai-style` as the progress metric
+       and each converted file added to `ENFORCED`.
+    3. Decide whether opencode lite merges into dense once dense is lint-clean, and whether this
+       repository's own `CLAUDE.md` moves to AI-facing English.
+  - check: manual — the three answers are written under this item and in `dev/ROADMAP.md`
+
+### Explicitly out of scope
+
+- Rewriting the ≈ 84 model-executed files to Part A (L19.16 decides the rollout).
+- Any compressed or invented notation for plans or commands (D8).
+- Changing human docs (README prose, ARCHITECTURE prose, CONTRIBUTING, menus beyond L19.12,
+  diaries) to the AI style.
+- Rewriting archived GOALS bodies; switching the session model automatically; per-item model
+  routing in opencode and Codex beyond D2.
+- Any change to existing plans GOALS 12–18: item text, format, archive state or proof lines (D10).
+  New plans use the new format; old plans finish in theirs.
+
+### Sources consulted
+
+- [ASD-STE100 — About](https://asd-ste100.org/about_STE.html), [Wikipedia — Simplified Technical English](https://en.wikipedia.org/wiki/Simplified_Technical_English),
+  [TechScribe — ASD-STE100](https://techscribe.co.uk/techw/asd-simplified-technical-english.htm) — dictionary + writing
+  rules, one word per meaning, Issue 9 (January 2025).
+- [The Menon Lab — Prompting in STE](https://themenonlab.blog/blog/asd-ste100-simplified-technical-english-prompting) —
+  20-word procedural sentences, one instruction per sentence; use STE for procedures, not nuance.
+- [AminBlg/SimpleEnglish](https://github.com/AminBlg/SimpleEnglish) — MIT; paraphrased rules, no dictionary copy;
+  self-measured 78–81% fewer lint violations on Claude models; `ste_lint.py` checks mechanical rules only.
+- [danyuchn/asd-ste100-skill](https://skills.sh/danyuchn/asd-ste100-skill/asd-ste100) — STE for agent-to-agent text and prompts.
+- [JMU — Writing in the Army Style (AR 25-50)](https://www.jmu.edu/uwc/tutor-resources/MSL202L15%20Writing%20in%20the%20Army%20Style.pdf),
+  [Wikipedia — BLUF](https://en.wikipedia.org/wiki/BLUF_(communication)) — conclusion first, active voice, ≈ 15-word sentences.
+- [Claude Code — Subagents](https://code.claude.com/docs/en/sub-agents) — per-invocation `model` and `effort`,
+  model resolution order, `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, fresh context per subagent.
+- [opencode — Commands](https://opencode.ai/docs/commands/) — `agent`, `model`, `subtask` frontmatter.
+- [Codex — Subagents](https://developers.openai.com/codex/subagents.md) and
+  [forum report](https://community.openai.com/t/issue-where-chatgpt-codex-sub-agents-inherit-the-parent-model-instead-of-using-the-model-specified-in-the-agent-configuration/1386539)
+  — TOML `model` / `model_reasoning_effort`; inheritance bug reports.
+- [LLMLingua](https://www.microsoft.com/en-us/research/blog/llmlingua-innovating-llm-efficiency-with-prompt-compression/),
+  [Notation Matters (arXiv 2605.29676)](https://arxiv.org/pdf/2605.29676),
+  [Markdown vs JSON tokens](https://community.openai.com/t/markdown-is-15-more-token-efficient-than-json/841742)
+  — evidence behind D8.
+- [craigm26/founder-skills](https://skillsmp.com/ar/creators/craigm26/founder-skills) — PRD → ordered tasks with
+  pass/fail acceptance checks (D3).
+- claude-api skill model table (cached 2026-10-06) — prices in the measured inputs.
+- This repository: `GOALS.md` GOALS 12 (V.4, V.10), `dev/scripts/validate-goals-structure.js`,
+  `dev/scripts/install-codex.js` (`syncReferences`), `dev/tests/codex.test.js` line 227,
+  `dev/tests/usage-envelope.test.js`, `source/claude/agents/coder.md` (`model: sonnet`).
 
 ---
 

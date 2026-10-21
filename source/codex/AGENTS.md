@@ -60,6 +60,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 ### Task Sizing and Responses
 - Answer trivial questions directly. Use the full Plan → Implement → Review workflow for substantial work.
 - Be concise by default without weakening exact paths, numbers, code, or safety negations.
+- Put the answer, the decision, or the result in the first sentence; give the evidence after it. Use short sentences of about 15 words, active voice, and one fact per sentence. Report work status as done, blocked (with the reason), or next.
 - When a deliverable is written to a file, point to the file and summarize it briefly instead of duplicating its full contents in chat.
 - Between tool calls, skip prose narration of what you're doing — it costs output tokens on every step. If the task has a known step count, emit at most one short line per batch (e.g. `3/12 steps done`); otherwise emit nothing until the final response, which carries the explanation.
 

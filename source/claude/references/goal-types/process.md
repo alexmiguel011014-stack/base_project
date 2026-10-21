@@ -34,6 +34,9 @@ For `(manual)` items: an explicit user confirmation recorded on the item, never 
 automatable items: often "exists and is correct" rather than a test command — e.g. `LICENSE`
 is done when the file exists with the right name/year, not via a command.
 
+In an executor-v1 plan, write this as the item's `check:` field: a command whose exit
+code or output proves it, or `manual — <what the user observes>` for owner work.
+
 ## Ordering rule
 
 Legal and Hygiene first (they block nothing, but taint an audit if left last). CI before
