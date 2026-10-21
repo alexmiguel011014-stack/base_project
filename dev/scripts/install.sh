@@ -246,7 +246,7 @@ if command -v jq &>/dev/null; then
     echo "$BASE_SETTINGS" | jq \
         --arg cmd "node \"$SESSION_START_GIT_PATH\"" \
         --arg marker "$SESSION_START_GIT_MARKER" \
-        '.hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"matcher": "startup|resume|clear", "hooks": [{"type": "command", "command": $cmd, "timeout": 10}]}]' \
+        '.hooks.SessionStart = ((.hooks.SessionStart // []) | map(select((.hooks // []) | map(.command // "") | any(contains($marker)) | not))) + [{"matcher": "startup|resume|clear|compact", "hooks": [{"type": "command", "command": $cmd, "timeout": 10}]}]' \
         > "$SETTINGS_PATH"
     ok "settings.json (session-start git-context hook merged)"
 

@@ -333,13 +333,13 @@ foreach ($hookEvent in @("PostToolUse", "UserPromptSubmit")) {
 
 # SessionStart hook — injects compact git context (branch, uncommitted changes,
 # recent commits) at the start of a session, so Claude doesn't spend tool calls
-# rediscovering state on every fresh start/resume/clear. Matcher deliberately
-# excludes "compact"/"fork" (see ROADMAP item: SessionStart git-context hook).
+# rediscovering state on every fresh start/resume/clear, plus the project's
+# rulesonproject overrides. The matcher includes "compact" so they survive a compaction.
 $sessionStartGitPath   = (Join-Path $claudeHooksDir "session-start-git-context.js") -replace '\\', '/'
 $sessionStartGitMarker = "base_project/hooks/session-start-git-context.js"
 $sessionStartGitCommand = "node `"$sessionStartGitPath`""
 $ourSessionStartEntry = [PSCustomObject]@{
-    matcher = "startup|resume|clear"
+    matcher = "startup|resume|clear|compact"
     hooks = @(
         [PSCustomObject]@{ type = "command"; command = $sessionStartGitCommand; timeout = 10 }
     )
