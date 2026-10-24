@@ -19,7 +19,10 @@ project, one ordered item at a time — with the same before/after verification 
    say so — run `/newgoal` first. This command executes a plan, it doesn't improvise one;
    building without the research pass defeats the reason `/newgoal` exists.
 
-2. **Read the whole file first**, then present a short summary before touching anything: which
+2. **Read only what the run needs.** Read the `Active plans` list and the `## Owner backlog`
+   section. If `$ARGUMENTS` names a plan (`GOALS 19` or `19`), select it; otherwise select the
+   first plan in the list with an open item that is not an owner item. Read that plan's section
+   and each section its `after:` fields name; do not read other sections. Then present a short summary before touching anything: which
    areas apply (backend/frontend/database/etc. — whichever `/newgoal` actually wrote for this
    project), how many items are already `[x]` vs. still open, and which open items are
    heavier/harder to reverse — installing dependencies, initializing a database, running an
@@ -39,6 +42,28 @@ project, one ordered item at a time — with the same before/after verification 
      outside the repository, sensitive data, or external publication stops and asks. Never
      fabricate a placeholder that looks real. Secrets go in the project's own gitignored `.env`,
      never hardcoded.
+
+3a. **Executor-v1 plans.** If the selected section has the line `Format: executor-v1`, follow
+    this step instead of steps 3 and 4. Take each open item in written order once every item
+    in its `after:` field is `[x]`:
+    1. If the item has `tier: user`: list it as owner work and go to the next item.
+    2. If it has `gate: ask`: ask, and wait. If it has `gate: notify`: state the visible
+       effect in one line.
+    3. Start the `coder` subagent with `model` from the tier (`light` → `haiku`, `standard` →
+       `sonnet`, `strong` → `opus`) and `effort` from the item. If the runtime rejects
+       `effort`, omit it. Pass the item text verbatim and nothing else from this
+       conversation. Tell it to edit only the paths in `files:` and to return
+       `BLOCKED: <reason>` if a step is impossible as written.
+    4. Run the item's `check:` yourself. The executor's report is not proof.
+    5. If the check passes: mark the item `[x]` and add one line under it:
+       `- proof: <check result>, <YYYY-MM-DD>, <model>`.
+    6. If the check fails: run the executor once more at the same tier with the check output.
+       If it fails again and the tier is not `strong`: run it once at the next tier up. If it
+       still fails: add `- blocked: <check output, one line>` under the item, stop the run,
+       and report.
+    7. Stop the run and report if the executor returns `BLOCKED` or changed a file outside
+       `files:`. Do not mark that item.
+    Plans without the `Format: executor-v1` line keep steps 3 and 4 as written.
 
 4. **Check items off as they're verified, not as they're attempted.** After completing an item,
    actually confirm it — the file exists, the test passes, the server starts — the same
@@ -60,6 +85,13 @@ project, one ordered item at a time — with the same before/after verification 
     the root `GOALS.md`. This is auto-approved, repo-local, reversible work; it doesn't need
     separate confirmation beyond the run's own authorization. Re-run
     `validate-goals-structure.js` after the move, same as any other edit batch.
+
+    An executor-v1 section is also done when every item is `[x]` except `tier: user` items.
+    Before you move such a section, copy each open `tier: user` item, unchanged, to the
+    `## Owner backlog` section at the end of the root `GOALS.md`, with ` (GOALS N)` after its
+    bold title. If that section does not exist, create it with the line `Owner items left open
+    by archived plans. Mark them done here.` Old-format sections are archived only when every
+    item is `[x]`.
 
 5. **Run the project's own test/lint/typecheck after each area finishes**, not only at the very
    end — catch a broken area before three more areas get built on top of it.

@@ -34,17 +34,25 @@ Exception: a pure research-type ask with nothing to execute after skips `GOALS.m
 
 STEP 4 — Research for real, in one pass, as deep as the chosen type needs. Use web search for current best practices and concrete tool/library choices where the type calls for it.
 
-STEP 5 — If `/council` was invoked together with this command (same message): for each item where the choice is genuinely contested (a real fork like monolith vs. microservices), run `/council` on that decision, including its own confirmation gate, before writing the choice into `GOALS.md`. Record only the President's verdict.
+STEP 5 — If `/council` was invoked together with this command (same message): for each item where the choice is genuinely contested (a real fork like monolith vs. microservices), run `/council` on that decision, including its own confirmation gate, before writing the choice into `GOALS.md`. Record only the President's verdict, as a `### Decisions` line.
 
 STEP 6 — If `/repertoire` was invoked together with this command (same message): let it finish first, read the `REPERTOIRE.md` it produces, then research tech/build specifics. `/repertoire` researches the subject; this step researches how to build it.
 
-STEP 7 — Write `GOALS.md` in English, regardless of the conversation's language. Structure it as concrete, checkable items grouped by the chosen module's areas, not prose paragraphs. Tag `(manual)` wherever `/execgoals` can't run it alone. Order items by what has to exist before what. Under each `GOALS N` heading, include a short Mermaid flowchart showing the dependency order between that section's areas — area/subsystem-level nodes only, not one node per checkbox.
+STEP 7 — Write `GOALS.md` in English as an executor-v1 plan. Read `~/.config/opencode/base_project/references/ai-writing-standard.md` first. Follow its Part A and its glossary. The user does not read this file; `/execgoals` and its executors do. Write for an executor that cannot ask questions and makes no design choice.
+- Under the `## GOALS N — <title> (<project> <type>)` heading, write the line `Format: executor-v1`. Then write a scope of three sentences or fewer.
+- Write `### Decisions` next, one line per decision: `- D<n> <decision>. Why: <one clause>. Source: <URL or file>.` No item holds an open choice.
+- Group items by the goal type's areas, in the type's order. Start each item with `- [ ] **<ID> <imperative title>**`. Give it these sub-bullets: `tier: <light|standard|strong> · <low|medium|high|xhigh>`, `gate: <auto|notify|ask>`, `after: <item IDs, or none>`, `files: <paths> (new|edit)`, `do:` with numbered steps, `check: <command run from the project root> → <expected result>`. `stop-if: <condition>` is optional.
+- One item is one executor run: 5 files or fewer and 10 steps or fewer. Split a larger item.
+- Give the exact text to write, the exact anchor line, exact names and values.
+- `check:` must be a command whose exit code or output proves the item. The executor's report is never proof.
+- Owner work: `tier: user`, `gate: ask`, `check: manual — <what the user observes>`.
+- Tier: `light` when the step gives the exact content; `standard` for code from a clear spec; `strong` for logic across files, open debugging, or security. Use effort `xhigh` only for irreversible, security, or migration work.
+- Gate: `auto` for reversible work inside the repository; `notify` when the effect is visible; `ask` for irreversible or external work, credentials, or a material choice.
+- Do not write a Mermaid diagram or a `Suggested:` line. `after:` is the order; `tier:` is the routing.
 
-STEP 7a — Annotate each module with a suggested model + effort, right after its flowchart: one line, `Suggested: <model> · <effort> — <one-clause reason>`. Model from `{haiku, sonnet, opus}`, effort from `{low, medium, high, xhigh}`, picked per that module's own risk/complexity, never one fixed setting for the whole plan: haiku/low for mechanical low-risk work (boilerplate, config, docs); sonnet/medium for typical implementation; sonnet/high or opus/high for nontrivial logic or ambiguous/multi-system scope; opus/xhigh for irreversible or high-cost-of-failure work (migrations, auth/security, infra, destructive ops). This is a suggestion applied by hand, not an automatic mid-session switch.
+STEP 8 — Never overwrite silently. If `GOALS.md` already exists, read the active root file first and merge new findings in. If `dev/goals-archive/README.md` exists, read that index too; open an individual archived plan only when historic scope/evidence matters, so completed detail is not default planning context. Read the `## Owner backlog` section of the root `GOALS.md` if it exists; do not repeat its items in a new plan. `GOALS.md` is tracked in version control, not gitignored.
 
-STEP 8 — Never overwrite silently. If `GOALS.md` already exists, read the active root file first and merge new findings in. If `dev/goals-archive/README.md` exists, read that index too; open an individual archived plan only when historic scope/evidence matters, so completed detail is not default planning context. `GOALS.md` is tracked in version control, not gitignored.
-
-STEP 9 — Report only: the file path (or the research deliverable's path for a research-type ask), and — only when run standalone, not backgrounded — a short outline of the sections written, not the full content.
+STEP 9 — Report in the user's language, answer first, in five lines or fewer: the file path (or the research deliverable's path), the number of items per tier, the items with `gate: ask` or `tier: user`, and the session model for `/execgoals`. That session only dispatches, runs checks and escalates: recommend a mid-tier model at medium effort unless an `ask` item needs more. This is a recommendation only; it switches nothing. Do not describe the items. Then ask whether to run `/execgoals` or adjust the plan.
 
 STEP 10 — Never execute. This command writes `GOALS.md` (or the research deliverable) and nothing else. Never edit other files, never run installs/builds, never implement a prior `GOALS.md`'s items — no matter how complete the request sounds. If something needs building, that's `/execgoals` or a separate explicit ask, never this command.
 

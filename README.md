@@ -151,9 +151,9 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | Command | What it does |
 |---|---|
 | `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
-| `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. It then recommends a model + effort for the plan's highest-complexity module and asks whether to execute or adjust the plan; the recommendation is manual and never switches the model automatically. |
+| `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root as an **executor-v1** plan: AI-only items, each with a tier (`light`/`standard`/`strong`), a gate, exact files and steps, and a runnable `check:` — so a cheaper model can execute it without design choices. You don't need to read it; ask for status whenever you want. It ends with a short report and a manual model recommendation for the `/execgoals` session. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
-| `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
+| `/execgoals` | Executes one active plan of `GOALS.md` item by item (`/execgoals 19` picks plan 19) and reads only that plan. Executor-v1 items go to the `coder` subagent at the item's tier (Claude Code: `light` → haiku, `standard` → sonnet, `strong` → opus); the command runs each item's `check:` itself, retries once, escalates one tier, then stops and reports. Older plans keep the `architect`/`coder` workflow. Runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
 | `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
 | `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
@@ -281,6 +281,7 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ## 📬 Changelog
 
 ### Unreleased
+- Executor-v1 plans (GOALS 19): `/newgoal` writes AI-only items with a tier, a gate and a runnable `check:`; `/execgoals` dispatches each item to a cheaper model, checks it itself and escalates on failure; a new AI-facing writing standard (paraphrased from ASD-STE100) with `npm run lint:ai-style` / `report:ai-style`; replies lead with the answer (BLUF). Existing plans are unchanged.
 - The "what do you want to do now?" menu is no longer printed after a finished task (it cost about a thousand tokens each time and stayed in the context); it still appears at session start, and `/wpp` brings it back on demand
 
 ### v1.2.0 (unreleased — tag pending)

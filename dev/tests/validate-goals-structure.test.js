@@ -232,3 +232,107 @@ test("validate-goals hook stays silent for a well-formed GOALS.md and for other 
     fs.rmSync(item.directory, { recursive: true, force: true });
   }
 });
+
+// Executor-v1 sections (GOALS 19): field, tier, gate, dependency and block rules apply only to
+// sections that carry the `Format: executor-v1` line.
+function v1Item(id, fields) {
+  const defaults = {
+    tier: "light · low",
+    gate: "auto",
+    after: "none",
+    files: "`a.md` (edit)",
+    do: "",
+    check: "`node -e 0` → exit 0",
+  };
+  const merged = { ...defaults, ...fields };
+  const lines = [`- [ ] **${id} Do it**`];
+  for (const [name, value] of Object.entries(merged)) {
+    if (value !== null) lines.push(`  - ${name}: ${value}`);
+  }
+  return lines.join("\n");
+}
+
+function v1Section(...items) {
+  return [
+    "## GOALS 1 — T (x feature)",
+    "Format: executor-v1",
+    "",
+    ...items,
+  ].join("\n");
+}
+
+function codesFor(content) {
+  const item = fixture(content);
+  try {
+    return check(item.file).findings.map((finding) => finding.code);
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+}
+
+test("validate-goals-structure accepts a valid executor-v1 section", () => {
+  assert.deepEqual(
+    codesFor(
+      v1Section(
+        v1Item("T1.1", {}),
+        v1Item("T1.2", { tier: "user", gate: "ask", after: "T1.1" }),
+      ),
+    ),
+    [],
+  );
+});
+
+test("validate-goals-structure reports each executor-v1 rule", () => {
+  assert.deepEqual(codesFor(v1Section(v1Item("T1.1", { check: null }))), [
+    "v1_missing_field",
+  ]);
+  assert.deepEqual(
+    codesFor(v1Section(v1Item("T1.1", { tier: "haiku · low" }))),
+    ["v1_bad_tier"],
+  );
+  assert.deepEqual(codesFor(v1Section(v1Item("T1.1", { gate: "maybe" }))), [
+    "v1_bad_gate",
+  ]);
+  assert.deepEqual(codesFor(v1Section(v1Item("T1.1", { after: "T9.9" }))), [
+    "v1_unknown_after",
+  ]);
+  assert.deepEqual(
+    codesFor(
+      v1Section(
+        v1Item("T1.1", { after: "T1.2" }),
+        v1Item("T1.2", { after: "T1.1" }),
+      ),
+    ),
+    ["v1_cycle"],
+  );
+  assert.deepEqual(
+    codesFor(
+      v1Section(
+        "```mermaid",
+        "flowchart TD",
+        "  A --> B",
+        "```",
+        "Suggested: sonnet · high — x",
+        v1Item("T1.1", {}),
+      ),
+    ),
+    ["v1_forbidden_block", "v1_forbidden_block"],
+  );
+});
+
+test("validate-goals-structure leaves old-format sections unchanged", () => {
+  assert.deepEqual(
+    codesFor(
+      [
+        "## GOALS 1 — Old (x feature)",
+        "```mermaid",
+        "flowchart TD",
+        "  A --> B",
+        "```",
+        "Suggested: sonnet · high — x",
+        "- [ ] **A.1 Old item** (`coder`) — no v1 fields",
+      ].join("\n"),
+    ),
+    [],
+  );
+});

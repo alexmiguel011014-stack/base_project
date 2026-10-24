@@ -40,6 +40,9 @@ unless the item's whole purpose is a static artifact (a config file, a `.gitigno
 Testing-area items are done only when the specific suite/assertion passes, not when a test
 file has been written.
 
+In an executor-v1 plan, write this as the item's `check:` field: a command whose exit
+code or output proves it, or `manual — <what the user observes>` for owner work.
+
 ## Ordering rule
 
 Real technical dependency: schema before the endpoint that reads/writes it, endpoint before

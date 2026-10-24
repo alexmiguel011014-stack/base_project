@@ -7,9 +7,9 @@ Fonte única do menu “o que você deseja fazer agora?”. Editar só aqui — 
 O que você deseja fazer agora?
 
 - `$bootstrap` — sincroniza o projeto com o remoto e mapeia o código com repomix + graphify.
-- `$newgoal` — pesquisa e escreve o plano executável em `GOALS.md`; nunca implementa o plano.
+- `$newgoal` — pesquisa e escreve o plano executável em `GOALS.md`, num formato feito para a IA executar (você não precisa ler; peça o status quando quiser); nunca implementa o plano.
 - `$repertoire` — pesquisa profundamente o domínio de um projeto ou um assunto avulso; declara limites e sempre confirma antes.
-- `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição.
+- `$execgoals` — executa o `GOALS.md` ativo item por item, só marca o que foi verificado e checa a estrutura após lotes de edição — cada item vai para um modelo mais barato e só é marcado quando o `check` dele passa; se falhar, sobe de modelo ou para e avisa.
 - `$scanproject` — audita identidade, CI, testes, lint, segurança básica e estrutura. Comece aqui.
 - `$audit` — aprofunda a parte de segurança: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `$cleanproject` — procura arquivos mortos, pastas erradas e duplicação sem alterar nada.
