@@ -50,7 +50,7 @@ function ledgerFile(sessionId) {
 // Prompts and tool inputs routinely carry credentials (`export API_KEY=…`, a curl with an
 // Authorization header, a pasted token). The ledger is plain text kept indefinitely, so
 // well-known secret shapes are masked before anything is written. File paths and ordinary
-// commands — what /usagebp and /diario actually read — are left intact.
+// commands — what /usagebp actually reads — are left intact.
 const SECRET_PATTERNS = [
   [
     /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,

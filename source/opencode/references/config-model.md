@@ -6,8 +6,8 @@ Read by `doctor`, `audit`, `context`, `apply`, and the adapter system. Single so
 
 ## 1. Canonical store location (Decision R0)
 
-- **Canonical unified store**: `~/.agents/` — introduced by this epic, mirrors `dot-agents` convention (`dot-agents/dot-agents` v1, `agentsync` `~/.agentsync/`). Chosen over reusing `~/.base_project/` alone because `~/.agents/` is the de-facto ecosystem name users already search for; `~/.base_project/` stays for THIS project's own bookkeeping (repo-path, diary-root, usage ledger `~/.claude/base_project/usage/`), not for unified agent configs.
-- **Compatibility shim**: `~/.base_project/` is never deleted. On first `init`, if `~/.base_project/` exists and `~/.agents/` does not, `init` creates `~/.agents/` and writes a `README.md` noting the relationship. Existing `~/.base_project/repo-path.txt` and `~/.base_project/diary-root.txt` stay where they are (referenced via `~/.base_project/`).
+- **Canonical unified store**: `~/.agents/` — introduced by this epic, mirrors `dot-agents` convention (`dot-agents/dot-agents` v1, `agentsync` `~/.agentsync/`). Chosen over reusing `~/.base_project/` alone because `~/.agents/` is the de-facto ecosystem name users already search for; `~/.base_project/` stays for THIS project's own bookkeeping (repo-path, usage ledger `~/.claude/base_project/usage/`), not for unified agent configs.
+- **Compatibility shim**: `~/.base_project/` is never deleted. On first `init`, if `~/.base_project/` exists and `~/.agents/` does not, `init` creates `~/.agents/` and writes a `README.md` noting the relationship. Existing `~/.base_project/repo-path.txt` stays where it is (referenced via `~/.base_project/`).
 - **Overrides**: `BASE_PROJECT_HOME` / `AGENTS_HOME` env var may point to an alternate canonical root (used by tests via `os.tmpdir()`). `paths.js` centralizes resolution: `CANONICAL_HOME = process.env.AGENTS_HOME || process.env.BASE_PROJECT_HOME || path.join(os.homedir(), ".agents")`.
 - **Not created automatically on unrelated machines**: `install.ps1`/`.sh` creates `~/.agents/` scaffolding only; it does not write into any project repo.
 

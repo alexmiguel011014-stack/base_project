@@ -7,7 +7,7 @@ description: Validate, commit, and push the current project's changes safely. Us
 Ship the current changes without force-pushing, hiding blockers, or staging surprises.
 
 ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 1. Inventory first: confirm a git work tree; read porcelain-v2 status with branch/ahead/behind; inspect remotes, upstream, last commit, and merge/rebase/cherry-pick state.
 2. Treat invocation arguments as a commit-message override when they read like one, otherwise as a scope hint. Never expand a scoped request silently.

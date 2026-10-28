@@ -7,7 +7,7 @@ description: Implement and verify findings from $scanproject or $cleanproject. U
 Apply project fixes with before-and-after evidence.
 
  ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 
 1. Reuse findings already established in the conversation or a report. If none exist, run the read-only `$scanproject` workflow first.

@@ -84,6 +84,14 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
     research. `/repertoire` researches *what the project is about*; this step researches *how to
     build it*; don't let the two blur into one pass or skip reading the briefing once it exists.
 
+4c. **Ground every reference before writing it.** Open each file the plan will edit and copy
+    its anchors from what is actually there; search for every function, flag, path, command,
+    and test name the plan mentions and correct or drop any that does not exist. Record the
+    commit the plan was grounded against (`git rev-parse --short HEAD`) in the section's first
+    paragraph. Facts about the outside world (versions, APIs, defaults) come from a source
+    read in this pass and cited per item; when no source was read, the item says so instead
+    of stating the fact from memory.
+
 5. **Write `GOALS.md` in English**, regardless of the conversation's language — this file is
    meant to be read by `/execgoals` as much as by the user, and the user
    asked for it explicitly. Structure it as concrete, checkable items grouped by the chosen
@@ -99,19 +107,57 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
    spot in a graph than in a list). Keep it to area/subsystem-level nodes, not one node per
    checkbox — a node per item is noise past a handful of items.
 
-5a. **Annotate each module with a suggested model + effort**, right after that module's
-    flowchart: one line, `Suggested: <model> · <effort> — <one-clause reason>`. Pick `<model>`
-    from `{haiku, sonnet, opus}` and `<effort>` from `{low, medium, high, xhigh}` per that
-    module's own risk/complexity — never one fixed setting for the whole plan:
-    - **haiku / low** — mechanical, low-risk, fully-specified (boilerplate, config, doc edits).
-    - **sonnet / medium** — typical implementation work, normal verification needs.
-    - **sonnet / high** or **opus / high** — nontrivial logic, ambiguous scope, or a module
-      spanning multiple systems.
-    - **opus / xhigh** — irreversible or high-cost-of-failure work: migrations, auth/security,
-      infra, destructive operations, or anything `/execgoals` cannot safely retry.
-    This is a suggestion the user applies by hand (a session's model/effort is a user choice,
-    not something switched automatically mid-session) — it exists so a plan run end-to-end on
-    one setting can be dialed down for the modules that don't need it.
+5a. **Write every item to the executable item contract.** The executor may be a weaker
+    model with none of this research in its context; every judgment call left inside an item
+    becomes a guess there. Put the line `<!-- item-contract: v1 -->` under each new
+    `GOALS N` section's stage map so the structure validator checks the fields, and give
+    every item these sub-bullets, in this order:
+    - `Files:` every path the item creates or edits, each marked `(new)` or `(exists)`; an
+      `(exists)` path was opened during this planning pass, not assumed.
+    - `Anchor:` for an edit to an existing file, a line or unique heading copied verbatim
+      from that file during this pass, so the executor finds the location instead of
+      inferring it.
+    - `Change:` the exact text to add or replace when it is about 15 lines or fewer;
+      otherwise a precise specification — names, signatures, inputs, outputs, error cases.
+      Never "improve", "clean up", "update as needed", or "handle appropriately".
+    - `Do not touch:` adjacent files or behavior that must stay as they are, whenever a
+      plausible over-edit exists.
+    - `Verify:` the exact command or check and its expected result (exit code, test name,
+      match count), so "done" is observed, not judged.
+    - `Source:` the URL and access date for every external fact the item relies on
+      (version, API, flag, default). A fact not confirmed in this pass is written
+      `(unverified — confirm before executing)`, which makes the item a stop point for
+      `/execgoals`, never a silent assumption.
+    A `manual` item needs only `Verify:` (the evidence the user provides). One item is one
+    coherent change that one `Verify:` can prove: split an item that edits more than three
+    files or still contains a choice. Every choice is settled in the plan — a `Decisions`
+    subsection stating the option taken and why — or becomes its own `manual` item; an item
+    handed to `coder` contains no open decision. Long text that several items reuse goes
+    once in a `Canonical texts` subsection, and items reference it by name.
+
+5b. **Open each `GOALS N` section with a stage map.** Group the section's items into stages
+    and show them as a table — `Stage | Items | Depends on | Can run in parallel with` — and
+    draw step 5's Mermaid flowchart at that same stage level. Two stages are parallel only
+    when neither needs the other's result and they edit no file in common; otherwise they
+    are sequential. Name each stage after what it delivers, and use the same names when
+    explaining the plan to the user. `/execgoals` still runs items in written order; the
+    parallel column tells the user which stages can go to separate sessions.
+
+5c. **Write item text in controlled English, modeled on ASD-STE100 Simplified Technical
+    English.** The executor follows words literally, so write each item like a
+    maintenance procedure:
+    - Write one instruction per sentence, as a command: "Replace X with Y.", not "X should
+      probably be updated to Y".
+    - Keep an instruction to 20 words or fewer and a descriptive sentence to 25 words or
+      fewer. A longer sentence usually holds two ideas: split it.
+    - Use the active voice. Do not use "-ing" verb forms as instructions.
+    - Use one word for one meaning. After you name a thing (a file, a block, a stage), use
+      the same name every time; do not use synonyms.
+    - Keep the articles ("the", "a"); do not compress sentences into fragments.
+    - Write a limit or a warning as a command, before the step it applies to.
+    - Do not use vague words: "appropriate", "properly", "as needed", "etc.", "and so on".
+    Code, paths, commands, and quoted anchors are exempt: copy them exactly. This rule
+    applies to the checklist items; the rationale sections of a plan stay in normal English.
 
 6. **Never overwrite silently.** If `GOALS.md` already exists, read the active root file first
    and merge new findings rather than discarding them. If `dev/goals-archive/README.md` exists,
@@ -121,9 +167,11 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
    `README.md`, not gitignored: it's project documentation the user keeps, not a regenerable
    artifact.
 
-7. Report only: the file path (or, for a standalone `research`-type deliverable, that file's
-   path instead), and — when this ran standalone, not backgrounded — a short outline of the
-   sections written, not the full content (the file has that).
+7. Report: the file path (or, for a standalone `research`-type deliverable, that file's
+   path instead), and — when this ran standalone, not backgrounded — the stage map in the
+   user's language: each stage in order, what it delivers, and which stages can run at the
+   same time. Not the full content (the file has that). Then ask, in the user's language,
+   whether the user wants to proceed with `/execgoals` or adjust the plan first.
 
 8. **Never execute.** This command writes `GOALS.md` (or the standalone research deliverable)
    — full stop. It never edits other files, never runs installs/builds/scaffolding, and never

@@ -73,7 +73,6 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
           test -f "$CLAUDE_HOME/base_project/scripts/contrast-check.js"
-          test -f "$CLAUDE_HOME/base_project/scripts/diary-source.js"
           test -f "$CLAUDE_HOME/base_project/scripts/validate-goals-structure.js"
           test -f "$CLAUDE_HOME/base_project/hooks/usage-log.js"
           test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
@@ -99,7 +98,6 @@ jobs:
           test -f "$CLAUDE_HOME/commands/ship.md"
           test -f "$CLAUDE_HOME/commands/pr.md"
           test -f "$CLAUDE_HOME/commands/undo.md"
-          test -f "$CLAUDE_HOME/commands/diario.md"
           test -f "$CLAUDE_HOME/commands/newgoal.md"
           test -f "$CLAUDE_HOME/commands/repertoire.md"
           test -f "$CLAUDE_HOME/commands/execgoals.md"
@@ -128,7 +126,6 @@ jobs:
           test -f "$OPENCODE_HOME/command/ship.md"
           test -f "$OPENCODE_HOME/command/pr.md"
           test -f "$OPENCODE_HOME/command/undo.md"
-          test -f "$OPENCODE_HOME/command/diario.md"
           test -f "$OPENCODE_HOME/command/newgoal.md"
           test -f "$OPENCODE_HOME/command/repertoire.md"
           test -f "$OPENCODE_HOME/command/execgoals.md"
@@ -144,7 +141,7 @@ jobs:
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/updates/SKILL.md"
           test ! -e "$BASE_PROJECT_AGENTS_ROOT/rules"
           test ! -e "$BASE_PROJECT_AGENTS_ROOT/config.json"
-          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
+          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "20"
           node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); for (const hook of ['validate-goals.js', 'post-edit-format.js']) { const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((entry) => entry.command.includes('base_project/hooks/' + hook))); if (groups.length !== 1 || groups[0].matcher !== 'Edit|Write|MultiEdit') process.exit(1) }"
           node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
           grep -q "### UI verification & screen control" "$CLAUDE_HOME/CLAUDE.md"
@@ -172,7 +169,6 @@ jobs:
             (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
             (Join-Path $claudeHome "base_project\scripts\contrast-check.js"),
-            (Join-Path $claudeHome "base_project\scripts\diary-source.js"),
             (Join-Path $claudeHome "base_project\scripts\validate-goals-structure.js"),
             (Join-Path $claudeHome "base_project\hooks\usage-log.js"),
             (Join-Path $claudeHome "base_project\references\project-standards.md"),
@@ -198,7 +194,6 @@ jobs:
             (Join-Path $claudeHome "commands\ship.md"),
             (Join-Path $claudeHome "commands\pr.md"),
             (Join-Path $claudeHome "commands\undo.md"),
-            (Join-Path $claudeHome "commands\diario.md"),
             (Join-Path $claudeHome "commands\newgoal.md"),
             (Join-Path $claudeHome "commands\repertoire.md"),
             (Join-Path $claudeHome "commands\execgoals.md"),
@@ -227,7 +222,6 @@ jobs:
             (Join-Path $opencodeHome "command\ship.md"),
             (Join-Path $opencodeHome "command\pr.md"),
             (Join-Path $opencodeHome "command\undo.md"),
-            (Join-Path $opencodeHome "command\diario.md"),
             (Join-Path $opencodeHome "command\newgoal.md"),
             (Join-Path $opencodeHome "command\repertoire.md"),
             (Join-Path $opencodeHome "command\execgoals.md"),
@@ -256,7 +250,7 @@ jobs:
           $codexHooks = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json
           $codexGoalsGroups = @($codexHooks.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
           if ($codexGoalsGroups.Count -ne 1 -or $codexGoalsGroups[0].matcher -ne "apply_patch|Edit|Write|MultiEdit") { throw "Expected exactly one narrow Codex GOALS validation hook" }
-          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 21) { throw "Expected exactly 21 Codex skills" }
+          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 20) { throw "Expected exactly 20 Codex skills" }
           if (-not (Select-String -Path (Join-Path $claudeHome "CLAUDE.md") -Pattern "### UI verification & screen control" -SimpleMatch -Quiet)) { throw "Claude CLAUDE.md is missing the UI verification & screen control section" }
           if (-not (Select-String -Path (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md") -Pattern "### UI verification & screen control" -SimpleMatch -Quiet)) { throw "Codex AGENTS.md is missing the UI verification & screen control section" }
           $shippedMcp = (Get-Content "source/opencode/mcp.json" -Raw | ConvertFrom-Json).mcpServers

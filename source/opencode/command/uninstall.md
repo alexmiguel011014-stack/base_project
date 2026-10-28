@@ -1,6 +1,6 @@
 ---
 # base_project:managed
-description: Cleanly remove everything base_project installed globally. Tiered confirmation — asks separately for things with a bigger blast radius (global hooks, global MCP servers), and keeps your own data (usage ledger, diaries, ~/.agents content) unless you explicitly confirm deleting it.
+description: Cleanly remove everything base_project installed globally. Tiered confirmation — asks separately for things with a bigger blast radius (global hooks, global MCP servers), and keeps your own data (usage ledger, ~/.agents content) unless you explicitly confirm deleting it.
 ---
 
 Remove base_project's installed files and registrations from every engine it was installed
@@ -28,7 +28,7 @@ installer usually does, actually check what's present on this machine right now:
 - The delimited block (`<!-- base_project:start -->` … `<!-- base_project:end -->`) in
   `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and `~/.kimi/AGENTS.md`, where present.
 - `~/.base_project/` state (`repo-path.txt`, `opencode-command-profile.txt`,
-  `opencode-managed-mcp.json`, `diary-root.txt`).
+  `opencode-managed-mcp.json`, and the legacy `diary-root.txt`).
 - Hook entries whose `command` contains `base_project/hooks/` in `~/.claude/settings.json`
   and `~/.codex/hooks.json` (derive the current set from the installed entries rather than a
   fixed list).
@@ -45,8 +45,7 @@ installer usually does, actually check what's present on this machine right now:
   server names. Servers earlier versions registered are listed in that repo's
   `source/opencode/mcp-previous.json`; count one only while its entry still matches a
   definition listed there — otherwise it is the user's.
-- The user's own data (Tier D): the usage ledger `~/.claude/base_project/usage/`, the diary
-  directory named in `~/.base_project/diary-root.txt`, and the unified canonical store
+- The user's own data (Tier D): the usage ledger `~/.claude/base_project/usage/` and the unified canonical store
   `~/.agents/` (rules, MCP and config the user may have edited; the managed skills under
   `~/.agents/skills/` belong to Tier A).
 
@@ -60,8 +59,7 @@ no effect on anything outside base_project's own namespace):**
 managed `.md`/`.toml`/`SKILL.md` files (agents, commands, skills, references — every engine),
 `plugins.json` copies, `~/.claude/base_project/hooks/*.js` and managed helper scripts (such as
 `scan-skill.js` and `validate-goals-structure.js`), the managed blocks in `CLAUDE.md`/`AGENTS.md`,
-and the `~/.base_project/` state files except `diary-root.txt` (kept with Tier D so the diaries
-stay findable). Never the usage ledger.
+and the `~/.base_project/` state files. Never the usage ledger.
 Ask once: "Remove all of Tier A? (y/n)".
 
 **Tier B — changes what fires on every future session, not just base_project's own
@@ -84,10 +82,9 @@ servers globally: <list>? This affects every Claude Code/opencode/Codex project 
 machine. (y/n)".
 
 **Tier D — the user's own data (NOT restorable by reinstalling; the default is to keep it):**
-the usage ledger `~/.claude/base_project/usage/` (the only source `/diario` has for past
-hours and activity), the diary directory from `~/.base_project/diary-root.txt`, and the
+the usage ledger `~/.claude/base_project/usage/` (the source `/usagebp` reads), and the
 canonical store `~/.agents/`. Offer it only after Tiers A–C, say plainly that nothing can
-bring it back, and ask: "Also permanently delete your usage history, diaries and ~/.agents
+bring it back, and ask: "Also permanently delete your usage history and ~/.agents
 content? This cannot be undone by reinstalling. (y/N)". Anything but an explicit yes keeps it.
 
 ## Step 3: Execute only what was confirmed

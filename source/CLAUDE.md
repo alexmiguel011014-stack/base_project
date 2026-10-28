@@ -15,7 +15,7 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
 - Never impose a universal low-effort, output, turn, or context cap before comparing correctness and rework against the baseline.
 
 ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repo.
@@ -73,18 +73,6 @@ These rules apply in every project unless a project-local `CLAUDE.md` overrides 
   result, not with a list of commands. The user can ask for it at any time with `/wpp`.
 - Render it by reading `~/.claude/base_project/references/command-menu.md` verbatim —
   do not redigit the list from memory, so it never drifts from the real command set.
-
-### Contribution diary (suggest only, never write unasked)
-- After closing a substantial task (multiple file edits, subagents, or TodoWrite involved),
-  mention once — briefly, without derailing — that `/diario` can record it in this
-  project's contribution diary. Then drop it.
-- Never write or update a diary without being asked. The recording that happens automatically
-  is the `usage-log` hook's raw ledger, not narrative entries; nothing is lost by the user
-  saying no, since `/diario` can synthesize any past date range later from that same ledger.
-- Diaries live in one central directory outside every repository, resolved from
-  `~/.base_project/diary-root.txt`. Never create one inside a project repo, and never suggest
-  committing one anywhere — that content is deliberately kept out of version control.
-- Don't repeat the suggestion again in the same session once mentioned or declined.
 
 ### Self-Correction
 - After any code change, detect and run the project's own test/typecheck/lint commands from its manifest

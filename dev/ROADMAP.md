@@ -2455,6 +2455,63 @@ que o instalador não rodou desde antes da v1.2.0.
 primeiro pedido não é específico) e a sugestão de uma linha do `/diario` — o dono pediu só o fim
 das emissões depois de tarefa.
 
+## 57. Plano pesado, build leve: contrato de item executável (2026-10-28)
+
+**Origem**: o dono pediu que o `/newgoal` passasse a gastar o esforço de raciocínio no plano, para
+que um modelo mais fraco só transcreva e verifique no `/execgoals`, e pediu a remoção completa da
+sugestão de modelo + esforço por módulo. A revisão das regras (GOALS 19) achou quatro problemas:
+o passo 7 recomendava o ajuste do módulo mais caro, o que contradizia o objetivo do passo 5a;
+o `/execgoals` mandava todo item não trivial pelo `architect` (opus) mesmo com o design já feito;
+nada obrigava o planejador a conferir caminhos e nomes antes de escrevê-los; e nenhuma variante
+mandava parar quando o plano já não batia com os arquivos.
+
+**O que mudou**: o `/newgoal` (Claude, opencode denso e lite, Codex) agora confere cada referência
+antes de escrevê-la (4c), escreve cada item com `Files`, `Anchor`, `Change`, `Do not touch`,
+`Verify` e `Source` (5a), abre cada seção com um mapa de etapas em ordem ou em paralelo (5b) e
+escreve o texto dos itens num estilo inspirado no ASD-STE100 (5c) — estilo, não conformidade: o
+dicionário oficial não é distribuído com o projeto. O `/execgoals` ganhou o preflight (2a): para
+no item quando a âncora não bate ("plan drift"), manda item já especificado direto ao `coder` e
+usa o `Verify:` como prova. `validate-goals-structure.js` passou a exigir `Files:`/`Verify:` nos
+itens abertos abaixo do marcador `<!-- item-contract: v1 -->`; planos antigos não têm o marcador e
+seguem válidos. A sugestão `Suggested:` saiu de todas as regras, READMEs, testes e do `GOALS.md`
+ativo; o GOALS 14, que existia só para ela, foi arquivado como `superseded` (o item M14.8 foi
+fechado sem execução, porque o teste do arquivo proíbe itens abertos num corpo arquivado).
+
+**Também corrigido**: `@types/node` voltou para a major 22 (a do Node do CI) e o Dependabot passou
+a ignorar majors dele. O texto do `/execgoals` sobre o checksum do arquivo não cita
+`dev/scripts/goals-archive-index.js`, porque `command-paths.test.js` proíbe esse caminho em comando
+distribuído; ele manda usar o comando que o `CLAUDE.md` do projeto indicar.
+
+**Evidência**: `npm test` (197 testes, 0 falhas), `npm run typecheck`, `validate:plugins`,
+`check:unused-deps`, `audit:prod` e `test:harness` com saída 0. O `npm run lint` não roda dentro de
+`.claude/worktrees` (o Biome ignora esse caminho); o Biome foi executado nos arquivos alterados.
+Ainda abertos: a sincronização da máquina e a aceitação ao vivo com um modelo fraco (GOALS 19,
+P19.20, P19.22 e P19.23).
+
+## 58. Remoção do /diario (2026-10-28)
+
+**Origem**: o dono decidiu que o diário de contribuições não é mais útil e pediu para excluir tudo
+que se relacione a ele (GOALS 20).
+
+**Removido**: o comando nas quatro variantes (Claude, opencode denso e lite, skill do Codex), o
+`diary-source.js` e o teste dele, a seção "Contribution diary" das três camadas de instruções
+globais, a palavra "diary" na frase de agrupamento/parada repetida em 15 arquivos, as linhas dos
+menus e do `/status`, as menções no `/uninstall` (o `diary-root.txt` virou arquivo de estado
+legado e a pasta do diário deixou de ser citada), as checagens do CI e a exceção `diario.md` das
+regras do repositório. A contagem caiu de 21 para 20 comandos/skills nos docs, nos testes e no CI.
+Os instaladores apagam, na máquina de quem já instalou, as cópias antigas do comando, do script e
+da skill do Codex — só quando o arquivo ainda tem o marcador `base_project:managed`.
+
+**Mantido**: o ledger de uso, o hook `usage-log` e o `ledger-prune.js` (o `/usagebp` lê o ledger;
+só o texto deixou de dizer "única fonte do `/diario`"); o histórico (itens antigos deste ROADMAP,
+`dev/goals-archive/`, o changelog do README). O teste de arquivo grande passou a usar o leitor do
+`usage-baseline.js`. Os documentos de diário do dono não foram tocados: decidir o destino deles
+é um item manual do GOALS 20.
+
+**Evidência**: `npm test` (170 testes, 0 falhas), `typecheck`, `test:harness` com saída 0, Biome
+nos arquivos alterados sem achados, `bash -n` no `install.sh` e o parser do PowerShell sem erros
+no `install.ps1`. A matriz do CI (3 SOs) só pode ser confirmada depois do push.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)

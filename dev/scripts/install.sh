@@ -269,7 +269,7 @@ fi
 #     file written by hand at the same path is left alone even if the name matches.
 # ---------------------------------------------------------------------
 # Same list as install.ps1 (doctor/context/explain were briefly shipped as commands).
-for stale_name in dashboard doctor context explain newproject reviewusage; do
+for stale_name in dashboard doctor context explain newproject reviewusage diario; do
   for stale_cmd in "$CLAUDE_COMMANDS_DIR/$stale_name.md" "$OPENCODE_COMMAND_DIR/$stale_name.md"; do
     [ -f "$stale_cmd" ] || continue
     if grep -q 'base_project:managed' "$stale_cmd"; then
@@ -463,12 +463,12 @@ if [ -f "$CONTRAST_CHECK_SRC" ]; then
 fi
 
 # ---------------------------------------------------------------------
-# 8c-3. diary-source.js - deterministic ledger/git extractor behind /diario.
-# See ROADMAP item 38.
+# 8c-3. Retired: diary-source.js shipped with /diario (removed in GOALS 20).
 # ---------------------------------------------------------------------
-DIARY_SOURCE_SRC="$SCRIPT_DIR/diary-source.js"
-if [ -f "$DIARY_SOURCE_SRC" ]; then
-    sync_managed "$DIARY_SOURCE_SRC" "$CLAUDE_SCRIPTS_DIR/diary-source.js"
+STALE_DIARY_SOURCE="$CLAUDE_SCRIPTS_DIR/diary-source.js"
+if [ -f "$STALE_DIARY_SOURCE" ] && grep -q 'base_project:managed' "$STALE_DIARY_SOURCE"; then
+    rm -f "$STALE_DIARY_SOURCE"
+    ok "removed stale script: $STALE_DIARY_SOURCE"
 fi
 
 # ---------------------------------------------------------------------

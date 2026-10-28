@@ -2,17 +2,845 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
-1. [**CDP Verification Modifier**](#goals-18-cdp-verification-modifier-for-execgoals-and-fixproject) — a `cdp` word added to `/execgoals` or `/fixproject` makes the run prove UI items in an isolated real browser over the Chrome DevTools Protocol; no new command, no always-on debug port.
-2. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
-3. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
-4. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
-5. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
-6. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
+1. [**Plan-Heavy, Build-Light**](#goals-19-plan-heavy-build-light-executable-item-contract) — `/newgoal` writes every item so precisely that a weaker executor only transcribes and verifies; the per-module model + effort suggestion is removed everywhere; audit findings in the goal workflow are fixed.
+2. [**Remove the Contribution Diary**](#goals-20-remove-the-contribution-diary) — delete `/diario` and everything that exists only for it, in every runtime; keep the usage ledger that `/usagebp` reads, and leave the diary documents to the owner.
+3. [**CDP Verification Modifier**](#goals-18-cdp-verification-modifier-for-execgoals-and-fixproject) — a `cdp` word added to `/execgoals` or `/fixproject` makes the run prove UI items in an isolated real browser over the Chrome DevTools Protocol; no new command, no always-on debug port.
+4. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
+5. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
+6. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
+7. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
-The completed bodies for GOALS 1–11 and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
+The completed bodies for GOALS 1–11 and 13 (and the superseded GOALS 14) are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
+
+---
+
+<a id="goals-19-plan-heavy-build-light-executable-item-contract"></a>
+## GOALS 19 — Plan-Heavy, Build-Light: Executable Item Contract (base_project process)
+
+Grounded against commit `d541daf` on 2026-10-27. The goal workflow should spend its reasoning
+in `/newgoal`, so `/execgoals` can run on a weaker or cheaper model that only transcribes,
+runs the stated check, and stops when reality differs from the plan. Today the opposite leaks
+through: items describe intent rather than exact edits, nothing forces the planner to verify
+the paths and names it cites, `/execgoals` re-runs a design pass (`architect`) on work that was
+already designed, and there is no rule for what to do when the plan no longer matches the files.
+The owner also asked to remove the per-module model + effort suggestion from every rule, and
+to write plan items in the style of ASD-STE100 Simplified Technical English (no rule mentions
+STE today). This plan does all three, and fixes the inconsistencies found while auditing the
+goal workflow.
+
+### Stage map
+
+| Stage | Items | Depends on | Can run in parallel with |
+| --- | --- | --- | --- |
+| A — Approve texts and decisions | P19.1 | — | — |
+| B1 — `/newgoal` rewrite (4 variants) | P19.2–P19.5 | A | B2, B3, B4 |
+| B2 — `/execgoals` rewrite (4 variants) | P19.6–P19.9 | A | B1, B3, B4 |
+| B3 — Structure validator enforces the contract | P19.10–P19.11 | A | B1, B2, B4 |
+| B4 — Drift fixes outside the commands | P19.12–P19.14 | A | B1, B2, B3 |
+| C — Contract tests | P19.15–P19.16 | B1, B2 | — |
+| D — `GOALS.md` cleanup and registration | P19.17–P19.20 | C, B3, B4 | — |
+| E — Verification and live acceptance | P19.21–P19.23 | D | — |
+
+B2 and GOALS 18's C18.5 edit the same four `execgoals` files: never run them in parallel
+sessions. Stage D edits `GOALS.md` itself, so it runs in the session that is executing this plan.
+
+```mermaid
+flowchart TD
+    A[A: approve canonical texts and decisions] --> B1[B1: newgoal x4]
+    A --> B2[B2: execgoals x4]
+    A --> B3[B3: validator + tests]
+    A --> B4[B4: drift fixes]
+    B1 --> C[C: contract tests]
+    B2 --> C
+    C --> D[D: GOALS.md cleanup + registration]
+    B3 --> D
+    B4 --> D
+    D --> E[E: verify + live acceptance]
+```
+
+<!-- item-contract: v1 -->
+
+### Audit findings (evidence this plan rests on)
+
+- **F1 — model suggestion surfaces.** `source/claude/commands/newgoal.md:102-114` (5a) and
+  `:127-131` (step 7); `source/opencode/command/newgoal.md` (same lines); 
+  `source/opencode/command-lite/newgoal.md:43` (STEP 7a); `source/codex/skills/newgoal/SKILL.md:21-28`
+  (mapping), `:30` (step 6 sentence), `:33-40` (step 9 contract); `README.md:119` and `:154`;
+  `source/codex/README.md:28`; `dev/tests/codex.test.js:155-228`; `Suggested:` lines in this
+  file's GOALS 18, 17, 16, 15, 14; GOALS 14 exists only to build this feature (M14.8 open).
+- **F2 — the policy contradicted itself.** 5a existed so modules could be dialed *down*; step 7
+  recommended the setting of the riskiest module, which pushes the whole run *up*. Moot after
+  removal.
+- **F3 — lite drift.** `source/opencode/command-lite/newgoal.md` STEP 9 never asks whether to run
+  `/execgoals` or adjust the plan; the dense and Codex variants do.
+- **F4 — design paid twice.** `/execgoals` step 3 sends every non-trivial item through
+  `architect` → `coder` (`source/claude/commands/execgoals.md:35-36`), and `architect` runs on
+  `opus` (`source/claude/agents/architect.md:5`), even when `/newgoal` already settled the design.
+- **F5 — no grounding contract.** The goal-type modules only require a "done when"; nothing
+  requires verified paths, verbatim anchors, an exact check, or a source for external facts.
+  `dev/scripts/validate-goals-structure.js` checks only duplicate IDs and unclosed Mermaid
+  fences. Recent plans are precise by habit (GOALS 18), not by rule.
+- **F6 — no plan-drift stop.** If an anchor or file named by the plan has changed, no variant of
+  `/execgoals` says to stop; the executor improvises. This is the main hallucination path for a
+  weaker executor.
+- **F7 — `@types/node` major drift.** `package.json:24` has `"@types/node": "^26.6.5"` (Dependabot
+  PR #14, merged), while `CLAUDE.md:93-94` requires the major of the CI's Node, and
+  `.github/workflows/ci.yml:18,42` pin `node-version: 22`. `.github/dependabot.yml` has no
+  `ignore` rule, so the next major bump will repeat this.
+- **F8 — archive checksum by hand.** All four `execgoals` variants tell the executor to compute
+  the SHA-256 and append the archive row by hand (`execgoals.md:54-62`), while `CLAUDE.md`
+  (root) says the checksum column is never edited by hand in this repo: run
+  `node dev/scripts/goals-archive-index.js --write`.
+- **F9 — cross-runtime path coupling (documented, not changed).** The opencode dense and Codex
+  `execgoals` run `~/.claude/base_project/scripts/validate-goals-structure.js`. That works only
+  because both installers always install the Claude layer (`install.ps1:572`,
+  `install.sh:480`; no engine flag exists). Left as is; recorded so a future engine flag knows
+  this dependency exists.
+- **F10 — checked and fine.** `node dev/scripts/validate-goals-structure.js GOALS.md` → structure
+  OK; `node dev/scripts/goals-archive-index.js --check` → 12 checksums OK; Codex reads the
+  goal-type modules from the shared Claude references (`dev/scripts/install-codex.js:169`), so no
+  third copy is needed. Session-level effort guidance (`Quality-per-token profiles` in
+  `source/CLAUDE.md`) and the agents' `model:` frontmatter are not plan-time suggestions and stay.
+
+### Decisions
+
+- **D1 — Remove, do not rewrite history.** The model + effort suggestion leaves every current
+  source, doc, test, and the active `GOALS.md`. Archived plans (`dev/goals-archive/`) and earlier
+  `dev/ROADMAP.md` entries stay untouched — they are append-only history; a new ROADMAP entry
+  records the removal.
+- **D2 — Keep session effort profiles and agent models.** Out of the owner's ask (see F10).
+- **D3 — Contract enforced only where declared.** The validator checks contract fields only
+  below a `<!-- item-contract: v1 -->` marker, so every existing plan stays valid.
+- **D4 — `architect` only for open design.** `/execgoals` sends a fully specified item straight
+  to `coder`; `architect` runs first only when the owner is `architect` or the item's `Change:`
+  is a specification that still leaves a design question.
+- **D5 — Parallel stages are advice, not a scheduler.** `/execgoals` keeps running items in
+  written order; the stage map tells the user which stages may go to separate sessions.
+- **D6 — `@types/node` follows the rule.** Revert to major 22 and stop Dependabot from proposing
+  majors for it. If the owner prefers to follow Node 26 instead, P19.12 changes to "update CI to
+  Node 26 and the rule's number" — say so at P19.1.
+- **D7 — Archive checksum via the project's own command when it names one.** `/execgoals` runs
+  the command that the project's `CLAUDE.md` names for writing archive checksums (in this
+  repository: `node dev/scripts/goals-archive-index.js --write`), and keeps the by-hand path for
+  other projects. The shipped text cannot name that script: `dev/tests/command-paths.test.js`
+  forbids `dev/scripts/*.js` paths in shipped commands (corrected during execution).
+- **D8 — STE style, not STE conformance.** Item text follows a short subset of ASD-STE100
+  rules (T9). base_project does not ship the STE dictionary (about 900 approved words; the
+  specification is free but distributed by ASD through a request form) and does not claim
+  conformance. The 20/25-word limits are base_project's own adopted rule, taken from the STE
+  practice below; the rationale sections of a plan stay in normal English.
+
+### Canonical texts
+
+Items below paste these blocks verbatim. Codex variants replace `/execgoals` with `$execgoals`
+and `/newgoal` with `$newgoal`. Lite variants keep every word but put each block on one
+paragraph after its `STEP` label (sub-bullets become sentences separated by `; `).
+
+**T1 — newgoal step 4c (grounding)**
+
+```text
+4c. **Ground every reference before writing it.** Open each file the plan will edit and copy
+    its anchors from what is actually there; search for every function, flag, path, command,
+    and test name the plan mentions and correct or drop any that does not exist. Record the
+    commit the plan was grounded against (`git rev-parse --short HEAD`) in the section's first
+    paragraph. Facts about the outside world (versions, APIs, defaults) come from a source
+    read in this pass and cited per item; when no source was read, the item says so instead
+    of stating the fact from memory.
+```
+
+**T2 — newgoal step 5a (executable item contract; replaces the old 5a)**
+
+```text
+5a. **Write every item to the executable item contract.** The executor may be a weaker
+    model with none of this research in its context; every judgment call left inside an item
+    becomes a guess there. Put the line `<!-- item-contract: v1 -->` under each new
+    `GOALS N` section's stage map so the structure validator checks the fields, and give
+    every item these sub-bullets, in this order:
+    - `Files:` every path the item creates or edits, each marked `(new)` or `(exists)`; an
+      `(exists)` path was opened during this planning pass, not assumed.
+    - `Anchor:` for an edit to an existing file, a line or unique heading copied verbatim
+      from that file during this pass, so the executor finds the location instead of
+      inferring it.
+    - `Change:` the exact text to add or replace when it is about 15 lines or fewer;
+      otherwise a precise specification — names, signatures, inputs, outputs, error cases.
+      Never "improve", "clean up", "update as needed", or "handle appropriately".
+    - `Do not touch:` adjacent files or behavior that must stay as they are, whenever a
+      plausible over-edit exists.
+    - `Verify:` the exact command or check and its expected result (exit code, test name,
+      match count), so "done" is observed, not judged.
+    - `Source:` the URL and access date for every external fact the item relies on
+      (version, API, flag, default). A fact not confirmed in this pass is written
+      `(unverified — confirm before executing)`, which makes the item a stop point for
+      `/execgoals`, never a silent assumption.
+    A `manual` item needs only `Verify:` (the evidence the user provides). One item is one
+    coherent change that one `Verify:` can prove: split an item that edits more than three
+    files or still contains a choice. Every choice is settled in the plan — a `Decisions`
+    subsection stating the option taken and why — or becomes its own `manual` item; an item
+    handed to `coder` contains no open decision. Long text that several items reuse goes
+    once in a `Canonical texts` subsection, and items reference it by name.
+```
+
+**T3 — newgoal step 5b (stage map)**
+
+```text
+5b. **Open each `GOALS N` section with a stage map.** Group the section's items into stages
+    and show them as a table — `Stage | Items | Depends on | Can run in parallel with` — and
+    draw step 5's Mermaid flowchart at that same stage level. Two stages are parallel only
+    when neither needs the other's result and they edit no file in common; otherwise they
+    are sequential. Name each stage after what it delivers, and use the same names when
+    explaining the plan to the user. `/execgoals` still runs items in written order; the
+    parallel column tells the user which stages can go to separate sessions.
+```
+
+**T4 — newgoal step 7 (report; replaces the old 7)**
+
+```text
+7. Report: the file path (or, for a standalone `research`-type deliverable, that file's
+   path instead), and — when this ran standalone, not backgrounded — the stage map in the
+   user's language: each stage in order, what it delivers, and which stages can run at the
+   same time. Not the full content (the file has that). Then ask, in the user's language,
+   whether the user wants to proceed with `/execgoals` or adjust the plan first.
+```
+
+**T5 — execgoals step 2a (preflight and plan drift)**
+
+```text
+2a. **Preflight the plan before the first edit.** For the items about to run, confirm each
+    `(exists)` path is present and each `Anchor:` still matches verbatim, and run the
+    project's test/lint/typecheck once to record a baseline. If an anchor no longer matches,
+    a `(new)` path already exists, or an item says `(unverified — confirm before executing)`,
+    stop on that item and report it as plan drift: the plan is stale there, and the fix is
+    to update `GOALS.md` (or rerun `/newgoal` for that section), never to improvise a
+    substitute edit. Items before it that passed preflight may still run. A section without
+    the `<!-- item-contract: v1 -->` marker skips the anchor checks but still records the
+    baseline.
+```
+
+**T6 — execgoals notify-and-proceed bullet (replaces the old bullet)**
+
+```text
+   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item goes to `coder`
+     with the item's own text as the brief; state the visible effect, then continue and
+     verify it. Run `architect` first only when the item's owner is `architect` or its
+     `Change:` is a specification that still leaves a design question — `/newgoal` already
+     did the design, and repeating it costs tokens and invites a second, different answer.
+```
+
+**T7 — execgoals verification sentence (appended to step 4's first paragraph)**
+
+```text
+   When the item has a `Verify:` line, that check is the proof: run it and compare with its
+   expected result; a mismatch keeps the item open.
+```
+
+**T8 — execgoals archive sentence (appended to step 4a)**
+
+```text
+    If the project's `CLAUDE.md` names a command that writes the archive checksums, run that command instead of computing the checksum by hand, then run its check mode.
+```
+
+**T9 — newgoal step 5c (item text in Simplified Technical English style)**
+
+```text
+5c. **Write item text in controlled English, modeled on ASD-STE100 Simplified Technical
+    English.** The executor follows words literally, so write each item like a
+    maintenance procedure:
+    - Write one instruction per sentence, as a command: "Replace X with Y.", not "X should
+      probably be updated to Y".
+    - Keep an instruction to 20 words or fewer and a descriptive sentence to 25 words or
+      fewer. A longer sentence usually holds two ideas: split it.
+    - Use the active voice. Do not use "-ing" verb forms as instructions.
+    - Use one word for one meaning. After you name a thing (a file, a block, a stage), use
+      the same name every time; do not use synonyms.
+    - Keep the articles ("the", "a"); do not compress sentences into fragments.
+    - Write a limit or a warning as a command, before the step it applies to.
+    - Do not use vague words: "appropriate", "properly", "as needed", "etc.", "and so on".
+    Code, paths, commands, and quoted anchors are exempt: copy them exactly. This rule
+    applies to the checklist items; the rationale sections of a plan stay in normal English.
+```
+
+### Stage A — Approve texts and decisions
+
+- [x] **P19.1 Approve the canonical texts and decisions** (`manual`)
+  - Verify: the owner answers in chat "approved" (or lists edits to T1–T9 / D1–D8); edits are
+    applied to this section before any Stage B item starts, and the date is written here. Approved by the owner on 2026-10-27, no edits.
+
+### Stage B1 — `/newgoal` rewrite
+
+- [x] **P19.2 Claude `/newgoal`** (`coder`)
+  - Files: `source/claude/commands/newgoal.md` (exists)
+  - Anchor: `    build it*; don't let the two blur into one pass or skip reading the briefing once it exists.`
+    (end of 4b); `5a. **Annotate each module with a suggested model + effort**, right after that module's`;
+    `7. Report: the file path (or, for a standalone \`research\`-type deliverable, that file's`
+  - Change: insert T1 after the 4b anchor (blank line before it); replace the whole old 5a
+    block (from its anchor through `    one setting can be dialed down for the modules that don't need it.`)
+    with T2, T3 and T9, separated by blank lines; replace the old step 7 (from its anchor through
+    `   the user wants to proceed with \`/execgoals\` or adjust the plan first.`) with T4.
+  - Do not touch: steps 1–4b, 5, 6, 8, and the `$ARGUMENTS` line.
+  - Verify: `grep -cE "Suggested|model \+ effort|haiku|opus" source/claude/commands/newgoal.md`
+    → `0`; `grep -c "item-contract: v1" source/claude/commands/newgoal.md` → `1`;
+    `grep -c "^4c\. \|^5a\. \|^5b\. \|^5c\. " source/claude/commands/newgoal.md` → `4`.
+- [x] **P19.3 opencode dense `/newgoal`** (`coder`)
+  - Execution note: this variant had no model-recommendation step; its old step 7 ("Report only") was replaced with T4, which adds the stage map and the execute-or-adjust question. Wrapping differs from the Claude file; the text matches after whitespace is collapsed.
+  - Files: `source/opencode/command/newgoal.md` (exists)
+  - Anchor: same three anchors as P19.2 (the file differs only in its `~/.config/opencode` paths).
+  - Change: same edits as P19.2.
+  - Do not touch: the `~/.config/opencode/...` paths.
+  - Verify: `diff <(sed 's#~/.config/opencode#X#g' source/opencode/command/newgoal.md) <(sed 's#~/.claude#X#g' source/claude/commands/newgoal.md)`
+    → no output; same three greps as P19.2 against this file.
+- [x] **P19.4 opencode lite `/newgoal`** (`coder`)
+  - Files: `source/opencode/command-lite/newgoal.md` (exists)
+  - Anchor: `STEP 6 — If \`/repertoire\` was invoked together with this command`;
+    `STEP 7a — Annotate each module with a suggested model + effort`;
+    `STEP 9 — Report only: the file path`
+  - Change: after STEP 6 add `STEP 6a — ` + T1 in lite form; replace the whole STEP 7a paragraph
+    with `STEP 7a — ` + T2 in lite form, followed by `STEP 7b — ` + T3 and `STEP 7c — ` + T9 in
+    lite form; replace the
+    whole STEP 9 paragraph with `STEP 9 — ` + T4 in lite form (this also fixes F3).
+  - Do not touch: STEP 1–6, 7, 8, 10, `$ARGUMENTS`.
+  - Verify: `grep -cE "Suggested|model \+ effort|haiku|opus" source/opencode/command-lite/newgoal.md`
+    → `0`; `grep -c "adjust the plan first" source/opencode/command-lite/newgoal.md` → `1`.
+- [x] **P19.5 Codex `$newgoal`** (`coder`)
+  - Files: `source/codex/skills/newgoal/SKILL.md` (exists)
+  - Anchor: `### Codex-specific model mapping`; `6. Write the plan in English as ordered, checkable items`;
+    `9. Report the path and a short outline.`
+  - Change: (a) after step 5 add `5a. ` + T1 (renumbered from 4c, `$` command names); (b) delete
+    the mapping block from its heading through the line ending `Do not use the Claude-only model vocabulary for Codex recommendations.`
+    and the blank line after it; (c) in step 6 replace
+    `, and right after it one line — \`Suggested: <Codex model> · <effort> — <reason>\` — using the Codex-specific mapping above and the module's own risk/complexity. A suggestion is applied by hand, never an automatic mid-session switch.`
+    with `.`; (d) after step 6 add `6a. ` + T2, `6b. ` + T3 and `6c. ` + T9 (renumbered, `$` names); (e) replace
+    step 9 (from its anchor through `do not begin implementation.`) with:
+    `9. Report the path and, in the user's language, the stage map: each stage in order, what it delivers, and which stages can run at the same time. Then ask whether the user wants to proceed with \`$execgoals\` or adjust the plan first. Do not begin implementation.`
+  - Do not touch: the frontmatter, the hard boundary paragraph, steps 1–5, 7, 8.
+  - Verify: `grep -cE "Suggested|gpt-|model \+ effort" source/codex/skills/newgoal/SKILL.md` → `0`;
+    `grep -c "never execute" source/codex/skills/newgoal/SKILL.md` → `1` or more.
+
+### Stage B2 — `/execgoals` rewrite
+
+- [x] **P19.6 Claude `/execgoals`** (`coder`)
+  - Files: `source/claude/commands/execgoals.md` (exists)
+  - Anchor: `3. **Work through unchecked items in the order they're written.**`;
+    `   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item uses the \`architect\` →`;
+    `   work.` (last line of step 4's first paragraph); `    \`validate-goals-structure.js\` after the move, same as any other edit batch.`
+  - Change: insert T5 plus a blank line before step 3's anchor; replace the two-line
+    notify-and-proceed bullet with T6; append T7 after `   work.`; append T8 after the 4a
+    anchor line.
+  - Do not touch: the Batching block, steps 1, 2, 5–7, `$ARGUMENTS`.
+  - Verify: `grep -c "plan drift" source/claude/commands/execgoals.md` → `1`;
+    `grep -c "archive checksums" source/claude/commands/execgoals.md` → `1`;
+    `grep -c "uses the \`architect\` →" source/claude/commands/execgoals.md` → `0`.
+- [x] **P19.7 opencode dense `/execgoals`** (`coder`)
+  - Files: `source/opencode/command/execgoals.md` (exists)
+  - Anchor: same as P19.6 (only line 51's validator path differs today).
+  - Change: same edits as P19.6.
+  - Do not touch: the `~/.claude/base_project/scripts/...` validator path (F9).
+  - Verify: `diff source/claude/commands/execgoals.md source/opencode/command/execgoals.md` → no
+    output (both files use the same `~/.claude/...` validator path).
+- [x] **P19.8 opencode lite `/execgoals`** (`coder`)
+  - Files: `source/opencode/command-lite/execgoals.md` (exists)
+  - Anchor: `STEP 3 — Work through unchecked items in the order they're written`;
+    `- **Notify-and-proceed**: a non-trivial but in-scope, reversible item uses the normal plan → implement workflow; state the visible effect, then continue and verify it.`;
+    `STEP 4a — Archive a section once every item under it is`
+  - Change: insert `STEP 2a — ` + T5 (lite form) before STEP 3; replace the notify-and-proceed
+    bullet with T6 joined to one line; append T7 (one sentence) to the end of STEP 4; append T8
+    (one sentence) to the end of STEP 4a.
+  - Do not touch: STEP 1, 2, 5–7.
+  - Verify: `grep -c "plan drift" source/opencode/command-lite/execgoals.md` → `1`.
+- [x] **P19.9 Codex `$execgoals`** (`coder`)
+  - Files: `source/codex/skills/execgoals/SKILL.md` (exists)
+  - Anchor: `2. Read the whole file. Summarize completed/open counts`;
+    `4. For each item, use the declared owner: architecture analysis first where required, surgical implementation next, and manual items left open until the user supplies the required evidence.`;
+    `5a. Once every item under a \`GOALS N\` section is \`[x]\`, archive it:`
+  - Change: after step 2 add `2a. ` + T5 as one paragraph (`$newgoal`); replace step 4 with
+    `4. For each item, use the declared owner. An item with exact \`Change:\` text goes straight to surgical implementation; architecture analysis comes first only when the owner is \`architect\` or the \`Change:\` specification still leaves a design question. Manual items stay open until the user supplies the required evidence. When the item has a \`Verify:\` line, that check is the proof; a mismatch keeps the item open.`;
+    append T8 as one sentence to step 5a.
+  - Do not touch: frontmatter, Batching block, steps 1, 3, 5, 6–8.
+  - Verify: `grep -c "plan drift" source/codex/skills/execgoals/SKILL.md` → `1`.
+
+### Stage B3 — Structure validator enforces the contract
+
+- [x] **P19.10 Check contract fields under the marker** (`coder`)
+  - Files: `dev/scripts/validate-goals-structure.js` (exists)
+  - Anchor: `const FENCE_CLOSE = /^\s*\`\`\`\s*$/;` and `  if (mermaidStart !== null) {`
+  - Change: add constants after `FENCE_CLOSE`:
+    `const CONTRACT_MARKER = /^<!-- item-contract: v1 -->\s*$/;`,
+    `const SECTION_HEADING = /^## /;`, `const ANY_HEADING = /^#{2,6} /;`,
+    `const CONTRACT_FIELD = /^\s+- (Files|Verify):/;`, `const MANUAL_OWNER = /\(\`manual\`\)/;`.
+    In `check()`: keep `let contractActive = false;` and `let open = null;`, plus a local
+    `closeItem()` that, when `open` is set, pushes
+    `{ code: "missing_verify", id, line, message: \`Item **${id}** at line ${line} has no "Verify:" line.\` }`
+    if `!open.verify`, and
+    `{ code: "missing_files", id, line, message: \`Item **${id}** at line ${line} has no "Files:" line.\` }`
+    if `!open.manual && !open.files`, then sets `open = null`. At the top of each loop
+    iteration: if `ANY_HEADING` matches, call `closeItem()`; if `SECTION_HEADING` matches, set
+    `contractActive = false`; if `CONTRACT_MARKER` matches, set `contractActive = true`. When an
+    item definition matches: call `closeItem()` first, then, if `contractActive` and the line
+    contains `[ ]`, set `open = { id, line: lineNumber, manual: MANUAL_OWNER.test(line), files: false, verify: false }`.
+    When `open` is set and `CONTRACT_FIELD` matches, set `open.files` or `open.verify`. Call
+    `closeItem()` once after the loop, before the Mermaid check. Ignore lines inside a Mermaid
+    fence for all of this.
+  - Do not touch: `ITEM_DEFINITION`, the duplicate-ID and Mermaid findings, `main()`, exports.
+  - Verify: `node dev/scripts/validate-goals-structure.js GOALS.md` → `structure OK` (this
+    section is itself under the marker); `npm run typecheck` → exit 0.
+- [x] **P19.11 Tests for the contract check** (`coder`)
+  - Files: `dev/tests/validate-goals-structure.test.js` (exists)
+  - Anchor: `test("validate-goals-structure accepts a well-formed goal file", () => {`
+  - Change: before that test add three tests using the existing `fixture()` helper:
+    (1) `"## G\n<!-- item-contract: v1 -->\n- [ ] **A.1 X** (\`coder\`)\n  - Files: \`a\` (new)\n"`
+    → `ok === false` and one finding with `code: "missing_verify"`, `id: "A.1"`;
+    (2) `"## G\n<!-- item-contract: v1 -->\n- [ ] **A.1 X** (\`manual\`)\n  - Verify: owner says yes\n"`
+    → `ok === true`; (3) `"## G\n- [ ] **A.1 X** (\`coder\`)\n"` (no marker) → `ok === true`.
+  - Verify: `node --test dev/tests/validate-goals-structure.test.js` → all pass, 3 more than before.
+
+### Stage B4 — Drift fixes outside the commands
+
+- [x] **P19.12 Put `@types/node` back on the CI's Node major** (`coder`)
+  - Execution note: the Dependabot `ignore` syntax was confirmed against the GitHub options reference on 2026-10-28 before editing; `@types/node` is now `^22.20.5`.
+  - Files: `package.json` (exists), `package-lock.json` (exists), `.github/dependabot.yml` (exists)
+  - Anchor: `"@types/node": "^26.6.5",`; `  - package-ecosystem: npm`
+  - Change: run `npm install --save-dev @types/node@22` (updates both package files). In
+    `dependabot.yml`, under the npm entry's `schedule:` block, add at the same indentation as
+    `schedule:`: `ignore:` / `  - dependency-name: "@types/node"` /
+    `    update-types: ["version-update:semver-major"]`.
+  - Do not touch: other dependencies, the `github-actions` entry.
+  - Source: Dependabot options reference, `ignore` —
+    https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+    (unverified — confirm before executing: the key names were written from memory, not read
+    in this pass).
+  - Verify: `node -p "require('./package.json').devDependencies['@types/node']"` → starts with
+    `^22.`; `npm run typecheck` → exit 0.
+- [x] **P19.13 READMEs stop advertising the recommendation** (`coder`)
+  - Files: `README.md` (exists), `source/codex/README.md` (exists)
+  - Anchor: `**Runtime-specific \`$newgoal\` recommendations:**` (README.md:119);
+    ` It then recommends a model + effort for the plan's highest-complexity module and asks whether to execute or adjust the plan; the recommendation is manual and never switches the model automatically.` (README.md:154);
+    `` `$newgoal` recommendations are runtime-specific and manual:`` (source/codex/README.md:28)
+  - Change: delete the README.md:119 paragraph and the blank line after it; in README.md:154
+    replace the anchored sentence with
+    ` It writes every item with exact files, anchors and a verification command so a weaker model can execute it, shows the plan as stages (in order or in parallel), and asks whether to execute or adjust the plan.`;
+    delete the source/codex/README.md:28 paragraph and the blank line after it.
+  - Verify: `grep -cE "gpt-5\.6|gpt-6|model \+ effort" README.md source/codex/README.md` → `0` for both.
+- [x] **P19.14 ARCHITECTURE describes the new routing** (`coder`)
+  - Files: `ARCHITECTURE.md` (exists)
+  - Anchor: `| \`/execgoals\` | Executa o \`GOALS.md\` ativo item por item, na ordem que \`/newgoal\` escreveu, usando \`architect\`/\`coder\` pra qualquer mudança não-trivial.`
+  - Change: replace `usando \`architect\`/\`coder\` pra qualquer mudança não-trivial.` with
+    `parando em "plan drift" quando a âncora do plano não bate mais com o arquivo; item já especificado vai direto pro \`coder\`, e \`architect\` só entra quando ainda há decisão de design.`
+  - Verify: `grep -c "plan drift" ARCHITECTURE.md` → `1`.
+
+### Stage C — Contract tests
+
+- [x] **P19.15 Rewrite the newgoal contract test as an absence test** (`coder`)
+  - Files: `dev/tests/codex.test.js` (exists)
+  - Anchor: `test("newgoal keeps runtime-specific model and final-response contracts", () => {`
+  - Change: rename to `"newgoal stays planning-only, model-neutral, and writes the item contract"`.
+    Keep the `read` helper, the `workflows` map, and the loop asserting `never execute` and
+    `GOALS.md`. Delete everything from `for (const runtime of ["claude", "opencode", "opencode-lite"]) {`
+    through `assert.match(finalContract, /only a \`Suggested:\` line inside \`GOALS\.md\`/i);`.
+    In its place, for every runtime: `assert.doesNotMatch(content, /Suggested:|model \+ effort|\b(?:haiku|opus)\b|gpt-\d/i)`;
+    `assert.match(content, /item-contract: v1/)`; `assert.match(content, /Anchor:/)`;
+    `assert.match(content, /Verify:/)`; `assert.match(content, /unverified — confirm before executing/)`;
+    `assert.match(content, /stage map/i)`; `assert.match(content, /adjust the plan first/i)`;
+    `assert.match(content, /ASD-STE100/)`; `assert.match(content, /20 words or fewer/)`.
+  - Do not touch: every other test in the file.
+  - Verify: `node --test dev/tests/codex.test.js` → all pass.
+- [x] **P19.16 Execgoals preflight parity test** (`coder`)
+  - Files: `dev/tests/codex.test.js` (exists)
+  - Anchor: `test("Batching and stopping guidance has exact parity across native layers", () => {`
+  - Change: before that test add `test("execgoals stops on plan drift and routes specified items to coder", ...)`
+    reading the four `execgoals` variants (`source/claude/commands/execgoals.md`,
+    `source/opencode/command/execgoals.md`, `source/opencode/command-lite/execgoals.md`,
+    `source/codex/skills/execgoals/SKILL.md`) and asserting in each: `/plan drift/i`,
+    `/never to improvise/i`, `/Verify:/`, `/names a command that writes the archive checksums/`, `/design question/i`.
+  - Verify: `node --test dev/tests/codex.test.js` → all pass, 1 more than after P19.15.
+
+### Stage D — `GOALS.md` cleanup and registration
+
+- [x] **P19.17 Archive GOALS 14 as superseded** (`coder`)
+  - Files: `GOALS.md` (exists), `dev/goals-archive/goals-14-codex-model-recommendation-parity.md` (new),
+    `dev/goals-archive/README.md` (exists)
+  - Anchor: `<a id="goals-14-codex-model-recommendation-parity"></a>` through the line before
+    `<a id="goals-12-usage-efficiency--quality-loop-base_project-process"></a>`; the Active plans
+    line that contains `[**Codex Model Recommendation Parity**]`.
+  - Execution note: M14.8 was closed unperformed in the archived body, because the archive test forbids open items there.
+  - Change: write the new archive file with the header used by
+    `goals-13-command-suite-cleanup-and-goal-archive-automation.md`, but
+    `> Status: superseded by GOALS 19 (model suggestion removed). Archived from root \`GOALS.md\` on <date>.`,
+    followed by the section body unchanged (M14.8 stays `[ ]`). Remove the section and its
+    Active plans line from `GOALS.md` and renumber that list. Append the archive row with status
+    `superseded`, then run `node dev/scripts/goals-archive-index.js --write`.
+  - Do not touch: the other archived files and rows.
+  - Verify: `node dev/scripts/goals-archive-index.js --check` → 13 checksums OK;
+    `grep -c "goals-14-codex" GOALS.md` → `0`.
+- [x] **P19.18 Remove the remaining `Suggested:` lines from `GOALS.md`** (`coder`)
+  - Files: `GOALS.md` (exists)
+  - Change: delete every line that starts with `Suggested: ` and the blank line that follows it
+    (today in GOALS 18, 17, 16, 15).
+  - Do not touch: any other line, including item text and evidence.
+  - Verify: `grep -c "^Suggested:" GOALS.md` → `0`;
+    `node dev/scripts/validate-goals-structure.js GOALS.md` → `structure OK`.
+- [x] **P19.19 Record the decision in `dev/ROADMAP.md`** (`coder`)
+  - Files: `dev/ROADMAP.md` (exists)
+  - Anchor: the last `## <n>.` heading in the file (56 today; GOALS 18 claims the next one if it lands first).
+  - Change: append `## <next free n>. Plano pesado, build leve: contrato de item executável (<date>)`
+    with four short paragraphs in Portuguese: why (F2, F4–F6), what changed (T1–T8, the validator
+    marker, removal per D1), what was deliberately kept (D2, D5), and the evidence (`npm run verify`
+    result from P19.21).
+  - Verify: `grep -c "contrato de item executável" dev/ROADMAP.md` → `1`.
+- [ ] **P19.20 Sync the installed copies** (`manual`) — writes outside the repository.
+  - Verify: after the owner runs `dev\scripts\install.ps1`,
+    `grep -c "item-contract: v1" ~/.claude/commands/newgoal.md` → `1` and
+    `grep -c "Suggested" ~/.claude/commands/newgoal.md` → `0`.
+
+### Stage E — Verification and live acceptance
+
+- [x] **P19.21 Full verification** (`reviewer`)
+  - Execution note: `npm run lint` cannot run inside `.claude/worktrees` (Biome ignores that path), so Biome ran on the changed JavaScript files; the other `npm run verify` steps ran one by one and passed. Run the full `npm run verify` once from the main checkout before the merge.
+  - Files: none edited.
+  - Verify: `npm run verify` → exit 0; `npm run test:harness` → exit 0;
+    `grep -rnE "Suggested:|model \+ effort" source README.md` → no output.
+- [ ] **P19.22 Weak-executor acceptance** (`manual`)
+  - Verify: in a scratch project, run `/newgoal` for a small feature on the strongest model,
+    then `/execgoals` on a smaller one (e.g. Haiku or a free opencode backend); the run either
+    completes every item with each `Verify:` passing, or stops with "plan drift" naming the
+    item — it never edits a file the item did not list. The owner pastes the summary here.
+- [ ] **P19.23 Drift-stop acceptance** (`manual`)
+  - Verify: in the same scratch project, change one anchored line by hand, rerun `/execgoals`,
+    and confirm it stops on that item with "plan drift" instead of editing.
+
+### Explicitly out of scope
+
+- Rewriting archived plans or earlier ROADMAP entries (D1).
+- Changing session effort profiles or the agents' `model:` frontmatter (D2).
+- A parallel executor inside `/execgoals` (D5).
+- Decoupling opencode/Codex from the Claude validator path or moving `dev/goals-archive/` for
+  user projects (F9) — both need an engine-selection decision first.
+- Retrofitting the item contract onto GOALS 12–18; they keep working without the marker.
+
+### Sources consulted
+
+- Repository files at `d541daf`, cited inline by path and line in "Audit findings".
+- ASD, "What are the basics of Simplified Technical English" —
+  https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english
+  (accessed 2026-10-27): current edition Issue 9; active voice; one instruction per sentence;
+  about 900 approved words, one meaning each; the specification is free through a form.
+- Community STE summaries agreeing on the 20-word (instruction) and 25-word (descriptive)
+  limits, e.g. https://www.dsebastien.net/asd-ste100-simplified-technical-english/ (accessed
+  2026-10-27). These are not the official text; D8 adopts the limits as base_project's own rule.
+- The Dependabot `ignore` syntax (P19.12) was not read in this pass and is marked unverified.
+
+---
+
+<a id="goals-20-remove-the-contribution-diary"></a>
+## GOALS 20 — Remove the Contribution Diary (`/diario`) (base_project process)
+
+Grounded against commit `d541daf` on 2026-10-27. The owner decided that the contribution diary
+is no longer useful and asked to remove everything related to it. The diary touches 54 files:
+the command in four runtimes, one script and its test, three global instruction layers, a
+sentence repeated in 15 workflow files, the menus, `/status`, `/uninstall`, both installers, CI,
+and the docs. The usage ledger and the `usage-log` hook stay, because `/usagebp` reads them.
+
+### Stage map
+
+| Stage | Items | Depends on | Can run in parallel with |
+| --- | --- | --- | --- |
+| A — Approve decisions | D20.1 | — | — |
+| B1 — Delete the command and its script | D20.2–D20.3 | A | B2, B3, B4 |
+| B2 — Global instructions and the batching sentence | D20.4–D20.6 | A | B1, B3, B4 |
+| B3 — Menus, `/status`, references, `/uninstall` | D20.7–D20.10 | A | B1, B2, B4 |
+| B4 — Installers, CI, and the remaining code | D20.11–D20.15 | A | B1, B2, B3 |
+| C — Tests and docs | D20.16–D20.20 | B1–B4 | — |
+| D — Verify, record, and sync | D20.21–D20.24 | C | — |
+
+D20.5 edits the four `execgoals` files (one sentence). GOALS 19 Stage B2 and GOALS 18 C18.5
+edit the same files. D20.6 and D20.16 edit `dev/tests/codex.test.js`, and GOALS 19 Stage C edits
+it too. Run those stages one after the other, not in parallel sessions.
+
+```mermaid
+flowchart TD
+    A[A: approve decisions] --> B1[B1: delete command + script]
+    A --> B2[B2: instructions + batching sentence]
+    A --> B3[B3: menus, status, uninstall]
+    A --> B4[B4: installers, CI, code]
+    B1 --> C[C: tests + docs]
+    B2 --> C
+    B3 --> C
+    B4 --> C
+    C --> D[D: verify, record, sync]
+```
+
+<!-- item-contract: v1 -->
+
+### Decisions
+
+- **E1 — Keep the history.** Old `dev/ROADMAP.md` entries, `dev/goals-archive/` (GOALS 5),
+  the README changelog lines (`README.md:292`, `:296`), `dev/auditoria-2026-09-24.md`,
+  `REPERTOIRE.md`, and the evidence text in other `GOALS.md` sections stay as they are.
+- **E2 — Keep the ledger.** `source/hooks/usage-log.js`, `~/.claude/base_project/usage/`, and
+  `dev/scripts/ledger-prune.js` stay. Their text changes from "the only source `/diario` has"
+  to "what `/usagebp` reads".
+- **E3 — Move the large-file test to the remaining reader.** `dev/tests/ledger-scale.test.js`
+  tests `readLedger` from `dev/scripts/usage-baseline.js` (it has the same loop guard at
+  `usage-baseline.js:121-125`). That function returns `{ events, invalidLines, files }`.
+- **E4 — `/uninstall` stops naming the diary folder.** `diary-root.txt` becomes a legacy Tier A
+  state file. `/uninstall` does not name or delete the diary folder: it is the user's own folder.
+- **E5 — The batching sentence loses "diary".** The new sentence is:
+  `Never use batching or stopping to bypass plan or safety boundaries.`
+- **E6 — The installers remove stale copies.** On a machine that installed an older version,
+  the installers delete `diario.md`, `diary-source.js`, and the Codex `diario` skill, but only
+  when the file still has the `base_project:managed` marker. This is the existing pattern
+  (`install.ps1:250`, `install.sh:272`, `install-codex.js:132`).
+- **E7 — The diary documents are the owner's data.** The plan does not delete them. D20.24 is a
+  `manual` item for the owner.
+
+### Stage A — Approve decisions
+
+- [x] **D20.1 Approve decisions E1–E7** (`manual`)
+  - Verify: the owner answers "approved" in chat, or lists the changes. Write the date here. Approved on 2026-10-27, no edits.
+
+### Stage B1 — Delete the command and its script
+
+- [x] **D20.2 Delete the four command files** (`coder`)
+  - Files: `source/claude/commands/diario.md` (exists), `source/opencode/command/diario.md`
+    (exists), `source/opencode/command-lite/diario.md` (exists), `source/codex/skills/diario/`
+    (exists)
+  - Change: run `git rm -r source/claude/commands/diario.md source/opencode/command/diario.md source/opencode/command-lite/diario.md source/codex/skills/diario`.
+  - Verify: `git ls-files | grep -c diario` → `0`.
+- [x] **D20.3 Delete the diary script and its test** (`coder`)
+  - Files: `dev/scripts/diary-source.js` (exists), `dev/tests/diary-source.test.js` (exists)
+  - Do not touch: `dev/scripts/usage-baseline.js`, `dev/scripts/ledger-prune.js`.
+  - Change: run `git rm dev/scripts/diary-source.js dev/tests/diary-source.test.js`.
+  - Verify: `git ls-files | grep -c diary-source` → `0`.
+
+### Stage B2 — Global instructions and the batching sentence
+
+- [x] **D20.4 Remove the diary section from the three instruction layers** (`coder`)
+  - Files: `source/CLAUDE.md` (exists), `source/opencode-instructions.md` (exists),
+    `source/codex/AGENTS.md` (exists)
+  - Anchor: `### Contribution diary (suggest only, never write unasked)` (both first files);
+    `### Contribution Diary` (`source/codex/AGENTS.md`)
+  - Change: delete each heading and all lines below it, up to the blank line before the next
+    `###` heading. Delete that blank line too.
+  - Do not touch: the sections before and after it.
+  - Verify: `grep -ci "diar" source/CLAUDE.md source/opencode-instructions.md source/codex/AGENTS.md`
+    → only the batching sentence remains before D20.5, and `0` after D20.5.
+- [x] **D20.5 Remove "diary" from the batching sentence in 15 files** (`coder`)
+  - Files: the 15 files listed by `grep -rl "diary boundaries" source` (exists): `source/CLAUDE.md`,
+    `source/opencode-instructions.md`, `source/codex/AGENTS.md`, and `execgoals`, `fixproject`,
+    `ship` in `source/claude/commands/`, `source/opencode/command/`,
+    `source/opencode/command-lite/`, and `source/codex/skills/*/SKILL.md`.
+  - Anchor: `Never use batching or stopping to bypass plan, safety, or diary boundaries.`
+  - Change: replace the anchor with the E5 sentence in each file.
+  - Do not touch: the rest of the batching block. Its parity test compares it byte for byte.
+  - Verify: `grep -rc "diary boundaries" source | grep -vc ":0"` → `0`.
+- [x] **D20.6 Update the parity test literal** (`coder`)
+  - Files: `dev/tests/codex.test.js` (exists)
+  - Anchor: `Never use batching or stopping to bypass plan, safety, or diary boundaries.";`
+  - Change: replace `plan, safety, or diary boundaries` with `plan or safety boundaries`.
+  - Verify: `node --test dev/tests/codex.test.js` → the test "Batching and stopping guidance has
+    exact parity across native layers" passes.
+
+### Stage B3 — Menus, `/status`, references, `/uninstall`
+
+- [x] **D20.7 Remove `/diario` from the three menus** (`coder`)
+  - Files: `source/claude/references/command-menu.md` (exists),
+    `source/opencode/references/command-menu.md` (exists), `source/codex/references/command-menu.md` (exists)
+  - Anchor: the line that starts with ``- `/diario` —`` (Claude, opencode) or ``- `$diario` —`` (Codex).
+  - Change: delete that line.
+  - Verify: `grep -c "diario" source/*/references/command-menu.md` → `0` for each file.
+- [x] **D20.8 Remove `diario` from the `/status` lists** (`coder`)
+  - Files: `source/claude/commands/status.md` (exists), `source/opencode/command/status.md` (exists)
+  - Anchor: `Commands: newgoal, repertoire, execgoals, scanproject, cleanproject, fixproject, diario, undo,`
+  - Change: replace `fixproject, diario, undo` with `fixproject, undo`.
+  - Verify: `grep -c "diario" source/claude/commands/status.md source/opencode/command/status.md` → `0` each.
+- [x] **D20.9 Remove `diary-root` from the two config-model references** (`coder`)
+  - Files: `source/claude/references/config-model.md` (exists), `source/opencode/references/config-model.md` (exists)
+  - Anchor: `(repo-path, diary-root, usage ledger` and
+    `Existing \`~/.base_project/repo-path.txt\` and \`~/.base_project/diary-root.txt\` stay where they are`
+  - Change: replace `(repo-path, diary-root, usage ledger` with `(repo-path, usage ledger`.
+    Replace the second anchor with `Existing \`~/.base_project/repo-path.txt\` stays where it is`.
+  - Verify: `grep -c "diary" source/*/references/config-model.md` → `0` each.
+- [x] **D20.10 Remove the diary from the four `/uninstall` variants** (`coder`)
+  - Files: `source/claude/commands/uninstall.md` (exists), `source/opencode/command/uninstall.md`
+    (exists), `source/opencode/command-lite/uninstall.md` (exists), `source/codex/skills/uninstall/SKILL.md` (exists)
+  - Change (Claude and opencode dense, the same text in both files):
+    1. Replace `(usage ledger, diaries, ~/.agents content)` with `(usage ledger, ~/.agents content)`.
+    2. Replace `` `opencode-managed-mcp.json`, `diary-root.txt`). `` with
+       `` `opencode-managed-mcp.json`, and the legacy `diary-root.txt`). ``
+    3. Replace `` the usage ledger `~/.claude/base_project/usage/`, the diary`` + newline +
+       `` directory named in `~/.base_project/diary-root.txt`, and the unified canonical store`` with
+       `` the usage ledger `~/.claude/base_project/usage/` and the unified canonical store``.
+    4. Replace `` state files except `diary-root.txt` (kept with Tier D so the diaries`` + newline +
+       `stay findable). Never the usage ledger.` with `state files. Never the usage ledger.`
+    5. Replace `(the only source \`/diario\` has for past` + newline + `hours and activity), the diary directory from \`~/.base_project/diary-root.txt\`, and the`
+       with `(the source \`/usagebp\` reads), and the`.
+    6. Replace `your usage history, diaries and ~/.agents` with `your usage history and ~/.agents`.
+  - Change (opencode lite): replace `` `diary-root.txt`). `` with `` the legacy `diary-root.txt`). ``;
+    replace `` `~/.claude/base_project/usage/`, the diary directory named in `~/.base_project/diary-root.txt`, and `` with
+    `` `~/.claude/base_project/usage/` and ``; replace `` state files except `diary-root.txt`. `` with
+    `state files. `; replace `` the usage ledger (the only source `/diario` has for past hours), the diaries, and `` with
+    `` the usage ledger (the source `/usagebp` reads) and ``; replace `usage history, diaries and ~/.agents` with
+    `usage history and ~/.agents`.
+  - Change (Codex): replace `` the usage ledger, the diary directory named in `~/.base_project/diary-root.txt`, and `` with
+    `the usage ledger and `; replace `` and state except `diary-root.txt`. `` with
+    `` and state (including the legacy `diary-root.txt`). ``; replace
+    `` the usage ledger (the only source `$diario` has for past hours), the diaries, and `` with
+    `` the usage ledger (the source `$usagebp` reads) and ``.
+  - Do not touch: the tier order, the confirmation questions' (y/N) defaults, and Tier D's ledger and `~/.agents/` handling.
+  - Verify: `grep -ci "diaries\|diario\|diary directory" source/*/commands/uninstall.md source/opencode/command-lite/uninstall.md source/codex/skills/uninstall/SKILL.md`
+    → `0` each; `diff <(sed 's#~/.config/opencode#X#g;s#~/.claude/commands#X#g' source/opencode/command/uninstall.md) <(sed 's#~/.config/opencode#X#g;s#~/.claude/commands#X#g' source/claude/commands/uninstall.md)` → no output.
+
+### Stage B4 — Installers, CI, and the remaining code
+
+- [x] **D20.11 Windows installer: stop copying, start pruning** (`coder`)
+  - Files: `dev/scripts/install.ps1` (exists)
+  - Anchor: `# 8c-3. diary-source.js - deterministic ledger/git extractor behind /diario.` and
+    `(Join-Path $claudeCommandsDir "reviewusage.md"), (Join-Path $opencodeCommandDir "reviewusage.md"))) {`
+  - Change: (1) Replace the 8c-3 block, from its comment line through the closing `}` of
+    `if (Test-Path $diarySourceSrc)`, with:
+    `# 8c-3. Retired: diary-source.js shipped with /diario (removed in GOALS 20).` /
+    `$staleDiarySource = Join-Path $claudeScriptsDir "diary-source.js"` /
+    `if ((Test-Path $staleDiarySource) -and ((Read-Utf8NoBom $staleDiarySource) -match 'base_project:managed')) {` /
+    `    Remove-Item $staleDiarySource -Force` / `    Write-Ok "removed stale script: $staleDiarySource"` / `}`.
+    Keep the dashed comment lines around the block. (2) In the stale-command array, replace
+    the anchor's `"reviewusage.md"))) {` ending with
+    `"reviewusage.md"), (Join-Path $claudeCommandsDir "diario.md"), (Join-Path $opencodeCommandDir "diario.md"))) {`.
+  - Verify: `grep -c "Sync-Managed -SrcFile \$diarySourceSrc" dev/scripts/install.ps1` → `0`;
+    `grep -c '"diario.md"' dev/scripts/install.ps1` → `2`.
+- [x] **D20.12 POSIX installer: stop copying, start pruning** (`coder`)
+  - Files: `dev/scripts/install.sh` (exists)
+  - Anchor: `# 8c-3. diary-source.js - deterministic ledger/git extractor behind /diario.` and
+    `for stale_name in dashboard doctor context explain newproject reviewusage; do`
+  - Change: (1) Replace the 8c-3 block, from its comment line through `fi`, with:
+    `# 8c-3. Retired: diary-source.js shipped with /diario (removed in GOALS 20).` /
+    `STALE_DIARY_SOURCE="$CLAUDE_SCRIPTS_DIR/diary-source.js"` /
+    `if [ -f "$STALE_DIARY_SOURCE" ] && grep -q 'base_project:managed' "$STALE_DIARY_SOURCE"; then` /
+    `    rm -f "$STALE_DIARY_SOURCE"` / `    ok "removed stale script: $STALE_DIARY_SOURCE"` / `fi`.
+    (2) Replace the `for` line with `for stale_name in dashboard doctor context explain newproject reviewusage diario; do`.
+  - Verify: `bash -n dev/scripts/install.sh` → exit 0; `grep -c "sync_managed \"\$DIARY_SOURCE_SRC\"" dev/scripts/install.sh` → `0`.
+- [x] **D20.13 Codex installer prunes the old skill** (`coder`)
+  - Files: `dev/scripts/install-codex.js` (exists)
+  - Anchor: `  const staleNames = ["newproject"];`
+  - Change: replace it with `  const staleNames = ["newproject", "diario"];`.
+  - Verify: `npm run typecheck` → exit 0.
+- [x] **D20.14 CI stops expecting the diary and counts 20 skills** (`coder`)
+  - Files: `.github/workflows/ci.yml` (exists)
+  - Anchor: the six lines that contain `diary-source.js` or `diario.md` (today 76, 102, 131,
+    175, 201, 230); `wc -l | tr -d ' ')" = "21"` (147); `-ne 21) { throw "Expected exactly 21 Codex skills" }` (259).
+  - Change: delete the six lines. In the PowerShell arrays (175, 201, 230), check the line
+    before each deleted line: if the array now ends with a trailing comma, remove that comma.
+    Replace `"21"` with `"20"` on line 147. Replace both `21` with `20` on line 259.
+  - Verify: `grep -c "diar" .github/workflows/ci.yml` → `0`; the CI `install-test` jobs pass
+    after push (checked in D20.21).
+- [x] **D20.15 Remove the diary from code comments and maps** (`coder`)
+  - Files: `dev/scripts/ledger-prune.js` (exists), `dev/scripts/eval-harness.js` (exists),
+    `source/hooks/usage-log.js` (exists), `dev/scripts/usage-baseline.js` (exists)
+  - Change:
+    1. `ledger-prune.js`: replace `// ledger on its own: it is the only source /diario has for past hours, so the default is to`
+       with `// ledger on its own: /usagebp reads it, so the default is to`.
+    2. `ledger-prune.js`: replace `` `After that, /diario cannot rebuild hours before ${cutoff}: the ledger is its only source.\n` `` with
+       `` `After that, /usagebp cannot report activity before ${cutoff}.\n` ``.
+    3. `ledger-prune.js`: replace `/diario can no longer rebuild hours before ${cutoff}.` with
+       `/usagebp can no longer report activity before ${cutoff}.`
+    4. `eval-harness.js`: replace `// The usage ledger is the only source /diario has for past hours; it once sat inside` with
+       `// The usage ledger is user data that /usagebp reads; it once sat inside`.
+    5. `usage-log.js`: replace `what /usagebp and /diario actually read` with `what /usagebp actually reads`.
+    6. `usage-baseline.js`: delete the line `  diario: "reporting",`.
+  - Do not touch: the logic of these files.
+  - Verify: `grep -c "diario" dev/scripts/ledger-prune.js dev/scripts/eval-harness.js source/hooks/usage-log.js dev/scripts/usage-baseline.js`
+    → `0` each; `npm run lint` → exit 0.
+
+### Stage C — Tests and docs
+
+- [x] **D20.16 Update the tests that name the diary** (`coder`)
+  - Files: `dev/tests/codex.test.js` (exists), `dev/tests/menu-rule.test.js` (exists),
+    `dev/tests/ledger-prune.test.js` (exists), `dev/tests/ledger-scale.test.js` (exists)
+  - Change:
+    1. `codex.test.js`: delete the two `assert.match(readSkill("diario"), ...)` statements
+       (the first spans four lines). Replace `assert.equal(codex.length, 21);` with
+       `assert.equal(codex.length, 20);`. Replace `.length, 21);` with `.length, 20);` in the
+       `names(path.join(roots.agents, "skills"), "", true)` assertion.
+    2. `menu-rule.test.js`: delete the whole test
+       `"the diary suggestion carries its own threshold instead of borrowing the menu rule's"`.
+    3. `ledger-prune.test.js`: replace `/\/diario cannot rebuild hours before 2026-06-26/` with
+       `/\/usagebp cannot report activity before 2026-06-26/`.
+    4. `ledger-scale.test.js`: replace the two `require` lines with
+       `const { buildBaseline, readLedger } = require("../scripts/usage-baseline.js");`.
+       Rename the second test to `"the usage reader handles a single ledger file larger than the spread-argument limit"`.
+       Replace `readLedger(dir).length` with `readLedger(dir).events.length`.
+  - Verify: `npm test` → exit 0.
+- [x] **D20.17 README: remove the command and fix the counts** (`coder`)
+  - Files: `README.md` (exists)
+  - Change: delete the table row that starts with ``| `/diario` |``. Replace
+    `— it is the only source \`/diario\` has for past hours.` with `— it is what \`/usagebp\` reads.`
+    Replace `21` with `20` in the lines that say `All 21 workflows`, `Same 21 commands`,
+    `The same 21 workflows`, and `21 workflows ship in total`.
+  - Do not touch: the changelog lines (E1).
+  - Verify: `grep -n "diario" README.md` → only the two changelog lines; `grep -c "\b21 \(workflows\|commands\)" README.md` → `0`.
+- [x] **D20.18 ARCHITECTURE: remove the command and fix the counts** (`coder`)
+  - Files: `ARCHITECTURE.md` (exists)
+  - Change:
+    1. Delete the tree line with `diary-source.js`, the `/diario` row in section 4, and the
+       `/diario` and `diary-source.js` rows in the component table.
+    2. Replace `ledger de uso, diários, \`~/.agents/\`` with `ledger de uso, \`~/.agents/\``.
+       Replace `reinstalando", mas é a única fonte do \`/diario\`.` with `reinstalando", mas é dado do usuário que o \`/usagebp\` lê.`
+    3. Replace `isso mantém \`$diario\` compatível` with `isso mantém \`$usagebp\` compatível`.
+    4. Replace `é a única fonte do \`/diario\` para` + newline + `horas passadas, então` with
+       `é o que o \`/usagebp\` lê, então`.
+    5. Replace `21` with `20` in `**21 comandos**`, `(21 comandos`, `mesmos 21 workflows`,
+       `## 4. Os 21 comandos`, and `21 skills em`.
+  - Verify: `grep -c "diario\|diary-source\|diários" ARCHITECTURE.md` → `0`.
+- [x] **D20.19 Repository rules drop the `diario.md` exception** (`coder`)
+  - Files: `CLAUDE.md` (exists), `AGENTS.md` (exists)
+  - Anchor: `deve casar só nos \`command-menu.md\` **e nos dois \`diario.md\`**. Os \`diario.md\` são exceção`
+  - Change: replace the anchor sentence and the rest of that paragraph (through
+    `português ali está dentro do bloco de código de exemplo — se aparecer fora dele, aí é drift`
+    + `de verdade.`) with `deve casar só nos \`command-menu.md\`.`
+  - Verify: `grep -c "diario" CLAUDE.md AGENTS.md` → `0` each.
+- [x] **D20.20 Codex docs drop the diary reason** (`coder`)
+  - Execution note: also changed the remaining "21" counts in `README.md:102` and four lines of `ARCHITECTURE.md` (tree, section 4, and the test list), and fixed `dev/tests/usage-envelope.test.js` by leaving it as is: it only guards that `/usagebp` never rewrites `diary-root.txt`.
+  - Files: `source/codex/README.md` (exists), `source/codex/skills/designreview/SKILL.md` (exists)
+  - Change: in `source/codex/README.md` replace
+    `so the contribution diary keeps one uninterrupted ledger across Claude and Codex.` with
+    `so the usage ledger stays one uninterrupted history across Claude and Codex.`
+    In `designreview/SKILL.md` replace `so existing installations and diaries are not split.` with
+    `so existing installations are not split.`
+  - Verify: `grep -c "diar" source/codex/README.md source/codex/skills/designreview/SKILL.md` → `0` each.
+
+### Stage D — Verify, record, and sync
+
+- [x] **D20.21 Full verification** (`reviewer`)
+  - Files: none edited.
+  - Verify: `npm run verify` → exit 0; `npm run test:harness` → exit 0;
+    `grep -rniE "diario|diary|diários" source dev/scripts dev/tests .github README.md ARCHITECTURE.md CLAUDE.md AGENTS.md`
+    → only the README changelog lines and the legacy `diary-root.txt` text in the `/uninstall`
+    variants and installers' prune blocks; after push, the CI matrix is green.
+- [x] **D20.22 Record the removal in `dev/ROADMAP.md`** (`coder`)
+  - Files: `dev/ROADMAP.md` (exists)
+  - Change: append `## <next free n>. Remoção do /diario (<date>)` with three short paragraphs in
+    Portuguese: why (owner decision), what was removed and what stays (E2), and the evidence
+    (the D20.21 result).
+  - Verify: `grep -c "Remoção do /diario" dev/ROADMAP.md` → `1`.
+- [ ] **D20.23 Sync this machine** (`manual`) — writes outside the repository.
+  - Verify: after the owner runs `dev\scripts\install.ps1`, the output shows
+    `removed stale command` for both `diario.md` files and `removed stale script` for
+    `diary-source.js`; `ls ~/.claude/commands/diario.md` fails; the managed block in
+    `~/.claude/CLAUDE.md` has no "Contribution diary" section.
+- [ ] **D20.24 Decide what to do with the diary documents** (`manual`)
+  - Verify: the owner reads the folder path in `~/.base_project/diary-root.txt`, decides to keep
+    or to delete the documents in that folder, and then deletes `diary-root.txt` by hand.
+    base_project does not delete these files.
+
+### Explicitly out of scope
+
+- Rewriting history (E1).
+- Removing the usage ledger, the `usage-log` hook, `/usagebp`, or `ledger-prune.js` (E2).
+
+### Sources consulted
+
+- Repository files at `d541daf`, found with `grep -rni "diario|diary"` (54 files); exact lines
+  are cited in each item.
 
 ---
 
@@ -45,11 +873,7 @@ flowchart TD
     Verify --> Manual[Live acceptance on the owner's PC]
 ```
 
-Suggested: sonnet · high — text-only edits across ten files, but strict cross-runtime parity, a safety contract and a cross-OS browser launch make a careless pass expensive.
-
 ### Design rationale
-
-Suggested: sonnet · high — the surface is small, but the grammar and the safety contract are what every later file, test and doc repeats.
 
 Why a token and not the alternatives (measured on this repository, 2026-09-29):
 
@@ -133,8 +957,6 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
 
 ### Implementation
 
-Suggested: sonnet · high — eight near-identical host edits must each stay faithful to their variant's style, and the smoke script has OS-specific process and port handling.
-
 - [ ] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
   the byte-identical `source/opencode/references/cdp-verification.md`, beginning with the
   `# base_project:managed` marker and containing every clause of C18.2 in imperative English.
@@ -186,8 +1008,6 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
 
 ### Tests
 
-Suggested: sonnet · high — mutation checks are what make these tests worth having, and one of them must cover OS-specific listing formats without a browser.
-
 - [ ] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
   (a) each of the eight host files (`execgoals` and `fixproject` × Claude, opencode dense,
   opencode lite, Codex) matches `/\bcdp\b/`, cites exactly its own runtime's reference path from
@@ -215,8 +1035,6 @@ Suggested: sonnet · high — mutation checks are what make these tests worth ha
   Chrome or procedure difference, never skipped.
 
 ### Registration
-
-Suggested: sonnet · medium — mostly mechanical, but the menus are user-language text guarded by parity tests.
 
 - [ ] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
   `source/opencode/references/command-menu.md`, `source/codex/references/command-menu.md`
@@ -314,8 +1132,6 @@ flowchart TD
     Catalog --> Docs
     Docs --> Decisions[Owner decisions - manual]
 ```
-
-Suggested: opus · high — cross-cutting fixes across hooks, both installers, four command projections, and CI, where a wrong edit silently degrades every user's sessions.
 
 ### Unblock CI
 
@@ -595,8 +1411,6 @@ flowchart TD
     Register --> Sync[Manual installer sync and fresh-session behavior check]
 ```
 
-Suggested: sonnet · high — the edits are text-only, but the block must stay byte-identical across three runtimes, every existing parity test must stay green, and the wording has to be precise enough that a live model actually picks the browser tooling over screen control (Codex equivalent: gpt-5.6-sol · high).
-
 ### Design rationale
 
 - [x] **S16.1 Fix the three-tier vocabulary before touching any file** (`architect`) — every
@@ -830,11 +1644,7 @@ flowchart TD
     Register --> Manual[Manual live run with before/after mutation checks]
 ```
 
-Suggested: gpt-5.6-sol · high — the command spans four runtime projections, multiple package managers, registry lookups, and a strict no-mutation guarantee.
-
 ### Design rationale
-
-Suggested: gpt-5.6-sol · high — the highest-risk decision is defining truthful status semantics across npm, uv/pipx, OS package managers, floating npx MCPs, and optional catalog entries.
 
 - [x] **U15.1 Settle the command boundary and name** (`architect`) — use `/updates` and
   `$updates`, keeping `/update` and `$update` reserved for pulling the base_project repository
@@ -898,8 +1708,6 @@ Suggested: gpt-5.6-sol · high — the highest-risk decision is defining truthfu
 
 ### Implementation
 
-Suggested: gpt-5.6-sol · high — the implementation must keep the same safe behavior across Claude, OpenCode dense/lite, and Codex while preserving runtime-specific syntax.
-
 - [x] **U15.6 Add the Claude command** (`coder`) — create
   `source/claude/commands/updates.md` with the settled inventory, manager checks, report
   statuses, public-registry/network error handling, and the no-install/no-pull boundary. The
@@ -918,8 +1726,6 @@ Suggested: gpt-5.6-sol · high — the implementation must keep the same safe be
   skill and the skill does not use Claude-only command or model vocabulary.
 
 ### Tests
-
-Suggested: gpt-5.6-terra · medium — the main risk is contract drift and unsafe verbs, which can be covered deterministically before one live network check.
 
 - [x] **U15.9 Add focused update-command contract tests** (`coder`) — create
   `dev/tests/updates.test.js` to assert all four source variants contain the complete managed
@@ -952,8 +1758,6 @@ Suggested: gpt-5.6-terra · medium — the main risk is contract drift and unsaf
   manager missing, or version source unavailable) is recorded instead of claiming full coverage.
 
 ### Registration
-
-Suggested: gpt-5.6-terra · medium — registration is repetitive but must keep four projections, menus, docs, and command-count references synchronized.
 
 - [x] **U15.13 Register the command everywhere users discover workflows** (`coder`) — add the
   entry to `source/claude/references/command-menu.md`,
@@ -1026,150 +1830,6 @@ Suggested: gpt-5.6-terra · medium — registration is repetitive but must keep 
 - [WinGet list documentation](https://learn.microsoft.com/en-us/windows/package-manager/winget/list)
   — `winget list --upgrade-available` without invoking the mutating upgrade command.
 - [Homebrew manpage](https://docs.brew.sh/Manpage) — `brew outdated` and JSON output.
-
----
-
-<a id="goals-14-codex-model-recommendation-parity"></a>
-## GOALS 14 — Codex Model Recommendation Parity for `$newgoal` (base_project feature)
-
-The Claude command already ends a successful `/newgoal` run with a localized, bold model +
-effort recommendation and an explicit manual-only disclaimer. The Codex skill has a related
-instruction, but its model vocabulary is still Claude-specific (`haiku`/`sonnet`/`opus`) and
-does not define the visible response shape strongly enough. This goal makes `$newgoal` behave
-the same way at the interaction level while using Codex's own current model names and effort
-levels.
-
-```mermaid
-flowchart TD
-    Audit[Audit Claude and Codex output contracts] --> Design[Define shared response shape and runtime model map]
-    Design --> Skill[Update Codex newgoal skill]
-    Skill --> Tests[Add source and installer contract tests]
-    Tests --> Docs[Update discoverability docs]
-    Docs --> Live[Fresh-session manual validation]
-```
-
-Suggested: gpt-5.6-sol · high — the change is bounded but spans Codex prompt semantics, cross-runtime contract tests, installed projection, and a live behavior check.
-
-### Design rationale
-
-- [x] **M14.1 Define the parity contract** (`architect`) — use the Claude final-response rule as
-  the semantic reference, not as a claim that OpenCode currently emits the same visible line.
-  After the path and short outline, Codex must emit exactly one localized recommendation sentence
-  with one bold `<Codex model> · <effort>` pair, one reason tied to the plan's highest-complexity/
-  highest-risk module, the manual-only disclaimer, and the question asking whether to continue
-  with `$execgoals` or adjust the plan. **Done when:** the architect confirmed these four
-  invariants and the implementation/test items encode them. Proof: read-only architecture review
-  completed by the `architect` subagent; no files were edited by that review.
-- [x] **M14.2 Define Codex-specific recommendation mapping** (`architect`) — keep Claude and
-  OpenCode's `haiku`/`sonnet`/`opus` vocabulary unchanged, but make Codex recommend the model
-  actually usable in the current Codex session: `gpt-5.6-luna · low` for mechanical routine work,
-  `gpt-5.6-terra · medium` for typical implementation, `gpt-5.6-sol · high` for difficult
-  multi-system work, and `gpt-6-astra · xhigh` for high-cost-of-failure work. Resolve availability
-  against the models visible in the active Codex surface; fall back along Astra → Sol → Terra →
-  Luna, preserve effort when supported, and disclose any fallback. Never print Claude model names
-  as Codex choices. **Done when:** the architect approved this deterministic mapping and the plan
-  metadata uses the selected Codex pair. Proof: current official model roles and the available
-  Codex model surface were reviewed; Sol/Astra ambiguity was removed.
-- [x] **M14.3 Preserve scope boundaries** (`architect`) — do not change the active model,
-  reasoning setting, `fallbackModel`, global Codex configuration, billing behavior, command
-  count, menu entries, or any workflow other than `$newgoal`. The recommendation remains advice
-  applied by hand, never an automatic mid-session switch. **Done when:** the architect confirmed
-  the out-of-scope list and no file outside the approved paths is required. Proof: the read-only
-  architecture review approved this boundary.
-
-### Implementation
-
-- [x] **M14.4 Make the Codex final-response contract explicit** (`coder`) — update
-  `source/codex/skills/newgoal/SKILL.md` so the final response cannot be satisfied by merely
-  mentioning a `Suggested:` line inside `GOALS.md`: require the visible localized sentence,
-  bold model/effort pair, plan-specific reason, manual-only disclaimer, and `$execgoals` versus
-  plan-adjustment question. Keep the planning-only boundary and the Codex-native `$` spelling.
-  Replace the Claude-only model set in the Codex-specific guidance with the approved Codex map;
-  do not copy the full Claude command or add a new skill.
-  **Done when:** the source skill contains one unambiguous final-response contract, uses
-  Codex-compatible model identifiers, and preserves `never execute`. **Proof:**
-  `source/codex/skills/newgoal/SKILL.md` now contains the explicit localized final-response
-  contract and Codex model mapping.
-- [x] **M14.5 Keep source and installed projections aligned** (`coder`) — rely on the existing
-  `dev/scripts/install-codex.js` source-of-truth flow; do not edit `~/.agents/skills/` manually or
-  change the installer for a content-only skill update. Exercise the temporary-root installer
-  path so the installed Codex skill receives the same contract and existing user-owned skill
-  content remains preserved. **Done when:** the temporary installed file is byte-equivalent to
-  the managed source file and the existing idempotency/user-collision tests still pass. **Proof:**
-  the installer test compares the temporary installed skill byte-for-byte with source and passes
-  while preserving a user-owned colliding skill.
-
-### Tests
-
-- [x] **M14.6 Add deterministic cross-runtime contract coverage** (`coder`) — extend
-  `dev/tests/codex.test.js` with a focused assertion over
-  `source/claude/commands/newgoal.md`, `source/opencode/command/newgoal.md`,
-  `source/opencode/command-lite/newgoal.md`, and `source/codex/skills/newgoal/SKILL.md`:
-  Claude/OpenCode retain their existing model-tier contract; Codex has the visible final-output
-  contract, Codex model vocabulary, localized-output instruction, and manual/no-auto-switch
-  disclaimer; none loses the planning-only boundary. Assert the Codex-specific section does not
-  present `haiku`/`sonnet`/`opus` as Codex models.
-  **Done when:** the test fails if the Codex instruction regresses to a GOALS-only suggestion or
-  to Claude model names, and it passes against all four source variants. **Proof:**
-  `node --test dev/tests/codex.test.js` passed 6/6.
-- [x] **M14.7 Verify the complete local quality gate** (`reviewer`) — run the repository's own
-  checks after the source/test edits: `npm test`, `npm run lint`, `npm run typecheck`,
-  `npm run validate:plugins`, `npm run check:unused-deps`, `npm run test:harness`, and
-  `git diff --check` for the owned paths. **Done when:** all checks pass and no unrelated dirty
-  work is staged, reverted, or rewritten. **Proof:** `npm run verify` passed (Biome 56 files,
-  typecheck, plugin validation, unused-dependency check, full test suite 127/127, and audit with
-  0 vulnerabilities); `npm run test:harness` passed 12/12 artifacts and 16/16 scenarios; GOALS
-  structure and `git diff --check` passed.
-- [ ] **M14.8 Confirm real Codex behavior in a fresh session** (`manual`) — after synchronization,
-  invoke `$newgoal` on a disposable harmless project and inspect the actual final response. It
-  must show the localized bold model + effort recommendation, a reason, the manual-only warning,
-  and the execution/adjustment question; it must not change the selected model or effort. Record
-  the exact observed model/effort and the session/date because prompt tests cannot prove a
-  probabilistic model followed its instruction. **Done when:** the live response matches the
-  contract, or a concrete Codex limitation is recorded instead of claiming success. **Proof:**
-  Codex global synchronization completed successfully; the installed skill's SHA-256 matches
-  the source (`D09A8898ECA6D77499C89056188BE1C28C40274E87DD208ACA3F0B7A55B88ADE`). **Current
-  blocker:** opening a fresh Codex session and observing the live `$newgoal` response is still
-  required; installation and structural checks do not prove model obedience.
-
-### Registration
-
-- [x] **M14.9 Document the runtime distinction without creating another command** (`coder`) —
-  update the existing `/newgoal` description in `README.md` and the Codex integration note in
-  `source/codex/README.md` to explain that the recommendation is manual and that each runtime
-  uses its own model vocabulary. Do not add a menu/status entry or change the 20/20 command-skill
-  parity counts. **Done when:** the existing user-facing `/newgoal` entry and Codex README agree
-  with the implemented behavior and the command-count tests remain unchanged. **Proof:**
-  `README.md` and `source/codex/README.md` document the runtime-specific manual mapping; stale
-  21-workflow wording was corrected to 20; no menu or parity-count change was made.
-- [x] **M14.10 Record the decision in the chronological roadmap** (`coder`) — add a concise
-  `dev/ROADMAP.md` entry referencing this goal, the runtime-specific model mapping, the source
-  paths, and the honest limit that structural tests do not prove live model obedience.
-  **Done when:** the roadmap points to the shipped contract and does not imply automatic model
-  routing or live validation unless M14.8 produced that evidence. **Proof:** `dev/ROADMAP.md`
-  item 51 records the mapping, fallback, files, and structural-test/live-obedience limitation.
-
-### Explicitly out of scope
-
-- Automatic model/effort switching, model routing middleware, `fallbackModel`, or changes to
-  Codex/Claude account settings.
-- A new command, a model API, billing/token instrumentation, or recommendations for every
-  workflow beyond `$newgoal`.
-- Replacing the existing Claude/OpenCode vocabulary or pretending that Claude model names are
-  valid Codex model selections.
-- Treating a passing string/structure test as proof that every live model will obey the prompt;
-  M14.8 remains a separate manual check.
-
-### Sources consulted
-
-- [OpenAI Models](https://developers.openai.com/api/docs/models) — current model roles and
-  reasoning-effort ranges used to keep Codex recommendations runtime-aware; availability and
-  account access remain session-dependent.
-- `source/claude/commands/newgoal.md`, `source/opencode/command/newgoal.md`,
-  `source/opencode/command-lite/newgoal.md`, and `source/codex/skills/newgoal/SKILL.md` — current
-  source contracts and the exact parity gap.
-- `dev/tests/codex.test.js` and `dev/scripts/install-codex.js` — existing cross-runtime and
-  source-to-installed verification boundaries.
 
 ---
 
