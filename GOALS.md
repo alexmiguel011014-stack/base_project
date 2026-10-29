@@ -488,7 +488,8 @@ paragraph after its `STEP` label (sub-bullets become sentences separated by `; `
     marker, removal per D1), what was deliberately kept (D2, D5), and the evidence (`npm run verify`
     result from P19.21).
   - Verify: `grep -c "contrato de item executável" dev/ROADMAP.md` → `1`.
-- [ ] **P19.20 Sync the installed copies** (`manual`) — writes outside the repository.
+- [x] **P19.20 Sync the installed copies** (`manual`) — writes outside the repository.
+  - Execution note: `dev\scripts\install.ps1` ran from this worktree on 2026-10-28 (exit 0). It also wrote `~/.base_project/repo-path.txt` with the worktree path, so that file was set back to `D:\ProjetosPessoais\base_project`. Result: `item-contract: v1` count 1, `Suggested` count 0.
   - Verify: after the owner runs `dev\scripts\install.ps1`,
     `grep -c "item-contract: v1" ~/.claude/commands/newgoal.md` → `1` and
     `grep -c "Suggested" ~/.claude/commands/newgoal.md` → `0`.
@@ -501,11 +502,13 @@ paragraph after its `STEP` label (sub-bullets become sentences separated by `; `
   - Verify: `npm run verify` → exit 0; `npm run test:harness` → exit 0;
     `grep -rnE "Suggested:|model \+ effort" source README.md` → no output.
 - [ ] **P19.22 Weak-executor acceptance** (`manual`)
+  - Execution note (partial, 2026-10-28): a Haiku subagent ran the installed `execgoals.md` on a two-item plan in a scratch project. Both `Verify:` commands passed (`node --test` exit 0, `grep -c` → 1), it edited only the listed files, and the structure validator passed after the checkboxes changed. The plan was written by hand in contract format, not produced by `/newgoal`, and the project had two items, so this does not yet prove the full item. Keep it open until the owner runs `/newgoal` and then `/execgoals` on a real feature with a weaker model.
   - Verify: in a scratch project, run `/newgoal` for a small feature on the strongest model,
     then `/execgoals` on a smaller one (e.g. Haiku or a free opencode backend); the run either
     completes every item with each `Verify:` passing, or stops with "plan drift" naming the
     item — it never edits a file the item did not list. The owner pastes the summary here.
-- [ ] **P19.23 Drift-stop acceptance** (`manual`)
+- [x] **P19.23 Drift-stop acceptance** (`manual`)
+  - Execution note: a Haiku subagent ran `execgoals.md` on a copy of the scratch project where `return "Hello";` was changed by hand to `return "Hi there";`. It stopped at preflight with "plan drift" naming G1.1, edited no file, and did not run G1.2. The files were unchanged afterward (`git status` clean).
   - Verify: in the same scratch project, change one anchored line by hand, rerun `/execgoals`,
     and confirm it stops on that item with "plan drift" instead of editing.
 
@@ -822,12 +825,14 @@ flowchart TD
     Portuguese: why (owner decision), what was removed and what stays (E2), and the evidence
     (the D20.21 result).
   - Verify: `grep -c "Remoção do /diario" dev/ROADMAP.md` → `1`.
-- [ ] **D20.23 Sync this machine** (`manual`) — writes outside the repository.
+- [x] **D20.23 Sync this machine** (`manual`) — writes outside the repository.
+  - Execution note: same installer run as P19.20. Output showed `removed stale command` for both `diario.md` files and `removed stale script` for `diary-source.js`; `~/.claude/commands/diario.md` is gone; `~/.claude/CLAUDE.md` has no "Contribution diary" section.
   - Verify: after the owner runs `dev\scripts\install.ps1`, the output shows
     `removed stale command` for both `diario.md` files and `removed stale script` for
     `diary-source.js`; `ls ~/.claude/commands/diario.md` fails; the managed block in
     `~/.claude/CLAUDE.md` has no "Contribution diary" section.
-- [ ] **D20.24 Decide what to do with the diary documents** (`manual`)
+- [x] **D20.24 Decide what to do with the diary documents** (`manual`)
+  - Execution note: the owner chose to keep the documents in `D:\ProjetosPessoais\Diarios_contribuicao`. `~/.base_project/diary-root.txt` was deleted on 2026-10-28. `~/.base_project/diario-perfil.json` (a diary profile file) still exists and was not touched.
   - Verify: the owner reads the folder path in `~/.base_project/diary-root.txt`, decides to keep
     or to delete the documents in that folder, and then deletes `diary-root.txt` by hand.
     base_project does not delete these files.
