@@ -15,7 +15,6 @@ O que você deseja fazer agora?
 - `$cleanproject` — procura arquivos mortos, pastas erradas e duplicação sem alterar nada.
 - `$fixproject` — corrige os achados de `$scanproject` e `$cleanproject` e verifica cada correção; os contratos de escopo e decisão são testados localmente.
 - `$undo` — reverte o último lote de mudanças com confirmações separadas por risco.
-- `$diario` — registra contribuições no diário externo ao repositório, usando o histórico já coletado.
 - `$ship` — valida, commita e envia as mudanças sem force-push nem resolução automática de conflitos; a segurança é coberta por um harness local sem API paga.
 - `$pr` — prepara e abre um pull request da branch atual, sempre confirmando título e corpo.
 - `$plugins` — recomenda e instala capacidades opcionais adequadas ao projeto.

@@ -6,7 +6,7 @@ description: Fix the findings from /scanproject or /cleanproject (lite). Runs th
 Fix the issues found by `/scanproject` and/or `/cleanproject`. Verify each fix directly — never assume a patch worked just because it applied.
 
  ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 
 STEP 1 — If $ARGUMENTS names which findings to focus on (e.g. "just the security ones"), use only those. Otherwise fix everything reported.

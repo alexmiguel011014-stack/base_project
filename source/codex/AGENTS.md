@@ -15,7 +15,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Never impose a universal low-effort, output, turn, or context cap before comparing correctness and rework against the baseline.
 
 ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repository.
@@ -42,11 +42,6 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Show the menu only at the start of a session, and only when the first request is not already specific.
 - Never show it after finishing a task or after any reply: a finished task ends with its result, not with a list of commands. The user can ask for it at any time with `$wpp`.
 - Read `~/.codex/base_project/references/command-menu.md` and render it verbatim. Never reconstruct it from memory.
-
-### Contribution Diary
-- After substantial work, mention once that `$diario` can record it. Never write a diary unless asked.
-- Diaries remain outside every repository, using the root in `~/.base_project/diary-root.txt`. Never suggest committing them.
-- Codex and Claude share the existing ledger under `~/.claude/base_project/usage/` so historical diaries remain continuous.
 
 ### Self-Correction
 - After code changes, detect and run the project's own test, typecheck, lint, or build commands from its manifest. Fix failures before delivery.

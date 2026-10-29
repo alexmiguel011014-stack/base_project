@@ -247,7 +247,7 @@ if ($prunedHookCount -gt 0) {
 # Same for the files themselves. Only deletes what carries the managed marker,
 # mirroring Sync-Managed - a file the user wrote by hand at the same path is
 # left alone even if the name matches.
-foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"), (Join-Path $claudeCommandsDir "newproject.md"), (Join-Path $opencodeCommandDir "newproject.md"), (Join-Path $claudeCommandsDir "reviewusage.md"), (Join-Path $opencodeCommandDir "reviewusage.md"))) {
+foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Path $opencodeCommandDir "dashboard.md"), (Join-Path $claudeCommandsDir "doctor.md"), (Join-Path $opencodeCommandDir "doctor.md"), (Join-Path $claudeCommandsDir "context.md"), (Join-Path $opencodeCommandDir "context.md"), (Join-Path $claudeCommandsDir "explain.md"), (Join-Path $opencodeCommandDir "explain.md"), (Join-Path $claudeCommandsDir "newproject.md"), (Join-Path $opencodeCommandDir "newproject.md"), (Join-Path $claudeCommandsDir "reviewusage.md"), (Join-Path $opencodeCommandDir "reviewusage.md"), (Join-Path $claudeCommandsDir "diario.md"), (Join-Path $opencodeCommandDir "diario.md"))) {
     if (-not (Test-Path $staleCmd)) { continue }
     if ((Read-Utf8NoBom $staleCmd) -match 'base_project:managed') {
         Remove-Item $staleCmd -Force
@@ -555,12 +555,12 @@ if (Test-Path $contrastCheckSrc) {
 }
 
 # ---------------------------------------------------------------------
-# 8c-3. diary-source.js - deterministic ledger/git extractor behind /diario.
-# See ROADMAP item 38.
+# 8c-3. Retired: diary-source.js shipped with /diario (removed in GOALS 20).
 # ---------------------------------------------------------------------
-$diarySourceSrc = Join-Path $repoRoot "dev\scripts\diary-source.js"
-if (Test-Path $diarySourceSrc) {
-    Sync-Managed -SrcFile $diarySourceSrc -DestFile (Join-Path $claudeScriptsDir "diary-source.js")
+$staleDiarySource = Join-Path $claudeScriptsDir "diary-source.js"
+if ((Test-Path $staleDiarySource) -and ((Read-Utf8NoBom $staleDiarySource) -match 'base_project:managed')) {
+    Remove-Item $staleDiarySource -Force
+    Write-Ok "removed stale script: $staleDiarySource"
 }
 
 # ---------------------------------------------------------------------

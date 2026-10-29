@@ -8,7 +8,7 @@ project, one ordered item at a time — with the same before/after verification 
 `/fixproject`, not "apply a patch and assume it worked."
 
  ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 
 1. **Require a plan.** If `GOALS.md` doesn't exist at the project root, check first whether
@@ -28,12 +28,25 @@ project, one ordered item at a time — with the same before/after verification 
    human-in-the-loop. That preserves one coherent safety gate without re-asking for ordinary
    in-scope implementation.
 
+2a. **Preflight the plan before the first edit.** For the items about to run, confirm each
+    `(exists)` path is present and each `Anchor:` still matches verbatim, and run the
+    project's test/lint/typecheck once to record a baseline. If an anchor no longer matches,
+    a `(new)` path already exists, or an item says `(unverified — confirm before executing)`,
+    stop on that item and report it as plan drift: the plan is stale there, and the fix is
+    to update `GOALS.md` (or rerun `/newgoal` for that section), never to improvise a
+    substitute edit. Items before it that passed preflight may still run. A section without
+    the `<!-- item-contract: v1 -->` marker skips the anchor checks but still records the
+    baseline.
+
 3. **Work through unchecked items in the order they're written.** `/newgoal` already orders
    items "what has to exist before what" — don't re-derive an order here. For each item:
    - **Auto-approved**: trivial, routine, reversible work inside the current repository applies
      directly.
-   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item uses the `architect` →
-     `coder` subagent workflow; state the visible effect, then continue and verify it.
+   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item goes to `coder`
+     with the item's own text as the brief; state the visible effect, then continue and
+     verify it. Run `architect` first only when the item's owner is `architect` or its
+     `Change:` is a specification that still leaves a design question — `/newgoal` already
+     did the design, and repeating it costs tokens and invites a second, different answer.
    - **Human-in-the-loop**: an irreversible or hard-to-recover action, a material choice only
      the user can make (which OAuth provider, cloud region, or real credential), data/state
      outside the repository, sensitive data, or external publication stops and asks. Never
@@ -46,6 +59,8 @@ project, one ordered item at a time — with the same before/after verification 
    editing the checkbox because the edit happened. Update `GOALS.md` in place (`[ ]` → `[x]`) as
    you go, so a later re-run of this command sees accurate progress and never redoes finished
    work.
+   When the item has a `Verify:` line, that check is the proof: run it and compare with its
+   expected result; a mismatch keeps the item open.
 
    After a batch of edits to the same `GOALS.md` within one area, run
    `node ~/.claude/base_project/scripts/validate-goals-structure.js GOALS.md`. If it reports a
@@ -60,6 +75,7 @@ project, one ordered item at a time — with the same before/after verification 
     the root `GOALS.md`. This is auto-approved, repo-local, reversible work; it doesn't need
     separate confirmation beyond the run's own authorization. Re-run
     `validate-goals-structure.js` after the move, same as any other edit batch.
+    If the project's `CLAUDE.md` names a command that writes the archive checksums, run that command instead of computing the checksum by hand, then run its check mode.
 
 5. **Run the project's own test/lint/typecheck after each area finishes**, not only at the very
    end — catch a broken area before three more areas get built on top of it.

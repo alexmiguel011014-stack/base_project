@@ -31,7 +31,6 @@ const COMMAND_CLASSES = {
   undo: "recovery",
   uninstall: "administration",
   usagebp: "analysis",
-  diario: "reporting",
 };
 
 function classifyPrompt(prompt) {
