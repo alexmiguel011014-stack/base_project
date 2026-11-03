@@ -6,6 +6,8 @@
 	"description": "Global config installer for Claude Code, Codex, and opencode — validation/build tooling only, not a published package.",
 	"scripts": {
 		"lint": "biome check .",
+		"lint:ai-style": "node dev/scripts/ai-style-lint.js --enforce",
+		"report:ai-style": "node dev/scripts/ai-style-lint.js --report",
 		"typecheck": "tsc --noEmit",
 		"audit:prod": "npm audit --omit=dev --audit-level=high",
 		"check:unused-deps": "node dev/scripts/check-unused-deps.js",
@@ -14,14 +16,14 @@
 		"test:harness": "node dev/scripts/eval-harness.js --json",
 		"test": "node --test dev/tests/*.test.js",
 		"smoke:cdp": "node dev/scripts/cdp-smoke.js",
-		"verify": "npm run lint && npm run typecheck && npm run validate:plugins && npm run check:unused-deps && npm test && npm run audit:prod"
+		"verify": "npm run lint && npm run lint:ai-style && npm run typecheck && npm run validate:plugins && npm run check:unused-deps && npm test && npm run audit:prod"
 	},
 	"dependencies": {
 		"ajv": "^8.17.1",
 		"ajv-formats": "^3.0.1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.15",
+		"@biomejs/biome": "^2.6.3",
 		"@types/node": "^22.20.5",
 		"typescript": "^7.0.2"
 	}

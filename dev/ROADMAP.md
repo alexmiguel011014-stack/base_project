@@ -2535,6 +2535,9 @@ uma requisição falha, e removeu o perfil. A primeira tentativa quebrou no pró
 deixou sete processos Chrome ativos; por isso o contrato exige limpeza em toda saída e confirmação
 de que a porta fechou. O resultado e as alternativas estão detalhados em GOALS 18, seção
 “Design rationale”.
+**Decisões do GOALS 21 ainda vigentes**: o piloto pareado decide se o roteamento por tier
+permanece; não se adota notação comprimida; a reescrita dos ≈84 arquivos executados pelo modelo
+depende da decisão pós-piloto; GOALS 12–18 permanecem no formato atual.
 
 ---
 
@@ -2545,6 +2548,7 @@ de que a porta fechou. O resultado e as alternativas estão detalhados em GOALS 
   central à identidade do projeto, não é negociável só porque ECC faz diferente.
 - **Unified layer estacionada (item 55)** — não religar sem demanda real por outro agente e
   sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
+- **Plano executor-v1 + despacho por tier (item 57)** — sem notação comprimida; planos antigos não são convertidos.
 - **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
   custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
 - **Modifier token (GOALS 18)** — `cdp` só ativa CDP na execução de `/execgoals` ou `/fixproject`;

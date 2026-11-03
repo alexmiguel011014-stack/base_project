@@ -258,7 +258,7 @@ function syncHooks() {
   add("PostToolUse", "usage-log.js", { async: true });
   add("UserPromptSubmit", "usage-log.js", { async: true });
   add("SessionStart", "session-start-git-context.js", {
-    matcher: "startup|resume|clear",
+    matcher: "startup|resume|clear|compact",
     timeout: 10,
   });
   write(destination, `${JSON.stringify(config, null, 2)}\n`);

@@ -181,6 +181,14 @@ test("newgoal stays planning-only, model-neutral, and writes the item contract",
     assert.match(content, /ASD-STE100/, runtime);
     assert.match(content, /20 words or fewer/, runtime);
   }
+
+  for (const runtime of ["claude", "opencode", "opencode-lite"]) {
+    assert.match(workflows[runtime], /tier: <light\|standard\|strong>/);
+    assert.match(workflows[runtime], /tier: user/);
+    assert.match(workflows[runtime], /effort `xhigh` only/);
+  }
+
+  assert.match(workflows.codex, /Format: executor-v1/);
 });
 
 test("execgoals stops on plan drift and routes specified items to coder", () => {
@@ -287,16 +295,14 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
         path.join(roots.codex, "base_project", "references", "command-menu.md"),
       ),
     );
-    assert.ok(
-      fs.existsSync(
-        path.join(
-          roots.codex,
-          "base_project",
-          "references",
-          "cdp-verification.md",
+    for (const reference of ["cdp-verification.md", "ai-writing-standard.md"]) {
+      assert.ok(
+        fs.existsSync(
+          path.join(roots.codex, "base_project", "references", reference),
         ),
-      ),
-    );
+        `expected Codex reference ${reference}`,
+      );
+    }
     assert.ok(
       fs.existsSync(path.join(roots.codex, "base_project", "plugins.json")),
     );

@@ -9,11 +9,13 @@
 // contract. Silent (no stdout) when there's nothing worth surfacing, to avoid
 // spending tokens on a clean tree with nothing to report.
 //
-// Registered only for matcher "startup|resume|clear" — deliberately excludes
-// "compact"/"fork": those aren't cold starts, and re-dumping git state mid-
-// session would be noise, not help.
+// It also prints the project's rulesonproject overrides (see project-rules.js). Registered for
+// matcher "startup|resume|clear|compact": after a compaction only the overrides are printed,
+// because a rule that leaves the context silently stops applying, while git state re-dumped
+// mid-session is noise. "fork" is excluded: a fork already holds both.
 
 const { execFileSync } = require("node:child_process");
+const { renderForCwd } = require("./project-rules.js");
 
 // A dirty tree with hundreds of changed files would otherwise dump its whole
 // `git diff --stat` into every session's context.
@@ -148,9 +150,15 @@ async function main() {
     const raw = await readStdin();
     const input = raw ? JSON.parse(raw) : {};
     const cwd = input.cwd || process.cwd();
-    const context = buildContext(cwd);
-    if (context) {
-      process.stdout.write(`${context}\n`);
+    const parts = [];
+    if (input.source !== "compact") {
+      const context = buildContext(cwd);
+      if (context) parts.push(context);
+    }
+    const overrides = renderForCwd(cwd);
+    if (overrides) parts.push(overrides);
+    if (parts.length > 0) {
+      process.stdout.write(`${parts.join("\n\n")}\n`);
     }
   } catch {
     // This hook must never fail the session it's attached to — silent no-op on any error.
