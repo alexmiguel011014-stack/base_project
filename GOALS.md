@@ -2708,13 +2708,14 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
   `.github/workflows/ci.yml` (bash and PowerShell) that the file exists under the Claude home, the
   opencode home and the Codex root. **Done when:** removing either source copy or the Codex sync
   makes a local test or the CI assertion fail.
-- [ ] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
+- [x] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
   `.github/workflows/ci.yml` (all three OS, after the unit tests) running `npm run smoke:cdp`.
   **Done when:** the step is green on Ubuntu, Windows and macOS in the run of the PR that carries
   this goal's execution (run id recorded as Proof); a red run on one OS is investigated as a real
   Chrome or procedure difference, never skipped.
-  **Pending:** the matrix step is wired locally; the PR's Ubuntu/Windows/macOS run ID is still
-  required and no CI run has been triggered.
+  **Proof:** PR CI run `41732174867` on merge head `7d4a95d`: `smoke:cdp` passed on Ubuntu,
+  Windows and macOS. Earlier run `41730557332` exposed an Ubuntu race in `/json/version`; the
+  `waitForVersion` fix passed in the final run.
 
 ### Registration
 
@@ -2739,17 +2740,16 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
   item 59 to preserve them. **Proof:** host-approved `npm run verify` exited 0; `npm test` reported
   173 passed, 0 failed and 1 platform skip. `audit:prod` also exited 0 with one moderate
   `fast-uri` advisory below `--audit-level=high`.
-- [ ] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
+- [x] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
   `node dev/scripts/goals-archive-index.js --check`, a replay of the Linux `install-test` steps
   against a scratch `HOME` (as in GOALS 17), and the CI run of the PR (all jobs green). **Done
   when:** all pass on the final tree and the PR's CI result was read on the merge head, not
   assumed.
-  **Progress / blockers:** Host-approved `npm run verify` passed (exit 0; `npm test`: 174 passed,
-  0 failed, 1 platform skip). `audit:prod` exited 0 with one moderate `fast-uri` advisory below
-  `--audit-level=high`. `npm run test:harness` passed (12/12 artifacts, 16/16 scenarios); archive
-  index and diff checks passed. Linux install-test replay is unavailable: host-approved
-  `wsl.exe --list --quiet` exited 0 with no distributions listed. The PR CI run ID still awaits
-  authorized publication. Keep C18.15 open.
+  **Proof:** on the final tree, `npm run verify` exited 0 (`npm test`: 194 passed, 0 failed,
+  1 skipped); `npm run test:harness` passed (12/12 artifacts, 16/16 scenarios); archive index
+  passed with 15 checksums. PR CI run `41732174867` on merge head `7d4a95d` passed `validate` and
+  `install-test` on Ubuntu, Windows and macOS. Ubuntu's `install-test` also replayed `install.sh`
+  against a throwaway `HOME`; it passed.
 
 ### Owner acceptance and decisions (manual — stay open until done)
 
