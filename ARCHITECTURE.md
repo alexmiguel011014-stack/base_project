@@ -32,7 +32,7 @@ base_project/
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
 │   │   ├── commands/*.md       → ~/.claude/commands/     (21 comandos — ver README.md § Commands pra lista completa)
-│   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
+│   │   └── references/        → ~/.claude/base_project/references/ (ai-writing-standard.md, project-standards.md,
 │   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
 │   │                            research, lidos por /newgoal pra classificar cada meta)
 │   ├── opencode/
@@ -68,7 +68,8 @@ base_project/
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
 │   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
-│   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md
+│   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md; em seções executor-v1, também campos, tier, gate, `after:` e ciclos
+│   │   ├── ai-style-lint.js   ← CLI: `--enforce` (arquivos já convertidos ao ai-writing-standard) e `--report` (contagem em todos os arquivos executados pelo modelo)
 │   │   ├── goals-archive-index.js    ← CLI: --check/--write da coluna de checksums de dev/goals-archive/README.md
 │   │   ├── paths.js, config-store.js, resolve-layers.js, adapters/, apply.js, drift.js, audit.js,
 │   │   │   doctor.js, lint-config.js, context.js, wizard.js, sync.js, tasks.js, history.js,
@@ -498,6 +499,7 @@ Codex reutilizam esse caminho compartilhado.
   toque usadas por `/designreview`
 - `codex.test.js` — paridade nominal 21/21, frontmatter das skills, instalação
   idempotente e preservação de hooks/skills do usuário
+- `lean-agent-docs.test.js` — contrato do GOALS 19: referência ai-writing-standard idêntica nas duas cópias, executor-v1 nos quatro `newgoal`/`execgoals`, bullet BLUF uma vez em cada regra global, goal-types com o parágrafo do `check:`, regras do lint.
 - `ui-verification-rule.test.js` — paridade byte a byte da seção `### UI verification &
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
   e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
@@ -549,6 +551,15 @@ devia ser lintado.
 ---
 
 ## 10. Decisões de arquitetura que valem lembrar
+
+### Planos executor-v1 (GOALS 19)
+
+- Um plano novo traz a linha `Format: executor-v1`; cada item tem `tier`, `gate`, `after`, `files`, `do` e `check`, e nenhuma escolha de design fica em aberto (D1).
+- Os tiers são neutros (`light`/`standard`/`strong`/`user`); o Claude Code mapeia para haiku/sonnet/opus por chamada de subagente, e opencode/Codex usam `coder` para light/standard e a sessão principal para strong (D2).
+- Quem prova o item é o `/execgoals`, rodando o `check:`; o relato do executor nunca é prova (D3).
+- Falhou: mais uma tentativa no mesmo tier, uma no tier acima, depois `blocked:` e parada (D4).
+- Um plano executor-v1 é arquivado quando só restam itens do dono, que vão para `## Owner backlog`; planos antigos seguem a regra antiga (D5).
+- `npm run verify` inclui `lint:ai-style` (o lint roda no CI pelo mesmo `verify`).
 
 - **Zero pegada em projeto consumidor** — regra central, não negociável. Tudo vive em
   `~/.claude/`/`~/.config/opencode/`.

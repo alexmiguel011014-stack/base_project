@@ -9,9 +9,9 @@ arquivo, não redigitar a lista de memória.
 O que você deseja fazer agora?
 
 - `/bootstrap` — botão de inicialização: sincroniza o projeto com o remoto (`git pull` se atrás), depois mapeia o projeto (repomix + graphify) e abre o mapa visual HTML. Se falhar, guia passo a passo.
-- `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md`.
+- `/newgoal` — pesquisa profunda de como estruturar o projeto do 0 a 100% (back, front, banco, deploy...) e gera `GOALS.md` — num formato feito para a IA executar; você não precisa ler, peça o status quando quiser.
 - `/repertoire` — pesquisa um assunto a fundo: o domínio real de um projeto (científico, regulatório, cultural, midiático) antes do `/newgoal` planejar, **ou** um tópico/tendência avulso que você ouviu falar e quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar. Sempre confirma. Combina com `/newgoal /repertoire` na mesma mensagem, ou roda sozinho.
-- `/execgoals` — executa o `GOALS.md` ativo gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade e checando a estrutura do plano após lotes de edição.
+- `/execgoals` — executa o `GOALS.md` ativo gerado pelo `/newgoal`, item por item, marcando cada um como feito conforme verifica de verdade e checando a estrutura do plano após lotes de edição — cada item vai para um modelo mais barato e só é marcado quando o `check` dele passa; se falhar, sobe de modelo ou para e avisa.
 - `/scanproject` — avaliação completa de um projeto: identidade, CI, testes, lint, segurança básica e estrutura. **Comece aqui.**
 - `/audit` — aprofunda só a parte de segurança do `/scanproject`: vulnerabilidades de dependência, pacotes desatualizados, secrets expostos.
 - `/cleanproject` — aprofunda só a parte de organização do `/scanproject`: arquivos mortos, pastas erradas, duplicação.

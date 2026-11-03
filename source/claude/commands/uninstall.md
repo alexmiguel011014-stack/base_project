@@ -46,7 +46,7 @@ installer usually does, actually check what's present on this machine right now:
   `source/opencode/mcp-previous.json`; count one only while its entry still matches a
   definition listed there — otherwise it is the user's.
 - The user's own data (Tier D): the usage ledger `~/.claude/base_project/usage/`, the diary
-  directory named in `~/.base_project/diary-root.txt`, and the unified canonical store
+  directory named in `~/.base_project/diary-root.txt`, the project rule overrides in `~/.base_project/project-rules/`, and the unified canonical store
   `~/.agents/` (rules, MCP and config the user may have edited; the managed skills under
   `~/.agents/skills/` belong to Tier A).
 
@@ -60,7 +60,7 @@ no effect on anything outside base_project's own namespace):**
 managed `.md`/`.toml`/`SKILL.md` files (agents, commands, skills, references — every engine),
 `plugins.json` copies, `~/.claude/base_project/hooks/*.js` and managed helper scripts (such as
 `scan-skill.js` and `validate-goals-structure.js`), the managed blocks in `CLAUDE.md`/`AGENTS.md`,
-and the `~/.base_project/` state files except `diary-root.txt` (kept with Tier D so the diaries
+and the `~/.base_project/` state files except `diary-root.txt` and `project-rules/` (kept with Tier D so the diaries and overrides
 stay findable). Never the usage ledger.
 Ask once: "Remove all of Tier A? (y/n)".
 
@@ -85,9 +85,9 @@ machine. (y/n)".
 
 **Tier D — the user's own data (NOT restorable by reinstalling; the default is to keep it):**
 the usage ledger `~/.claude/base_project/usage/` (the only source `/diario` has for past
-hours and activity), the diary directory from `~/.base_project/diary-root.txt`, and the
+hours and activity), the diary directory from `~/.base_project/diary-root.txt`, the project rule overrides in `~/.base_project/project-rules/`, and the
 canonical store `~/.agents/`. Offer it only after Tiers A–C, say plainly that nothing can
-bring it back, and ask: "Also permanently delete your usage history, diaries and ~/.agents
+bring it back, and ask: "Also permanently delete your usage history, diaries, project rules and ~/.agents
 content? This cannot be undone by reinstalling. (y/N)". Anything but an explicit yes keeps it.
 
 ## Step 3: Execute only what was confirmed

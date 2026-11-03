@@ -172,9 +172,9 @@ test("newgoal keeps runtime-specific model and final-response contracts", () => 
   }
 
   for (const runtime of ["claude", "opencode", "opencode-lite"]) {
-    assert.match(workflows[runtime], /haiku\s*\/\s*low/i);
-    assert.match(workflows[runtime], /sonnet\s*\/\s*medium/i);
-    assert.match(workflows[runtime], /opus\s*\/\s*xhigh/i);
+    assert.match(workflows[runtime], /tier: <light\|standard\|strong>/);
+    assert.match(workflows[runtime], /tier: user/);
+    assert.match(workflows[runtime], /effort `xhigh` only/);
   }
 
   const codexMappingStart = workflows.codex.indexOf(
@@ -207,24 +207,22 @@ test("newgoal keeps runtime-specific model and final-response contracts", () => 
   );
 
   const finalContract = workflows.codex.slice(
-    workflows.codex.indexOf("9. Report the path"),
+    workflows.codex.indexOf("9. Report in the user's language"),
   );
   assert.match(finalContract, /exactly one\s+localized final sentence/i);
   assert.equal(
     (finalContract.match(/\*\*<Codex model> · <effort>\*\*/g) || []).length,
     1,
   );
-  assert.match(
-    finalContract,
-    /concrete reason tied to the plan's highest-risk module/i,
-  );
+  assert.match(finalContract, /concrete reason/i);
+  assert.match(finalContract, /gpt-5\.6-terra · medium/);
   assert.match(finalContract, /manual-only disclaimer/i);
   assert.match(
     finalContract,
     /does not automatically change the\s+selected model, effort, or Codex configuration/i,
   );
   assert.match(finalContract, /\$execgoals.*adjust the plan first/is);
-  assert.match(finalContract, /only a `Suggested:` line inside `GOALS\.md`/i);
+  assert.match(workflows.codex, /Format: executor-v1/);
 });
 
 test("Batching and stopping guidance has exact parity across native layers", () => {
@@ -307,6 +305,16 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
     assert.ok(
       fs.existsSync(
         path.join(roots.codex, "base_project", "references", "command-menu.md"),
+      ),
+    );
+    assert.ok(
+      fs.existsSync(
+        path.join(
+          roots.codex,
+          "base_project",
+          "references",
+          "ai-writing-standard.md",
+        ),
       ),
     );
     assert.ok(

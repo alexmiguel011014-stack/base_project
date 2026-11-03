@@ -15,13 +15,13 @@ Check all engines actually present:
 - in `~/.config/opencode/opencode.jsonc`, the `instructions` entry pointing at the clone's `source/opencode-instructions.md` and only the `mcp` entries named in `~/.base_project/opencode-managed-mcp.json`; fully base_project-owned JSON files;
 - state under `~/.base_project/`;
 - MCP server names derived from the installed catalog/config, never a hardcoded list, plus names in the repo's `source/opencode/mcp-previous.json` (servers earlier versions registered) only while the entry still matches a definition listed there;
-- user data: the usage ledger, the diary directory named in `~/.base_project/diary-root.txt`, and the canonical store `~/.agents/` outside its managed skills.
+- user data: the usage ledger, the diary directory named in `~/.base_project/diary-root.txt`, the project rule overrides in `~/.base_project/project-rules/`, and the canonical store `~/.agents/` outside its managed skills.
 
 Report the inventory and confirm each tier separately:
 
-1. **Tier A — owned files:** managed skills/agents/commands/references/scripts/catalog copies, delimited instruction blocks, and state except `diary-root.txt`. Never the usage ledger. Reinstalling restores these.
+1. **Tier A — owned files:** managed skills/agents/commands/references/scripts/catalog copies, delimited instruction blocks, and state except `diary-root.txt` and `project-rules/`. Never the usage ledger. Reinstalling restores these.
 2. **Tier B — automatic behavior:** hook registrations and global instruction links. Explain that future sessions lose loop detection, post-edit formatting, GOALS structure validation, Git context, and usage logging as applicable.
 3. **Tier C — MCP registrations:** exact detected global/project servers. Explain scope and impact for every affected engine.
-4. **Tier D — user data (not restorable by reinstalling; default keep):** the usage ledger (the only source `$diario` has for past hours), the diaries, and `~/.agents/` content. Offer it only after Tiers A–C, say plainly it cannot be undone by reinstalling, and keep it unless the user answers an explicit yes.
+4. **Tier D — user data (not restorable by reinstalling; default keep):** the usage ledger (the only source `$diario` has for past hours), the diaries, the project rule overrides, and `~/.agents/` content. Offer it only after Tiers A–C, say plainly it cannot be undone by reinstalling, and keep it unless the user answers an explicit yes.
 
 Execute only confirmed tiers; declining Tier D is the default. Remove only files carrying `base_project:managed`, owned namespaces, `_managed_by: base_project` JSON, exact delimited blocks, or hook/MCP entries matching base_project markers. Preserve all neighboring user configuration. If a marker is missing, skip and report why. Verify final state and list removed, skipped, and failed items per tier.

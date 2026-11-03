@@ -71,6 +71,8 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/hooks/loop-detect.js"
           test -f "$CLAUDE_HOME/base_project/hooks/validate-goals.js"
           test -f "$CLAUDE_HOME/base_project/hooks/session-start-git-context.js"
+          test -f "$CLAUDE_HOME/base_project/hooks/project-rules.js"
+          node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); const groups = settings.hooks.SessionStart.filter((group) => group.hooks.some((entry) => entry.command.includes('base_project/hooks/session-start-git-context.js'))); if (groups.length !== 1 || groups[0].matcher !== 'startup|resume|clear|compact') process.exit(1)"
           test -f "$CLAUDE_HOME/base_project/scripts/scan-skill.js"
           test -f "$CLAUDE_HOME/base_project/scripts/contrast-check.js"
           test -f "$CLAUDE_HOME/base_project/scripts/diary-source.js"
@@ -170,6 +172,7 @@ jobs:
             (Join-Path $claudeHome "base_project\hooks\loop-detect.js"),
             (Join-Path $claudeHome "base_project\hooks\validate-goals.js"),
             (Join-Path $claudeHome "base_project\hooks\session-start-git-context.js"),
+            (Join-Path $claudeHome "base_project\hooks\project-rules.js"),
             (Join-Path $claudeHome "base_project\scripts\scan-skill.js"),
             (Join-Path $claudeHome "base_project\scripts\contrast-check.js"),
             (Join-Path $claudeHome "base_project\scripts\diary-source.js"),
@@ -253,6 +256,8 @@ jobs:
             $hookGroups = @($settings.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/$hookFile*" } })
             if ($hookGroups.Count -ne 1 -or $hookGroups[0].matcher -ne "Edit|Write|MultiEdit") { throw "Expected exactly one Claude $hookFile hook with the edit-tool matcher" }
           }
+          $sessionGroups = @($settings.hooks.SessionStart | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/session-start-git-context.js*" } })
+          if ($sessionGroups.Count -ne 1 -or $sessionGroups[0].matcher -ne "startup|resume|clear|compact") { throw "Expected exactly one Claude SessionStart git-context hook with the compact matcher" }
           $codexHooks = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json
           $codexGoalsGroups = @($codexHooks.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
           if ($codexGoalsGroups.Count -ne 1 -or $codexGoalsGroups[0].matcher -ne "apply_patch|Edit|Write|MultiEdit") { throw "Expected exactly one narrow Codex GOALS validation hook" }
