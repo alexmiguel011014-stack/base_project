@@ -2,15 +2,18 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const http = require("node:http");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 const smokePath = path.join(repoRoot, "dev", "scripts", "cdp-smoke.js");
-const { classifyLoopbackListeners, withWindowsLoopbackProbe } = require(
-  smokePath,
-);
+const {
+  classifyLoopbackListeners,
+  waitForVersion,
+  withWindowsLoopbackProbe,
+} = require(smokePath);
 
 const HOST_FILES = [
   {
@@ -564,6 +567,37 @@ test("Windows listener snapshot keeps a loopback probe open and cleans it up", {
     if (server.listening) {
       await new Promise((resolve) => server.close(resolve));
     }
+  }
+});
+
+test("waitForVersion retries when /json/version appears after the first request timeout", {
+  timeout: 8_000,
+}, async () => {
+  const server = http.createServer();
+  let firstVersionAt;
+  let versionRequests = 0;
+  server.on("request", (request, response) => {
+    if (request.url === "/json/version") {
+      versionRequests += 1;
+      firstVersionAt ??= Date.now();
+      if (Date.now() - firstVersionAt < 2_050) return;
+      response.end(JSON.stringify({ Browser: "HeadlessChrome" }));
+      return;
+    }
+    response.writeHead(404).end();
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  try {
+    await waitForVersion(server.address().port);
+    assert.ok(versionRequests >= 2, "the timed-out probe should be retried");
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
   }
 });
 

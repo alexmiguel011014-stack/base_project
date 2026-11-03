@@ -617,6 +617,23 @@ async function waitForPage(port) {
   );
 }
 
+async function waitForVersion(port) {
+  const deadline = Date.now() + READY_TIMEOUT_MS;
+  let lastError;
+  while (Date.now() < deadline) {
+    try {
+      JSON.parse(await requestText(port, "/json/version"));
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100);
+  }
+  throw new Error(
+    `Timed out waiting for the CDP version endpoint: ${lastError?.message || "no response"}`,
+  );
+}
+
 function portAnswers(host, port) {
   return new Promise((resolve) => {
     const socket = net.createConnection({ host, port });
@@ -782,10 +799,10 @@ async function runSmoke(chrome, platform = process.platform) {
       async () => ({ ...(await browserClosed), stderr: browserStderr.trim() }),
     );
     try {
-      await requestText(debugPort, "/json/version");
+      await waitForVersion(debugPort);
     } catch (error) {
       versionProbeError = error;
-      throw new Error(`GET /json/version failed: ${error.message}`);
+      throw error;
     }
     try {
       await waitForLoopbackListener(platform, debugPort);
@@ -869,4 +886,8 @@ if (require.main === module) {
   });
 }
 
-module.exports = { classifyLoopbackListeners, withWindowsLoopbackProbe };
+module.exports = {
+  classifyLoopbackListeners,
+  waitForVersion,
+  withWindowsLoopbackProbe,
+};
