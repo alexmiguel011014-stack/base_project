@@ -288,6 +288,16 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
       ),
     );
     assert.ok(
+      fs.existsSync(
+        path.join(
+          roots.codex,
+          "base_project",
+          "references",
+          "cdp-verification.md",
+        ),
+      ),
+    );
+    assert.ok(
       fs.existsSync(path.join(roots.codex, "base_project", "plugins.json")),
     );
 

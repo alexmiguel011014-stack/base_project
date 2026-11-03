@@ -62,6 +62,15 @@ project, one ordered item at a time — with the same before/after verification 
    When the item has a `Verify:` line, that check is the proof: run it and compare with its
    expected result; a mismatch keeps the item open.
 
+   **CDP mode.** If the current `/execgoals` invocation arguments contain a standalone,
+   case-insensitive token `cdp`, `/cdp`, `$cdp`, or `--cdp`, inspect only those arguments for a
+   match; never scan `GOALS.md` or project files. Say once that CDP mode is on for this invocation,
+   read `~/.claude/base_project/references/cdp-verification.md` in full before verifying the first
+   item, and apply it to every item with a browser-reachable UI. Check off such an item only with
+   the CDP evidence that reference defines. For an item without a browser-reachable UI, say
+   `cdp: not applicable` and verify it as usual. Without a matching token, never start a browser
+   with a debug port.
+
    After a batch of edits to the same `GOALS.md` within one area, run
    `node ~/.claude/base_project/scripts/validate-goals-structure.js GOALS.md`. If it reports a
    finding, repair the plan structure and leave the affected item open before continuing.

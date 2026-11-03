@@ -2512,6 +2512,30 @@ só o texto deixou de dizer "única fonte do `/diario`"); o histórico (itens an
 nos arquivos alterados sem achados, `bash -n` no `install.sh` e o parser do PowerShell sem erros
 no `install.ps1`. A matriz do CI (3 SOs) só pode ser confirmada depois do push.
 
+## 59. CDP ativado por modifier, por execução (decisão de 2026-09-29, GOALS 18)
+
+**Opções avaliadas**:
+
+1. **Porta de debug sempre ativa** — rejeitada. A regra global carrega em todo projeto e toda
+   sessão, inclusive projetos sem UI; uma porta CDP dá controle amplo do navegador. Desde o Chrome
+   136, as flags de depuração não funcionam com o diretório de dados padrão, que exigiria um perfil
+   separado — uma proteção ligada ao uso da porta para roubar cookies. A regra existente já usa
+   DOM/árvore de acessibilidade como caminho normal; faltava pedir prova real só em uma execução.
+2. **Comando `/cdp`** — rejeitado. CDP não tem uma operação independente: a prova precisa seguir
+   uma execução de `/execgoals` ou `/fixproject`. Um comando novo seria o 21º e exigiria registro
+   em quatro variantes, três menus, contagens nos testes e no CI, além de README e ARCHITECTURE.
+3. **Modifier `cdp` ao lado do comando host** — escolhido. O usuário pede a prova apenas em
+   `/execgoals cdp` ou `/fixproject cdp`; a referência só é lida nessa execução, sem ativar porta
+   sempre nem adicionar comando, skill ou linha de menu. A contagem permanece em 20.
+
+**Evidência**: a prova local de 2026-09-29 usou Linux e a build Playwright Chromium 1194, perfil
+temporário, `--remote-debugging-port=0`, `DevToolsActivePort` e `connectOverCDP`; o listener foi
+`127.0.0.1`. Ela leu snapshots de acessibilidade antes/depois de um clique, erros de console e
+uma requisição falha, e removeu o perfil. A primeira tentativa quebrou no próprio teste da porta e
+deixou sete processos Chrome ativos; por isso o contrato exige limpeza em toda saída e confirmação
+de que a porta fechou. O resultado e as alternativas estão detalhados em GOALS 18, seção
+“Design rationale”.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
@@ -2523,6 +2547,8 @@ no `install.ps1`. A matriz do CI (3 SOs) só pode ser confirmada depois do push.
   sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
 - **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
   custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
+- **Modifier token (GOALS 18)** — `cdp` só ativa CDP na execução de `/execgoals` ou `/fixproject`;
+  não é uma porta de debug sempre ativa nem o 21º comando (a contagem atual continua em 20).
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

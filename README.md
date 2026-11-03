@@ -151,11 +151,11 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
 | `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root accordingly — the input `/execgoals` consumes without re-researching anything. It writes every item with exact files, anchors and a verification command so a weaker model can execute it, shows the plan as stages (in order or in parallel), and asks whether to execute or adjust the plan. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
-| `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
+| `/execgoals` | Executes the active `GOALS.md` item by item, in the order `/newgoal` wrote them, using the `architect`/`coder` workflow for anything non-trivial. Checks an item off only after verifying it's actually done and runs a structural GOALS check after each edit batch — resumes safely if interrupted. Accepts the `cdp` modifier to verify UI behavior in a real, isolated browser over CDP. |
 | `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
 | `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
-| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
+| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. Accepts the `cdp` modifier to verify UI behavior in a real, isolated browser over CDP. |
 | `/undo` | Reverts the most recent batch of change — uncommitted edits, untracked new files, or the last commit — with confirmation tiered by risk. Never `git reset --hard` or force-push without a separate explicit gate; a pushed commit is undone with `git revert`, never rewritten. |
 | `/ship` | Commits and pushes the current project's changes. Checks readiness first (clean state, no secrets, lint/test passing, remote configured) and guides through whatever's blocking instead of a raw git error. Never force-pushes, never resolves conflicts automatically. |
 | `/pr` | Opens a pull request for the current branch — drafts the title/body from the real commit range against the base branch, confirms before creating anything. The step `/ship`'s own step 9 points at but never runs itself. |
@@ -170,6 +170,8 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start. It is never shown on its own after a task; this is how to bring it back. |
 
 ---
+
+**Command modifiers.** A modifier is a word you add to a command to change that invocation's behavior. Add `cdp` to `/execgoals` or `/fixproject` to verify UI behavior in a real, isolated browser over CDP.
 
 ## 🔌 Optional Plugins
 
@@ -211,6 +213,7 @@ Append an entry to `source/plugins.json` (id, kind, summary, `recommend_if`, ins
 | **Your usage history is yours** | The local usage ledger (`~/.claude/base_project/usage/`) is kept until you decide otherwise — it is what `/usagebp` reads. To trim it, `node <base_project clone>/dev/scripts/ledger-prune.js --keep-days 180` shows what would go (dry run, deletes nothing); add `--apply` to delete those whole-day files. `/uninstall` asks separately before touching it. |
 | **Nothing is installed per-project** | If you ever stop using base_project, delete the managed block from `~/.claude/CLAUDE.md` and the marked files from the global directories — your projects were never touched. |
 | **Screen control is a last resort** | The global rules make every runtime test UIs through DOM-driven browser tooling and the project's own tests; desktop computer use needs your explicit per-task go-ahead, and screenshots are requested from you rather than captured. |
+| **Debug ports are opt-in** | A browser debug port starts only when you add the `cdp` modifier to `/execgoals` or `/fixproject`; the browser uses an isolated profile and a loopback-only listener. |
 
 ---
 
@@ -278,6 +281,7 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ## 📬 Changelog
 
 ### Unreleased
+- `/execgoals` and `/fixproject` accept the opt-in `cdp` modifier for UI verification in a real, isolated browser over CDP
 - The "what do you want to do now?" menu is no longer printed after a finished task (it cost about a thousand tokens each time and stayed in the context); it still appears at session start, and `/wpp` brings it back on demand
 
 ### v1.2.0 (unreleased — tag pending)

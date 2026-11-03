@@ -33,8 +33,8 @@ base_project/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
 │   │   ├── commands/*.md       → ~/.claude/commands/     (20 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (project-standards.md,
-│   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
-│   │                            research, lidos por /newgoal pra classificar cada meta)
+│   │                            cdp-verification.md, command-menu.md, goal-types/*.md —
+│   │                            build/fix/feature/process/research, lidos pelos comandos)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
 │   │   ├── command/*.md        → ~/.config/opencode/command/   (perfil "dense", default — mesmos
@@ -44,8 +44,8 @@ base_project/
 │   │   │                        nomes de comando, reescritos como checklist plano sem prosa/
 │   │   │                        justificativa embutida, pra modelos fracos que perdem o fio em
 │   │   │                        instrução condicional densa; nunca os dois instalados juntos)
-│   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
-│   │                            formato opencode)
+│   │   ├── references/        → ~/.config/opencode/base_project/references/ (inclui
+│   │                            cdp-verification.md; mesmo conteúdo, formato opencode)
 │   │   ├── mcp.json            → seção `mcp` do opencode.jsonc, `claude mcp add`, config.toml do
 │   │   │                          Codex e ~/.kimi/mcp.json (hoje só o context7, versão fixada)
 │   │   └── mcp-previous.json   → não instalado: definições já distribuídas, para aposentar/atualizar
@@ -53,7 +53,8 @@ base_project/
 │   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
 │   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
 │   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 20 workflows; invocação `$nome`)
-│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex; standards/goal-types compartilhados)
+│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex;
+│   │                              cdp-verification.md e standards/goal-types compartilhados)
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
 │   └── hooks/*.js              → ~/.claude/base_project/hooks/
 │
@@ -62,6 +63,7 @@ base_project/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
 │   │   ├── install-codex.js          ← projeção nativa do Codex, chamada pelos dois instaladores
 │   │   ├── install-opencode.js       ← merge do opencode.jsonc (JSONC tolerante, edição pontual, preserva entradas/comentários do usuário), chamado pelos dois instaladores
+│   │   ├── cdp-smoke.js              ← smoke CDP opt-in: browser isolado, listener loopback, DevToolsActivePort e limpeza
 │   │   ├── ledger-prune.js           ← CLI opt-in: apaga dias antigos do ledger de uso (dry run por padrão)
 │   │   ├── mcp-servers.js            ← MCPs atuais + definições já distribuídas (source/opencode/mcp-previous.json): aposenta/atualiza só entradas que ainda são do base_project (Claude, Codex, opencode)
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
@@ -154,6 +156,8 @@ No Codex, workflows reutilizáveis são **skills**, não comandos customizados d
 os mesmos 20 nomes usam `$nome` (`$wpp`, `$scanproject`, `$ship`); eles também aparecem no
 seletor de slash commands do Codex. `/prompts:nome` é outra categoria (prompt customizado) e
 não foi usada porque perderia descoberta implícita e o empacotamento progressivo das skills.
+
+Pattern: a modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already uses.
 
 | Comando | O que faz |
 |---|---|
@@ -497,6 +501,8 @@ Codex reutilizam esse caminho compartilhado.
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
   e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
   isolado como prova
+- `cdp-modifier.test.js` — contrato dos oito hosts, cláusulas da referência e fixtures de
+  listener por sistema operacional
 - `install-opencode.test.js` — merge do `opencode.jsonc`: comentários, entradas do usuário,
   idempotência, posse dos MCPs, arquivo ilegível intocado
 - `mcp-servers.test.js` — `config.toml` do Codex (formato antigo dos dois instaladores,
@@ -534,7 +540,8 @@ Dois jobs:
    installer uma 2ª vez pra confirmar idempotência. Desde o GOALS 17 também roda
    `npm ci` + `npm test` em cada SO: até então os testes só rodavam no Ubuntu enquanto a
    validação do dia a dia acontecia no Windows, e um teste dependente de plataforma ficou
-   vermelho no CI por um mês sem ninguém notar.
+   vermelho no CI por um mês sem ninguém notar. Depois dos testes unitários, cada SO também
+   executa separadamente `npm run smoke:cdp`.
 
 `biome.json`/`tsconfig.json` (raiz — ver seção 2 sobre por que não estão em `dev/`)
 escopam `source/hooks/**/*.js`, `dev/scripts/*.js`, `dev/tests/**/*.js` — sem isso o

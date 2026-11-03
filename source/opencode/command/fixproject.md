@@ -37,6 +37,15 @@ verification — not just applying a patch and assuming it worked.
    behavioral proof): a fix "exists" as a diff, but isn't done until the same check that
    originally flagged it now passes.
 
+   **CDP mode.** If the current `/fixproject` invocation arguments contain a standalone,
+   case-insensitive token `cdp`, `/cdp`, `$cdp`, or `--cdp`, inspect only those arguments for a
+   match; never scan `GOALS.md` or project files. Say once that CDP mode is on for this invocation,
+   read `~/.config/opencode/base_project/references/cdp-verification.md` in full before verifying
+   the first finding, and apply it to every finding with a browser-reachable UI. Report a finding
+   as fixed only with the CDP evidence that reference defines. For a finding without a
+   browser-reachable UI, say `cdp: not applicable` and verify it as usual. Without a matching
+   token, never start a browser with a debug port.
+
 5. Report per finding: fixed / skipped (with reason) / needs user input (with the
    question). Do not claim the project is "clean" unless every critical and medium
    finding is actually resolved and re-verified.

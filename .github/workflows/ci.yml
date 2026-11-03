@@ -51,6 +51,9 @@ jobs:
       - name: Run unit tests on this OS
         run: npm test
 
+      - name: Run isolated CDP launch smoke
+        run: npm run smoke:cdp
+
       - name: Run install.sh against a throwaway HOME (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
@@ -76,6 +79,7 @@ jobs:
           test -f "$CLAUDE_HOME/base_project/scripts/validate-goals-structure.js"
           test -f "$CLAUDE_HOME/base_project/hooks/usage-log.js"
           test -f "$CLAUDE_HOME/base_project/references/project-standards.md"
+          test -f "$CLAUDE_HOME/base_project/references/cdp-verification.md"
           test -f "$CLAUDE_HOME/base_project/references/command-menu.md"
           test -f "$CLAUDE_HOME/base_project/references/goal-types/build.md"
           test -f "$CLAUDE_HOME/base_project/references/goal-types/fix.md"
@@ -106,6 +110,7 @@ jobs:
           test -f "$OPENCODE_HOME/opencode.jsonc"
           test -f "$OPENCODE_HOME/base_project/plugins.json"
           test -f "$OPENCODE_HOME/base_project/references/project-standards.md"
+          test -f "$OPENCODE_HOME/base_project/references/cdp-verification.md"
           test -f "$OPENCODE_HOME/base_project/references/goal-types/build.md"
           test -f "$OPENCODE_HOME/base_project/references/goal-types/fix.md"
           test -f "$OPENCODE_HOME/base_project/references/goal-types/feature.md"
@@ -134,6 +139,7 @@ jobs:
           test -f "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/agents/reviewer.toml"
           test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/command-menu.md"
+          test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/cdp-verification.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/goal-types/build.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/hooks.json"
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/wpp/SKILL.md"
@@ -172,6 +178,7 @@ jobs:
             (Join-Path $claudeHome "base_project\scripts\validate-goals-structure.js"),
             (Join-Path $claudeHome "base_project\hooks\usage-log.js"),
             (Join-Path $claudeHome "base_project\references\project-standards.md"),
+            (Join-Path $claudeHome "base_project\references\cdp-verification.md"),
             (Join-Path $claudeHome "base_project\references\command-menu.md"),
             (Join-Path $claudeHome "base_project\references\goal-types\build.md"),
             (Join-Path $claudeHome "base_project\references\goal-types\fix.md"),
@@ -202,6 +209,7 @@ jobs:
             (Join-Path $opencodeHome "opencode.jsonc"),
             (Join-Path $opencodeHome "base_project\plugins.json"),
             (Join-Path $opencodeHome "base_project\references\project-standards.md"),
+            (Join-Path $opencodeHome "base_project\references\cdp-verification.md"),
             (Join-Path $opencodeHome "base_project\references\goal-types\build.md"),
             (Join-Path $opencodeHome "base_project\references\goal-types\fix.md"),
             (Join-Path $opencodeHome "base_project\references\goal-types\feature.md"),
@@ -230,6 +238,7 @@ jobs:
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "agents\reviewer.toml"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\command-menu.md"),
+            (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\cdp-verification.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\goal-types\build.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json"),
             (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills\wpp\SKILL.md"),

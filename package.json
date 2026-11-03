@@ -13,6 +13,7 @@
 		"scan:skill": "node dev/scripts/scan-skill.js",
 		"test:harness": "node dev/scripts/eval-harness.js --json",
 		"test": "node --test dev/tests/*.test.js",
+		"smoke:cdp": "node dev/scripts/cdp-smoke.js",
 		"verify": "npm run lint && npm run typecheck && npm run validate:plugins && npm run check:unused-deps && npm test && npm run audit:prod"
 	},
 	"dependencies": {
