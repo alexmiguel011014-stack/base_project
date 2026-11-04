@@ -14,7 +14,7 @@ Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `
 para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/` — nada mais.
 Não é um servidor rodando o tempo todo, não é um pacote npm publicado, não escreve nada
 dentro de projetos que o usam. O "produto" real são os arquivos que acabam instalados:
-regras globais, 3 subagentes, **21 comandos**, um catálogo de plugins opcionais e 5 hooks
+regras globais, 3 subagentes, **20 comandos**, um catálogo de plugins opcionais e 5 hooks
 com comportamento real. (O dashboard web existiu até o ROADMAP item 13 — removido por
 completo, ver histórico lá. O unified config layer do GOALS 6 está estacionado desde a
 v1.2.0 — ver ROADMAP item 55.) Versão rastreada via `package.json`
@@ -31,29 +31,30 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   ├── commands/*.md       → ~/.claude/commands/     (21 comandos — ver README.md § Commands pra lista completa)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (20 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (ai-writing-standard.md, project-standards.md,
-│   │                            command-menu.md, goal-types/*.md — build/fix/feature/process/
-│   │                            research, lidos por /newgoal pra classificar cada meta)
+│   │                            cdp-verification.md, command-menu.md, goal-types/*.md —
+│   │                            build/fix/feature/process/research, lidos pelos comandos)
 │   ├── opencode/
 │   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
 │   │   ├── command/*.md        → ~/.config/opencode/command/   (perfil "dense", default — mesmos
 │   │   │                        comandos, formato opencode)
 │   │   ├── command-lite/*.md   → ~/.config/opencode/command/   (perfil "lite", opt-in via
-│   │   │                        `--opencode-commands lite` / `-OpencodeCommands lite` — mesmos 21
+│   │   │                        `--opencode-commands lite` / `-OpencodeCommands lite` — mesmos 20
 │   │   │                        nomes de comando, reescritos como checklist plano sem prosa/
 │   │   │                        justificativa embutida, pra modelos fracos que perdem o fio em
 │   │   │                        instrução condicional densa; nunca os dois instalados juntos)
-│   │   ├── references/        → ~/.config/opencode/base_project/references/ (mesmo conteúdo,
-│   │                            formato opencode)
+│   │   ├── references/        → ~/.config/opencode/base_project/references/ (inclui
+│   │                            cdp-verification.md; mesmo conteúdo, formato opencode)
 │   │   ├── mcp.json            → seção `mcp` do opencode.jsonc, `claude mcp add`, config.toml do
 │   │   │                          Codex e ~/.kimi/mcp.json (hoje só o context7, versão fixada)
 │   │   └── mcp-previous.json   → não instalado: definições já distribuídas, para aposentar/atualizar
 │   ├── codex/
 │   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
 │   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
-│   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 21 workflows; invocação `$nome`)
-│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex; standards/goal-types compartilhados)
+│   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 20 workflows; invocação `$nome`)
+│   │   └── references/          → ~/.codex/base_project/references/ (menu Codex;
+│   │                              cdp-verification.md e standards/goal-types compartilhados)
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
 │   └── hooks/*.js              → ~/.claude/base_project/hooks/
 │
@@ -62,14 +63,14 @@ base_project/
 │   │   ├── install.ps1 / install.sh  ← o instalador de verdade (idempotente, faz merge não overwrite)
 │   │   ├── install-codex.js          ← projeção nativa do Codex, chamada pelos dois instaladores
 │   │   ├── install-opencode.js       ← merge do opencode.jsonc (JSONC tolerante, edição pontual, preserva entradas/comentários do usuário), chamado pelos dois instaladores
+│   │   ├── cdp-smoke.js              ← smoke CDP opt-in: browser isolado, listener loopback, DevToolsActivePort e limpeza
 │   │   ├── ledger-prune.js           ← CLI opt-in: apaga dias antigos do ledger de uso (dry run por padrão)
 │   │   ├── mcp-servers.js            ← MCPs atuais + definições já distribuídas (source/opencode/mcp-previous.json): aposenta/atualiza só entradas que ainda são do base_project (Claude, Codex, opencode)
 │   │   ├── validate-plugins.js       ← CLI: valida source/plugins.json contra o schema (ajv)
 │   │   ├── scan-skill.js             ← CLI: scan leve de segurança pra skills de terceiro
 │   │   ├── contrast-check.js         ← CLI: contraste WCAG + tamanho mínimo de alvo de toque (usado por /designreview)
-│   │   ├── diary-source.js           ← CLI: extrai ledger de uso + histórico git por projeto/dia (usado por /diario)
-│   │   ├── validate-goals-structure.js ← CLI: detecta IDs de item duplicados (nas linhas de checklist) e fences Mermaid abertas em GOALS.md; em seções executor-v1, também campos, tier, gate, `after:` e ciclos
-│   │   ├── ai-style-lint.js   ← CLI: `--enforce` (arquivos já convertidos ao ai-writing-standard) e `--report` (contagem em todos os arquivos executados pelo modelo)
+│   │   ├── validate-goals-structure.js ← CLI: detecta IDs duplicados, fences Mermaid abertas e contrato executor-v1 em GOALS.md
+│   │   ├── ai-style-lint.js            ← CLI: `--enforce` valida textos convertidos; `--report` conta os textos verificados
 │   │   ├── goals-archive-index.js    ← CLI: --check/--write da coluna de checksums de dev/goals-archive/README.md
 │   │   ├── paths.js, config-store.js, resolve-layers.js, adapters/, apply.js, drift.js, audit.js,
 │   │   │   doctor.js, lint-config.js, context.js, wizard.js, sync.js, tasks.js, history.js,
@@ -142,31 +143,32 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ---
 
-## 4. Os 21 comandos
+## 4. Os 20 comandos
 
 Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md` +
 `source/codex/skills/*/SKILL.md`. Só o lado
 opencode tem um segundo conjunto espelhado, `source/opencode/command-lite/*.md` (mesmos
-21 nomes, mesma descrição de propósito, reescrito como checklist plano) — opt-in via
+20 nomes, mesma descrição de propósito, reescrito como checklist plano) — opt-in via
 installer, ver § 2 acima. Claude Code não tem "lite" porque o problema que motivou o
 perfil (modelo fraco/gratuito perdendo o fio em instrução condicional densa) é específico
 de quem roda opencode com um backend não-Claude.
 
 No Codex, workflows reutilizáveis são **skills**, não comandos customizados de topo. Portanto
-os mesmos 21 nomes usam `$nome` (`$wpp`, `$scanproject`, `$ship`); eles também aparecem no
+os mesmos 20 nomes usam `$nome` (`$wpp`, `$scanproject`, `$ship`); eles também aparecem no
 seletor de slash commands do Codex. `/prompts:nome` é outra categoria (prompt customizado) e
 não foi usada porque perderia descoberta implícita e o empacotamento progressivo das skills.
+
+Pattern: a modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already uses.
 
 | Comando | O que faz |
 |---|---|
 | `/newgoal` | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research` — ver `references/goal-types/*.md`) e pesquisa + escreve `GOALS.md` na raiz do projeto-alvo, o plano que `/execgoals` consome. |
 | `/repertoire` | Pesquisa um assunto a fundo — o domínio real de um projeto (científico, regulatório/legal, cultural, mídia) alimentando o `/newgoal`, ou um tópico/tendência avulso que o usuário quer investigado por si só. Declara o que consegue pesquisar (web em tempo real, sem base paga) antes de rodar; sempre confirma. |
-| `/execgoals` | Executa o `GOALS.md` ativo item por item, na ordem que `/newgoal` escreveu, usando `architect`/`coder` pra qualquer mudança não-trivial. Só marca item como feito depois de verificar de verdade e checa a estrutura após cada lote de edição. |
+| `/execgoals` | Executa o `GOALS.md` ativo item por item, na ordem que `/newgoal` escreveu, parando em "plan drift" quando a âncora do plano não bate mais com o arquivo; item já especificado vai direto pro `coder`, e `architect` só entra quando ainda há decisão de design. Só marca item como feito depois de verificar de verdade e checa a estrutura após cada lote de edição. |
 | `/scanproject` | Avalia um projeto existente contra `references/project-standards.md`, reporta achados com severidade e arquivo/linha. Read-only — nunca corrige. |
 | `/cleanproject` | Avalia organização de arquivo/pasta (arquivo morto, estrutura fora de convenção, duplicação) e propõe reorganização. Read-only — nunca move/apaga nada. |
 | `/fixproject` | Corrige os achados do `/scanproject` e/ou `/cleanproject` (rodando o que faltar primeiro), com reverificação real de cada correção antes de reportar "resolvido". |
 | `/undo` | Reverte o último lote de mudança — não commitada, arquivo novo não rastreado, ou o último commit — com confirmação em tiers separados por risco. Nunca `git reset --hard`/force-push sem um gate explícito à parte; commit já enviado é desfeito com `git revert`, nunca reescrito. |
-| `/diario` | Registra o que foi feito no diário de contribuições do projeto (entradas datadas + tabela de horas), sintetizado do ledger de uso + histórico git. Os diários ficam num diretório central **fora de todos os repositórios** — garantia arquitetural de que nunca chegam ao GitHub. |
 | `/ship` | Commita e sobe as mudanças do projeto atual pro remoto — confere prontidão (estado limpo, sem segredo, lint/teste passando, remoto configurado) antes, guia passo a passo em cada bloqueio. Nunca força push, nunca resolve conflito sozinho. |
 | `/pr` | Abre um pull request pra branch atual — rascunha título/corpo a partir do range de commits real contra a branch base, confirma antes de criar. O passo que o próprio `/ship` (passo 9) já menciona mas nunca executa. |
 | `/bootstrap` | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` (contexto eficiente em tokens). |
@@ -239,9 +241,9 @@ apontam pra ele em vez de duplicar a lista.
   comportamento de toda sessão futura), Tier C (os MCPs globais: `claude mcp remove
   --scope user`, as entradas do base_project no `mcp` do `opencode.jsonc`, as tabelas no
   `~/.codex/config.toml` — afeta todo projeto da máquina) e **Tier D (dados do usuário:
-  ledger de uso, diários, `~/.agents/` — não voltam reinstalando, padrão é manter)**. Até o
+  ledger de uso, `~/.agents/` — não voltam reinstalando, padrão é manter)**. Até o
   GOALS 17 o ledger ficava dentro do namespace que o Tier A chamava de "reversível
-  reinstalando", mas é a única fonte do `/diario`. Nunca toca em arquivo sem o marcador
+  reinstalando", mas é dado do usuário que o `/usagebp` lê. Nunca toca em arquivo sem o marcador
   `base_project:managed`, e **nunca apaga o repositório do base_project em si**, só os
   efeitos instalados globalmente.
 
@@ -251,7 +253,7 @@ apontam pra ele em vez de duplicar a lista.
 os installers. Ele preserva conteúdo do usuário e instala seis superfícies coerentes:
 
 1. bloco delimitado de regras em `~/.codex/AGENTS.md`;
-2. 21 skills em `~/.agents/skills/`;
+2. 20 skills em `~/.agents/skills/`;
 3. três subagentes TOML em `~/.codex/agents/`;
 4. referências e catálogo em `~/.codex/base_project/`;
 5. hooks mesclados em `~/.codex/hooks.json`;
@@ -261,7 +263,7 @@ os installers. Ele preserva conteúdo do usuário e instala seis superfícies co
 
 Os hooks Codex apontam deliberadamente para os scripts já instalados em
 `~/.claude/base_project/hooks/`. Em especial, `usage-log.js` continua escrevendo no ledger
-histórico compartilhado sob `~/.claude/base_project/usage/`; isso mantém `$diario` compatível
+histórico compartilhado sob `~/.claude/base_project/usage/`; isso mantém `$usagebp` compatível
 com todos os registros antigos, sem migração nem divisão de histórico.
 
 Quando um hook Codex é novo ou muda, o Codex pede revisão/confiança do usuário antes de executá-
@@ -341,8 +343,6 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | **`/cleanproject`** | comando | Avalia organização de arquivo/pasta (arquivo morto, estrutura, duplicação), propõe reorganização. Read-only. |
 | **`/fixproject`** | comando | Corrige os achados do `/scanproject` e/ou `/cleanproject`, com reverificação real de cada correção. |
 | **`/undo`** | comando | Reverte o último lote de mudança (não commitada ou o último commit), confirmação em tiers por risco. Nunca `reset --hard`/force-push sem gate separado. |
-| **`/diario`** | comando | Escreve o diário de contribuições do projeto a partir do ledger + git, num diretório fora de todo repositório. Nunca escreve dentro de um projeto. |
-| **`diary-source.js`** | script interno | Extração determinística por projeto/dia (duração com corte de ociosidade >30min, arquivos tocados, commits). Roda dentro do `/diario`. |
 | **`/newgoal`** | comando | Classifica o tipo de meta (`build`/`fix`/`feature`/`process`/`research`) e pesquisa + escreve `GOALS.md`, o plano que `/execgoals` consome. |
 | **`/execgoals`** | comando | Executa `GOALS.md` item por item na ordem escrita, verificando cada um antes de marcar como feito. |
 | **`/repertoire`** | comando | Pesquisa um assunto a fundo: domínio real (científico/regulatório/cultural/mídia) de um projeto antes do `/newgoal` planejar, **ou** um tópico/tendência avulso ("ouvi isso na mídia, investiga") independente de construir algo. Declara o que consegue pesquisar antes de rodar; confirma sempre. |
@@ -450,8 +450,7 @@ Input grande é truncado pra um `Write` não inflar o ledger; sobrevive a input 
 lançar exceção; cada entrada é uma linha só, então uma escrita corrompida não contamina as
 vizinhas.
 
-**Retenção**: o ledger é mantido indefinidamente por padrão — é a única fonte do `/diario` para
-horas passadas, então apagar histórico é decisão do usuário, nunca automática.
+**Retenção**: o ledger é mantido indefinidamente por padrão — é o que o `/usagebp` lê, então apagar histórico é decisão do usuário, nunca automática.
 `dev/scripts/ledger-prune.js --keep-days <N>` (ou `--before <YYYY-MM-DD>`) lista os arquivos
 `YYYY-MM-DD-<sessão>.jsonl` anteriores ao corte sem apagar nada; só com `--apply` apaga
 exatamente esses arquivos inteiros. Nada mais do diretório (`.zero-use-tracking.json`, uma nota
@@ -497,13 +496,15 @@ Codex reutilizam esse caminho compartilhado.
   propósito
 - `contrast-check.test.js` — as regras de contraste WCAG e tamanho mínimo de alvo de
   toque usadas por `/designreview`
-- `codex.test.js` — paridade nominal 21/21, frontmatter das skills, instalação
+- `codex.test.js` — paridade nominal 20/20, frontmatter das skills, instalação
   idempotente e preservação de hooks/skills do usuário
-- `lean-agent-docs.test.js` — contrato do GOALS 19: referência ai-writing-standard idêntica nas duas cópias, executor-v1 nos quatro `newgoal`/`execgoals`, bullet BLUF uma vez em cada regra global, goal-types com o parágrafo do `check:`, regras do lint.
+- `lean-agent-docs.test.js` — contrato do GOALS 21: referência ai-writing-standard idêntica nas duas cópias, executor-v1 nos quatro `newgoal`/`execgoals`, bullet BLUF uma vez em cada regra global, goal-types com o parágrafo do `check:`, regras do lint.
 - `ui-verification-rule.test.js` — paridade byte a byte da seção `### UI verification &
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,
   e que os agentes `reviewer`/variantes de `/designreview` não aceitam mais screenshot
   isolado como prova
+- `cdp-modifier.test.js` — contrato dos oito hosts, cláusulas da referência e fixtures de
+  listener por sistema operacional
 - `install-opencode.test.js` — merge do `opencode.jsonc`: comentários, entradas do usuário,
   idempotência, posse dos MCPs, arquivo ilegível intocado
 - `mcp-servers.test.js` — `config.toml` do Codex (formato antigo dos dois instaladores,
@@ -541,7 +542,8 @@ Dois jobs:
    installer uma 2ª vez pra confirmar idempotência. Desde o GOALS 17 também roda
    `npm ci` + `npm test` em cada SO: até então os testes só rodavam no Ubuntu enquanto a
    validação do dia a dia acontecia no Windows, e um teste dependente de plataforma ficou
-   vermelho no CI por um mês sem ninguém notar.
+   vermelho no CI por um mês sem ninguém notar. Depois dos testes unitários, cada SO também
+   executa separadamente `npm run smoke:cdp`.
 
 `biome.json`/`tsconfig.json` (raiz — ver seção 2 sobre por que não estão em `dev/`)
 escopam `source/hooks/**/*.js`, `dev/scripts/*.js`, `dev/tests/**/*.js` — sem isso o
@@ -552,7 +554,7 @@ devia ser lintado.
 
 ## 10. Decisões de arquitetura que valem lembrar
 
-### Planos executor-v1 (GOALS 19)
+### Planos executor-v1 (GOALS 21)
 
 - Um plano novo traz a linha `Format: executor-v1`; cada item tem `tier`, `gate`, `after`, `files`, `do` e `check`, e nenhuma escolha de design fica em aberto (D1).
 - Os tiers são neutros (`light`/`standard`/`strong`/`user`); o Claude Code mapeia para haiku/sonnet/opus por chamada de subagente, e opencode/Codex usam `coder` para light/standard e a sessão principal para strong (D2).

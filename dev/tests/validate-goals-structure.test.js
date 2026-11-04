@@ -110,6 +110,41 @@ test("validate-goals-structure rejects an unclosed Mermaid fence", () => {
   }
 });
 
+test("validate-goals-structure requires Verify under the item-contract marker", () => {
+  const item = fixture(
+    "## G\n<!-- item-contract: v1 -->\n- [ ] **A.1 X** (`coder`)\n  - Files: `a` (new)\n",
+  );
+  try {
+    const result = check(item.file);
+    assert.equal(result.ok, false);
+    assert.equal(result.findings.length, 1);
+    assert.equal(result.findings[0].code, "missing_verify");
+    assert.equal(result.findings[0].id, "A.1");
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
+test("validate-goals-structure lets a manual item skip Files under the marker", () => {
+  const item = fixture(
+    "## G\n<!-- item-contract: v1 -->\n- [ ] **A.1 X** (`manual`)\n  - Verify: owner says yes\n",
+  );
+  try {
+    assert.equal(check(item.file).ok, true);
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
+test("validate-goals-structure leaves plans without the marker unchecked", () => {
+  const item = fixture("## G\n- [ ] **A.1 X** (`coder`)\n");
+  try {
+    assert.equal(check(item.file).ok, true);
+  } finally {
+    fs.rmSync(item.directory, { recursive: true, force: true });
+  }
+});
+
 test("validate-goals-structure accepts a well-formed goal file", () => {
   const item = fixture(
     "# Goals\n\n```mermaid\nflowchart TD\n  A --> B\n```\n\n- [ ] **A.1** first\n- [x] **A.2a** second\n",
@@ -233,7 +268,7 @@ test("validate-goals hook stays silent for a well-formed GOALS.md and for other 
   }
 });
 
-// Executor-v1 sections (GOALS 19): field, tier, gate, dependency and block rules apply only to
+// Executor-v1 sections (GOALS 21): field, tier, gate, dependency and block rules apply only to
 // sections that carry the `Format: executor-v1` line.
 function v1Item(id, fields) {
   const defaults = {

@@ -11,8 +11,15 @@ const path = require("node:path");
 const ITEM_DEFINITION = /^\s*[-*] \[[ xX]\] \*\*([A-Z]\d*\.\d+[a-z]?)(?=[\s*])/;
 const MERMAID_OPEN = /^\s*```mermaid\s*$/i;
 const FENCE_CLOSE = /^\s*```\s*$/;
+// Plans that carry this marker under their `## ` section promise the executable item contract:
+// every open item names its `Files:` and its `Verify:`. Older plans have no marker and stay valid.
+const CONTRACT_MARKER = /^<!-- item-contract: v1 -->\s*$/;
+const SECTION_HEADING = /^## /;
+const ANY_HEADING = /^#{2,6} /;
+const CONTRACT_FIELD = /^\s+- (Files|Verify):/;
+const MANUAL_OWNER = /\(`manual`\)/;
 
-// Executor-v1 sections (GOALS 19): a `## ` section holding the line `Format: executor-v1`.
+// Executor-v1 sections (GOALS 21): a `## ` section holding the line `Format: executor-v1`.
 // Its items carry fields an executor and the dispatcher rely on; old-format sections are
 // left exactly as before.
 const V1_MARKER = "Format: executor-v1";
@@ -163,11 +170,49 @@ function check(filePath) {
   const seenIds = new Map();
   const lines = text.split(/\r?\n/);
   let mermaidStart = null;
+  let contractActive = false;
+  let open = null;
+
+  const closeItem = () => {
+    if (!open) return;
+    if (!open.verify) {
+      findings.push({
+        code: "missing_verify",
+        id: open.id,
+        line: open.line,
+        message: `Item **${open.id}** at line ${open.line} has no "Verify:" line.`,
+      });
+    }
+    if (!open.manual && !open.files) {
+      findings.push({
+        code: "missing_files",
+        id: open.id,
+        line: open.line,
+        message: `Item **${open.id}** at line ${open.line} has no "Files:" line.`,
+      });
+    }
+    open = null;
+  };
 
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
+    if (mermaidStart === null) {
+      if (ANY_HEADING.test(line)) closeItem();
+      if (SECTION_HEADING.test(line)) contractActive = false;
+      if (CONTRACT_MARKER.test(line)) contractActive = true;
+    }
     const definition = line.match(ITEM_DEFINITION);
     if (definition) {
+      closeItem();
+      if (contractActive && line.includes("[ ]")) {
+        open = {
+          id: definition[1],
+          line: lineNumber,
+          manual: MANUAL_OWNER.test(line),
+          files: false,
+          verify: false,
+        };
+      }
       const id = definition[1];
       const firstLine = seenIds.get(id);
       if (firstLine) {
@@ -183,12 +228,19 @@ function check(filePath) {
       }
     }
 
+    if (open && !definition && mermaidStart === null) {
+      const field = line.match(CONTRACT_FIELD);
+      if (field) open[field[1] === "Files" ? "files" : "verify"] = true;
+    }
+
     if (mermaidStart === null && MERMAID_OPEN.test(line)) {
       mermaidStart = lineNumber;
     } else if (mermaidStart !== null && FENCE_CLOSE.test(line)) {
       mermaidStart = null;
     }
   }
+
+  closeItem();
 
   if (mermaidStart !== null) {
     findings.push({

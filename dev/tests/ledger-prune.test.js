@@ -43,7 +43,7 @@ test("a dry run lists what would go and deletes nothing", () => {
   assert.equal(code, 0);
   assert.match(text, /Dry run - nothing deleted/);
   assert.match(text, /2 ledger file\(s\).*dated 2026-01-10 to 2026-06-25/);
-  assert.match(text, /\/diario cannot rebuild hours before 2026-06-26/);
+  assert.match(text, /\/usagebp cannot report activity before 2026-06-26/);
   assert.deepEqual(fs.readdirSync(dir).sort(), before);
 });
 

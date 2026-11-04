@@ -2455,22 +2455,89 @@ que o instalador não rodou desde antes da v1.2.0.
 primeiro pedido não é específico) e a sugestão de uma linha do `/diario` — o dono pediu só o fim
 das emissões depois de tarefa.
 
-## 57. Planos executor-v1, despacho por tier e padrão de escrita para IA (GOALS 19) (2026-10-21)
+## 57. Plano pesado, build leve: contrato de item executável (2026-10-28)
 
-O dono não lê o `GOALS.md` e quer que o modelo caro pense uma vez e um modelo barato execute.
+**Origem**: o dono pediu que o `/newgoal` passasse a gastar o esforço de raciocínio no plano, para
+que um modelo mais fraco só transcreva e verifique no `/execgoals`, e pediu a remoção completa da
+sugestão de modelo + esforço por módulo. A revisão das regras (GOALS 19) achou quatro problemas:
+o passo 7 recomendava o ajuste do módulo mais caro, o que contradizia o objetivo do passo 5a;
+o `/execgoals` mandava todo item não trivial pelo `architect` (opus) mesmo com o design já feito;
+nada obrigava o planejador a conferir caminhos e nomes antes de escrevê-los; e nenhuma variante
+mandava parar quando o plano já não batia com os arquivos.
 
-- D1: plano novo traz `Format: executor-v1`; cada item tem `tier`, `gate`, `after`, `files`, `do`, `check`.
-- D2: tiers neutros; Claude Code mapeia light/standard/strong para haiku/sonnet/opus; opencode e Codex ficam consultivos.
-- D3: o `/execgoals` roda o `check:`; o relato do executor não é prova.
-- D4: escada de falha: mesmo tier, tier acima, `blocked:`.
-- D5: `## Owner backlog` só para planos executor-v1.
-- D6: piloto pareado (plano novo, executores todos em sonnet contra tiers) decide se o roteamento fica.
-- D7: `ai-writing-standard.md` parafraseia o ASD-STE100; respostas ao usuário em BLUF.
-- D8: rejeitada uma notação comprimida "só para IA" (Markdown já é enxuto; compressão não foi medida em seguir instruções).
-- D9: reescrever os ~84 arquivos executados pelo modelo fica para depois do piloto; docs para pessoas continuam humanos.
-- D10: planos existentes (GOALS 12–18) não mudam.
+**O que mudou**: o `/newgoal` (Claude, opencode denso e lite, Codex) agora confere cada referência
+antes de escrevê-la (4c), escreve cada item com `Files`, `Anchor`, `Change`, `Do not touch`,
+`Verify` e `Source` (5a), abre cada seção com um mapa de etapas em ordem ou em paralelo (5b) e
+escreve o texto dos itens num estilo inspirado no ASD-STE100 (5c) — estilo, não conformidade: o
+dicionário oficial não é distribuído com o projeto. O `/execgoals` ganhou o preflight (2a): para
+no item quando a âncora não bate ("plan drift"), manda item já especificado direto ao `coder` e
+usa o `Verify:` como prova. `validate-goals-structure.js` passou a exigir `Files:`/`Verify:` nos
+itens abertos abaixo do marcador `<!-- item-contract: v1 -->`; planos antigos não têm o marcador e
+seguem válidos. A sugestão `Suggested:` saiu de todas as regras, READMEs, testes e do `GOALS.md`
+ativo; o GOALS 14, que existia só para ela, foi arquivado como `superseded` (o item M14.8 foi
+fechado sem execução, porque o teste do arquivo proíbe itens abertos num corpo arquivado).
 
-Aberto: piloto L19.15 e decisão L19.16 (dono). Baseline do `report:ai-style` no L19.14.
+**Também corrigido**: `@types/node` voltou para a major 22 (a do Node do CI) e o Dependabot passou
+a ignorar majors dele. O texto do `/execgoals` sobre o checksum do arquivo não cita
+`dev/scripts/goals-archive-index.js`, porque `command-paths.test.js` proíbe esse caminho em comando
+distribuído; ele manda usar o comando que o `CLAUDE.md` do projeto indicar.
+
+**Evidência**: `npm test` (197 testes, 0 falhas), `npm run typecheck`, `validate:plugins`,
+`check:unused-deps`, `audit:prod` e `test:harness` com saída 0. O `npm run lint` não roda dentro de
+`.claude/worktrees` (o Biome ignora esse caminho); o Biome foi executado nos arquivos alterados.
+Ainda abertos: a sincronização da máquina e a aceitação ao vivo com um modelo fraco (GOALS 19,
+P19.20, P19.22 e P19.23).
+
+## 58. Remoção do /diario (2026-10-28)
+
+**Origem**: o dono decidiu que o diário de contribuições não é mais útil e pediu para excluir tudo
+que se relacione a ele (GOALS 20).
+
+**Removido**: o comando nas quatro variantes (Claude, opencode denso e lite, skill do Codex), o
+`diary-source.js` e o teste dele, a seção "Contribution diary" das três camadas de instruções
+globais, a palavra "diary" na frase de agrupamento/parada repetida em 15 arquivos, as linhas dos
+menus e do `/status`, as menções no `/uninstall` (o `diary-root.txt` virou arquivo de estado
+legado e a pasta do diário deixou de ser citada), as checagens do CI e a exceção `diario.md` das
+regras do repositório. A contagem caiu de 21 para 20 comandos/skills nos docs, nos testes e no CI.
+Os instaladores apagam, na máquina de quem já instalou, as cópias antigas do comando, do script e
+da skill do Codex — só quando o arquivo ainda tem o marcador `base_project:managed`.
+
+**Mantido**: o ledger de uso, o hook `usage-log` e o `ledger-prune.js` (o `/usagebp` lê o ledger;
+só o texto deixou de dizer "única fonte do `/diario`"); o histórico (itens antigos deste ROADMAP,
+`dev/goals-archive/`, o changelog do README). O teste de arquivo grande passou a usar o leitor do
+`usage-baseline.js`. Os documentos de diário do dono não foram tocados: decidir o destino deles
+é um item manual do GOALS 20.
+
+**Evidência**: `npm test` (170 testes, 0 falhas), `typecheck`, `test:harness` com saída 0, Biome
+nos arquivos alterados sem achados, `bash -n` no `install.sh` e o parser do PowerShell sem erros
+no `install.ps1`. A matriz do CI (3 SOs) só pode ser confirmada depois do push.
+
+## 59. CDP ativado por modifier, por execução (decisão de 2026-09-29, GOALS 18)
+
+**Opções avaliadas**:
+
+1. **Porta de debug sempre ativa** — rejeitada. A regra global carrega em todo projeto e toda
+   sessão, inclusive projetos sem UI; uma porta CDP dá controle amplo do navegador. Desde o Chrome
+   136, as flags de depuração não funcionam com o diretório de dados padrão, que exigiria um perfil
+   separado — uma proteção ligada ao uso da porta para roubar cookies. A regra existente já usa
+   DOM/árvore de acessibilidade como caminho normal; faltava pedir prova real só em uma execução.
+2. **Comando `/cdp`** — rejeitado. CDP não tem uma operação independente: a prova precisa seguir
+   uma execução de `/execgoals` ou `/fixproject`. Um comando novo seria o 21º e exigiria registro
+   em quatro variantes, três menus, contagens nos testes e no CI, além de README e ARCHITECTURE.
+3. **Modifier `cdp` ao lado do comando host** — escolhido. O usuário pede a prova apenas em
+   `/execgoals cdp` ou `/fixproject cdp`; a referência só é lida nessa execução, sem ativar porta
+   sempre nem adicionar comando, skill ou linha de menu. A contagem permanece em 20.
+
+**Evidência**: a prova local de 2026-09-29 usou Linux e a build Playwright Chromium 1194, perfil
+temporário, `--remote-debugging-port=0`, `DevToolsActivePort` e `connectOverCDP`; o listener foi
+`127.0.0.1`. Ela leu snapshots de acessibilidade antes/depois de um clique, erros de console e
+uma requisição falha, e removeu o perfil. A primeira tentativa quebrou no próprio teste da porta e
+deixou sete processos Chrome ativos; por isso o contrato exige limpeza em toda saída e confirmação
+de que a porta fechou. O resultado e as alternativas estão detalhados em GOALS 18, seção
+“Design rationale”.
+**Decisões do GOALS 21 ainda vigentes**: o piloto pareado decide se o roteamento por tier
+permanece; não se adota notação comprimida; a reescrita dos ≈84 arquivos executados pelo modelo
+depende da decisão pós-piloto; GOALS 12–18 permanecem no formato atual.
 
 ---
 
@@ -2484,6 +2551,8 @@ Aberto: piloto L19.15 e decisão L19.16 (dono). Baseline do `report:ai-style` no
 - **Plano executor-v1 + despacho por tier (item 57)** — sem notação comprimida; planos antigos não são convertidos.
 - **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
   custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
+- **Modifier token (GOALS 18)** — `cdp` só ativa CDP na execução de `/execgoals` ou `/fixproject`;
+  não é uma porta de debug sempre ativa nem o 21º comando (a contagem atual continua em 20).
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

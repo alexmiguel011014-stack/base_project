@@ -86,12 +86,12 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/CLAUDE.md` | `~/.claude/CLAUDE.md` (delimited block) | Global rules for Claude Code |
 | `source/opencode-instructions.md` | Linked from `~/.config/opencode/opencode.jsonc` | Global rules for opencode |
 | `source/claude/agents/*.md` | `~/.claude/agents/` | `architect`, `coder`, `reviewer` subagents |
-| `source/claude/commands/*.md` | `~/.claude/commands/` | All 21 workflows — see the Commands section below |
+| `source/claude/commands/*.md` | `~/.claude/commands/` | All 20 workflows — see the Commands section below |
 | `source/opencode/agent/*.md` | `~/.config/opencode/agent/` | Same trio, opencode format |
 | `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format (`dense` profile, default) |
-| `source/opencode/command-lite/*.md` | `~/.config/opencode/command/` | Same 21 commands, flat checklist rewrite for weaker/free LLM backends (`lite` profile, opt-in — see below) |
+| `source/opencode/command-lite/*.md` | `~/.config/opencode/command/` | Same 20 commands, flat checklist rewrite for weaker/free LLM backends (`lite` profile, opt-in — see below) |
 | `source/codex/AGENTS.md` | `~/.codex/AGENTS.md` (delimited block) | Codex-native global operating rules |
-| `source/codex/skills/*/SKILL.md` | `~/.agents/skills/` | The same 21 workflows as native Codex skills (`$scanproject`, `$wpp`, etc.) |
+| `source/codex/skills/*/SKILL.md` | `~/.agents/skills/` | The same 20 workflows as native Codex skills (`$scanproject`, `$wpp`, etc.) |
 | `source/codex/agents/*.toml` | `~/.codex/agents/` | The same `architect`, `coder`, `reviewer` roles in Codex's native format |
 | `source/codex/references/` + shared references | `~/.codex/base_project/references/` | Codex menu plus shared standards and goal types |
 | `source/opencode/mcp.json` | Merged into the `mcp` section of `~/.config/opencode/opencode.jsonc`, registered via `claude mcp add --scope user`, and merged into `~/.codex/config.toml` | Context7 only, pinned to an exact version (always on — no credentials needed). Filesystem and git left the always-on set in v1.2.0 (zero measured use, unpinned) and are optional in `/plugins`, like GitHub, which needs a real personal access token. Re-running the installer retires them only where they still have the definition base_project wrote (`source/opencode/mcp-previous.json`). |
@@ -99,7 +99,7 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, GOALS structural validation, git-context injection, shared usage ledger (secrets masked before writing) |
 | `source/CLAUDE.md` + `source/opencode/mcp.json` | `~/.kimi/AGENTS.md` (delimited block) + `~/.kimi/mcp.json` | Kimi Code CLI, only when `~/.kimi/` already exists; start it with `kimi --mcp-config-file ~/.kimi/mcp.json` |
 
-**opencode command profile.** By default the installer copies the `dense` command set (the same rich, multi-step instructions Claude Code gets). If you're running opencode against a weaker or free LLM backend and it struggles to follow the dense commands, switch to `lite` — flatter, less-branchy versions of the same 21 commands, same names, no functionality removed:
+**opencode command profile.** By default the installer copies the `dense` command set (the same rich, multi-step instructions Claude Code gets). If you're running opencode against a weaker or free LLM backend and it struggles to follow the dense commands, switch to `lite` — flatter, less-branchy versions of the same 20 commands, same names, no functionality removed:
 
 ```bash
 bash dev/scripts/install.sh --opencode-commands lite   # macOS/Linux
@@ -112,11 +112,9 @@ The choice is remembered (`~/.base_project/opencode-command-profile.txt`) — re
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 
-21 workflows ship in total — see the Commands section below for the complete, current list.
+20 workflows ship in total — see the Commands section below for the complete, current list.
 
 **Codex invocation:** use `$scanproject`, `$newgoal`, `$ship`, `$wpp`, and so on. Enabled skills also appear in Codex's slash selector, but Codex does not support arbitrary custom top-level names like `/wpp`; custom prompt files would be namespaced under `/prompts:`. This is why the faithful Codex spelling is `$wpp`, not `/wpp`.
-
-**Runtime-specific `$newgoal` recommendations:** Codex uses its own `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`, and `gpt-6-astra` model vocabulary with matching effort guidance; Claude Code and opencode retain their native model vocabulary. In every runtime, the recommendation is manual only and never changes the active model, effort, or configuration automatically.
 
 **Codex hook trust:** Codex asks you to review and trust a newly installed or changed hook command before it runs. That review is intentional; base_project merges its hooks idempotently but never bypasses Codex's trust boundary.
 
@@ -151,15 +149,14 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | Command | What it does |
 |---|---|
 | `/bootstrap` | Syncs with the project's own remote first (fast-forward pull if behind), then maps it into `graphify-out/` + `repomix-output.xml` for token-efficient context. |
-| `/newgoal` | Classifies what kind of goal this is (full build, bug fix, bounded feature, release/process readiness, or pure research) and researches + writes `GOALS.md` at the project root as an **executor-v1** plan: AI-only items, each with a tier (`light`/`standard`/`strong`), a gate, exact files and steps, and a runnable `check:` — so a cheaper model can execute it without design choices. You don't need to read it; ask for status whenever you want. It ends with a short report and a manual model recommendation for the `/execgoals` session. |
+| `/newgoal` | Classifies the goal type, researches it, and writes an **executor-v1** `GOALS.md` plan with ordered stages, exact files and anchors, tiers, gates, and runnable checks. It does not implement the plan; ask for status or choose whether to execute or adjust it. |
 | `/repertoire` | Researches a subject in depth — a project's real-world domain (scientific evidence, regulatory/legal, cultural, media discourse) feeding `/newgoal`, or a standalone topic/trend/claim you want investigated on its own. States its search limits (live web, no paid databases) before running; confirms every time. |
-| `/execgoals` | Executes one active plan of `GOALS.md` item by item (`/execgoals 19` picks plan 19) and reads only that plan. Executor-v1 items go to the `coder` subagent at the item's tier (Claude Code: `light` → haiku, `standard` → sonnet, `strong` → opus); the command runs each item's `check:` itself, retries once, escalates one tier, then stops and reports. Older plans keep the `architect`/`coder` workflow. Runs a structural GOALS check after each edit batch — resumes safely if interrupted. |
+| `/execgoals` | Executes one active plan of `GOALS.md` item by item (`/execgoals 21` picks plan 21) and reads only that plan. Executor-v1 items go to `coder` at the item's tier; the command runs each `check:` itself, retries once, escalates one tier, then stops and reports. Older plans keep the `architect`/`coder` workflow. Runs a structural GOALS check after each edit batch, resumes safely if interrupted, and accepts the `cdp` modifier for real-browser UI verification over CDP. |
 | `/scanproject` | Rigorously audits an existing project against the shared `project-standards.md` checklist (identity, version control, secrets, dependencies, tests, lint/CI, basic security, structure). Read-only — reports findings, never edits. **Start here.** |
 | `/audit` | Deeper security-only pass than `/scanproject`: dependency vulnerabilities, outdated packages, exposed secrets. Uses Strix instead of a static scan if it's installed. |
 | `/cleanproject` | Deeper organization-only pass than `/scanproject`: dead files, misplaced folders, duplication. Read-only — proposes a reorganization, never moves or deletes anything. |
-| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. |
+| `/fixproject` | Applies the fixes found by `/scanproject` and/or `/cleanproject`, with real before/after re-verification of each one — not a patch applied and assumed to work. Accepts the `cdp` modifier to verify UI behavior in a real, isolated browser over CDP. |
 | `/undo` | Reverts the most recent batch of change — uncommitted edits, untracked new files, or the last commit — with confirmation tiered by risk. Never `git reset --hard` or force-push without a separate explicit gate; a pushed commit is undone with `git revert`, never rewritten. |
-| `/diario` | Records what was worked on into this project's contribution diary — dated entries plus an hours table, synthesized from the tool-call ledger `usage-log.js` already writes and from git history. Diaries live in one central directory outside every repository, so they can never reach GitHub. |
 | `/ship` | Commits and pushes the current project's changes. Checks readiness first (clean state, no secrets, lint/test passing, remote configured) and guides through whatever's blocking instead of a raw git error. Never force-pushes, never resolves conflicts automatically. |
 | `/pr` | Opens a pull request for the current branch — drafts the title/body from the real commit range against the base branch, confirms before creating anything. The step `/ship`'s own step 9 points at but never runs itself. |
 | `/plugins` | Looks at the current project, recommends which optional plugins fit — from the catalog, the official marketplace, and the open web if nothing else covers the need — and installs the ones you pick. |
@@ -173,6 +170,8 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start. It is never shown on its own after a task; this is how to bring it back. |
 
 ---
+
+**Command modifiers.** A modifier is a word you add to a command to change that invocation's behavior. Add `cdp` to `/execgoals` or `/fixproject` to verify UI behavior in a real, isolated browser over CDP.
 
 ## 🔌 Optional Plugins
 
@@ -211,9 +210,10 @@ Append an entry to `source/plugins.json` (id, kind, summary, `recommend_if`, ins
 | **Never overwrites your own customizations** | Every file this project installs is tagged with a `base_project:managed` marker. If a file already exists at the destination without that marker (i.e. you made it yourself), the installer skips it and warns you instead of overwriting it. |
 | **Merges, doesn't clobber** | `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.codex/hooks.json`, `~/.codex/config.toml`, and `~/.config/opencode/opencode.jsonc` keep everything you already had — base_project only owns marked blocks/entries. In `opencode.jsonc` your own instructions, MCP servers and comments survive; if the file can't be parsed, it is left untouched rather than recreated. An MCP entry you edited is yours: the installer updates or retires only entries that still have the exact definition it wrote. |
 | **Secrets stay out of git** | MCP configuration lives in your global config (Claude Code user scope, `opencode.jsonc`, `~/.codex/config.toml`), never inside a project repo, so API keys you add there are never at risk of being committed. The local usage ledger masks well-known token shapes before writing. |
-| **Your usage history is yours** | The local usage ledger (`~/.claude/base_project/usage/`) is kept until you decide otherwise — it is the only source `/diario` has for past hours. To trim it, `node <base_project clone>/dev/scripts/ledger-prune.js --keep-days 180` shows what would go (dry run, deletes nothing); add `--apply` to delete those whole-day files. `/uninstall` asks separately before touching it. |
+| **Your usage history is yours** | The local usage ledger (`~/.claude/base_project/usage/`) is kept until you decide otherwise — it is what `/usagebp` reads. To trim it, `node <base_project clone>/dev/scripts/ledger-prune.js --keep-days 180` shows what would go (dry run, deletes nothing); add `--apply` to delete those whole-day files. `/uninstall` asks separately before touching it. |
 | **Nothing is installed per-project** | If you ever stop using base_project, delete the managed block from `~/.claude/CLAUDE.md` and the marked files from the global directories — your projects were never touched. |
 | **Screen control is a last resort** | The global rules make every runtime test UIs through DOM-driven browser tooling and the project's own tests; desktop computer use needs your explicit per-task go-ahead, and screenshots are requested from you rather than captured. |
+| **Debug ports are opt-in** | A browser debug port starts only when you add the `cdp` modifier to `/execgoals` or `/fixproject`; the browser uses an isolated profile and a loopback-only listener. |
 
 ---
 
@@ -281,7 +281,8 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ## 📬 Changelog
 
 ### Unreleased
-- Executor-v1 plans (GOALS 19): `/newgoal` writes AI-only items with a tier, a gate and a runnable `check:`; `/execgoals` dispatches each item to a cheaper model, checks it itself and escalates on failure; a new AI-facing writing standard (paraphrased from ASD-STE100) with `npm run lint:ai-style` / `report:ai-style`; replies lead with the answer (BLUF). Existing plans are unchanged.
+- `/execgoals` and `/fixproject` accept the opt-in `cdp` modifier for UI verification in a real, isolated browser over CDP
+- Executor-v1 plans (GOALS 21): `/newgoal` writes AI-only items with a tier, a gate and a runnable `check:`; `/execgoals` dispatches each item to a cheaper model, checks it itself and escalates on failure; a new AI-facing writing standard (paraphrased from ASD-STE100) with `npm run lint:ai-style` / `report:ai-style`; replies lead with the answer (BLUF). Existing plans are unchanged.
 - The "what do you want to do now?" menu is no longer printed after a finished task (it cost about a thousand tokens each time and stayed in the context); it still appears at session start, and `/wpp` brings it back on demand
 
 ### v1.2.0 (unreleased — tag pending)

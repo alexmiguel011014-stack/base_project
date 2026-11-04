@@ -87,26 +87,6 @@ test("every global rule file forbids the menu after a task and names the on-dema
   }
 });
 
-test("the diary suggestion carries its own threshold instead of borrowing the menu rule's", () => {
-  for (const file of [
-    ["source", "CLAUDE.md"],
-    ["source", "opencode-instructions.md"],
-  ]) {
-    const content = collapse(read(file));
-    assert.doesNotMatch(
-      content,
-      /the same threshold the menu rule/i,
-      file.join("/"),
-    );
-    assert.ok(
-      content.includes(
-        "After closing a substantial task (multiple file edits, subagents, or TodoWrite involved)",
-      ),
-      `${file.join("/")} keeps the diary threshold`,
-    );
-  }
-});
-
 test("the /wpp wrappers do not promise an automatic menu after a task", () => {
   for (const file of [
     ["source", "claude", "commands", "wpp.md"],

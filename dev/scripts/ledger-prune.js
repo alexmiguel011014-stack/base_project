@@ -2,7 +2,7 @@
 // base_project:managed
 // @ts-check
 // Opt-in retention for the usage ledger (GOALS 17 R17.26). base_project never prunes the
-// ledger on its own: it is the only source /diario has for past hours, so the default is to
+// ledger on its own: /usagebp reads it, so the default is to
 // keep everything, and deleting history is the user's call.
 //
 // The ledger is one file per UTC day and session, `YYYY-MM-DD-<session>.jsonl`, written by
@@ -120,14 +120,14 @@ function run(args, now = new Date(), out = process.stdout) {
   if (!args.includes("--apply")) {
     out.write(
       `Dry run - nothing deleted. Would delete ${summary} from ${dir}.\n` +
-        `After that, /diario cannot rebuild hours before ${cutoff}: the ledger is its only source.\n` +
+        `After that, /usagebp cannot report activity before ${cutoff}.\n` +
         "Re-run with --apply to delete them.\n",
     );
     return 0;
   }
   for (const file of plan.files) fs.rmSync(path.join(dir, file.name));
   out.write(
-    `Deleted ${summary} from ${dir}. /diario can no longer rebuild hours before ${cutoff}.\n`,
+    `Deleted ${summary} from ${dir}. /usagebp can no longer report activity before ${cutoff}.\n`,
   );
   return 0;
 }

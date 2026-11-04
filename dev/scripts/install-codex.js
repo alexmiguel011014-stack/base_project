@@ -129,7 +129,7 @@ function syncSkills() {
 // removes a skill dir whose SKILL.md still carries the managed marker, so a user's own
 // same-named skill is left alone.
 function pruneStaleSkills() {
-  const staleNames = ["newproject"];
+  const staleNames = ["newproject", "diario"];
   for (const name of staleNames) {
     const skillFile = path.join(agentsRoot, "skills", name, "SKILL.md");
     if (!fs.existsSync(skillFile)) continue;

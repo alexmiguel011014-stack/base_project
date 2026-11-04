@@ -15,7 +15,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Never impose a universal low-effort, output, turn, or context cap before comparing correctness and rework against the baseline.
 
 ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repository.
@@ -43,11 +43,6 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Never show it after finishing a task or after any reply: a finished task ends with its result, not with a list of commands. The user can ask for it at any time with `$wpp`.
 - Read `~/.codex/base_project/references/command-menu.md` and render it verbatim. Never reconstruct it from memory.
 
-### Contribution Diary
-- After substantial work, mention once that `$diario` can record it. Never write a diary unless asked.
-- Diaries remain outside every repository, using the root in `~/.base_project/diary-root.txt`. Never suggest committing them.
-- Codex and Claude share the existing ledger under `~/.claude/base_project/usage/` so historical diaries remain continuous.
-
 ### Self-Correction
 - After code changes, detect and run the project's own test, typecheck, lint, or build commands from its manifest. Fix failures before delivery.
 
@@ -55,6 +50,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Verify behavior through the most precise channel first: the project's own tests and CLI output, direct HTTP/API calls, and logs; then app-driving tooling that drives the running app through its DOM/accessibility tree — typed inputs, form fills, element references, page text, console and network reads. That tooling is the default way to test a UI: drive the flow end to end with it before considering anything else.
 - Screen control (desktop computer use: capturing the screen and clicking or typing by pixel coordinates, taking over the foreground) is a last resort, not a testing tool — it rarely produces a reliable result. Use it only when the target is a native app with no DOM, API, CLI, or test path, and only after stating why nothing else can reach it and getting the user's explicit go-ahead for that specific task in chat; never because it is available or looks quicker, and never as a fallback when the app-driving tooling reports a problem.
 - Never take desktop screenshots on your own initiative. When a visual check is genuinely needed (layout, rendering, what the user actually sees), ask the user for a screenshot and say exactly which window, state, and viewport it should show; keep working from tests, DOM, text, and console evidence meanwhile. Page captures produced by the app-driving tooling itself are not screen control, but take them only when the check is visual by nature (a design review at several viewport widths) or the user asked for one — otherwise read the state as text.
+- Opening a browser debug port (Chrome DevTools Protocol) is opt-in: never start a browser with `--remote-debugging-port` on your own initiative. When the user adds the `cdp` modifier to a command that supports it, load that command's CDP reference and follow its isolation rules; the app-driving tooling above is unaffected, because it manages its own browser.
 - In Codex, app-driving tooling means `@Browser` (the desktop app's built-in Browser), the Browser extension for Chrome, and a Playwright MCP from `$plugins`; in Codex CLI, where `@Browser` is unavailable, fall back to Playwright MCP or the project's tests — not to Computer Use. Screen control means **Computer Use** (Plugins > Computer Use, Settings > Computer use, Always-allowed apps). Ask for screenshots as an attached image (`codex -i <file>` in the CLI).
 
 ### Task Sizing and Responses

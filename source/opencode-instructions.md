@@ -15,7 +15,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Never impose a universal low-effort, output, turn, or context cap before comparing correctness and rework against the baseline.
 
 ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 ### Security
 - Never commit or hardcode real API keys, tokens, or credentials in a project repo.
@@ -75,20 +75,6 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
   verbatim — do not redigit the list from memory, so it never drifts from the real
   command set.
 
-### Contribution diary (suggest only, never write unasked)
-- After closing a substantial task (multiple file edits, subagents, or TodoWrite involved),
-  mention once — briefly, without derailing — that `/diario` can record it in this
-  project's contribution diary. Then drop it.
-- Never write or update a diary without being asked. The recording that happens automatically
-  is the `usage-log` hook's raw ledger, not narrative entries; nothing is lost by the user
-  saying no, since `/diario` can synthesize any past date range later from that same ledger.
-  Note that this ledger is written by a Claude Code hook — work done in opencode is not in it,
-  so a diary built here relies on git history for anything opencode-only.
-- Diaries live in one central directory outside every repository, resolved from
-  `~/.base_project/diary-root.txt`. Never create one inside a project repo, and never suggest
-  committing one anywhere — that content is deliberately kept out of version control.
-- Don't repeat the suggestion again in the same session once mentioned or declined.
-
 ### Self-Correction
 - After any code change, detect and run the project's own test/typecheck/lint commands from its manifest
   (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.) — do not assume a specific stack or toolchain.
@@ -98,6 +84,7 @@ These rules apply in every project unless a project-local `AGENTS.md` overrides 
 - Verify behavior through the most precise channel first: the project's own tests and CLI output, direct HTTP/API calls, and logs; then app-driving tooling that drives the running app through its DOM/accessibility tree — typed inputs, form fills, element references, page text, console and network reads. That tooling is the default way to test a UI: drive the flow end to end with it before considering anything else.
 - Screen control (desktop computer use: capturing the screen and clicking or typing by pixel coordinates, taking over the foreground) is a last resort, not a testing tool — it rarely produces a reliable result. Use it only when the target is a native app with no DOM, API, CLI, or test path, and only after stating why nothing else can reach it and getting the user's explicit go-ahead for that specific task in chat; never because it is available or looks quicker, and never as a fallback when the app-driving tooling reports a problem.
 - Never take desktop screenshots on your own initiative. When a visual check is genuinely needed (layout, rendering, what the user actually sees), ask the user for a screenshot and say exactly which window, state, and viewport it should show; keep working from tests, DOM, text, and console evidence meanwhile. Page captures produced by the app-driving tooling itself are not screen control, but take them only when the check is visual by nature (a design review at several viewport widths) or the user asked for one — otherwise read the state as text.
+- Opening a browser debug port (Chrome DevTools Protocol) is opt-in: never start a browser with `--remote-debugging-port` on your own initiative. When the user adds the `cdp` modifier to a command that supports it, load that command's CDP reference and follow its isolation rules; the app-driving tooling above is unaffected, because it manages its own browser.
 - In opencode, app-driving tooling means a Playwright MCP from `/plugins` (accessibility tree, no vision) plus the project's own test runner; any desktop-control MCP is screen control. Ask for screenshots as an image attached to the prompt.
 
 ### Task Sizing & Response Discipline

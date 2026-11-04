@@ -84,44 +84,17 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
     research. `/repertoire` researches *what the project is about*; this step researches *how to
     build it*; don't let the two blur into one pass or skip reading the briefing once it exists.
 
-5. **Write `GOALS.md` in English as an executor-v1 plan.** Read
-   `~/.config/opencode/base_project/references/ai-writing-standard.md` first. Follow its Part A
-   and its glossary. The user does not read this file; `/execgoals` and its executors do. Write for an
-   executor that cannot ask questions and makes no design choice.
-   - Under the `## GOALS N — <title> (<project> <type>)` heading, write the line
-     `Format: executor-v1`. Then write a scope of three sentences or fewer.
-   - Write `### Decisions` next, one line per decision:
-     `- D<n> <decision>. Why: <one clause>. Source: <URL or file>.` Settle every choice there.
-     An item never holds an open choice.
-   - Group the items by the goal type's areas, in the type's order. Write each item in this
-     shape:
-     ```
-     - [ ] **<ID> <imperative title>**
-       - tier: <light|standard|strong> · <low|medium|high|xhigh>
-       - gate: <auto|notify|ask>
-       - after: <item IDs, or none>
-       - files: `<path>` (new|edit), ...
-       - do:
-         1. <one instruction>
-       - check: `<command run from the project root>` → <expected exit code or output>
-       - stop-if: <condition>
-     ```
-     `stop-if:` is optional. Every other field is required.
-   - One item is one executor run: 5 files or fewer and 10 steps or fewer. Split a larger item.
-   - Give the executor everything it needs: the exact text to write, the exact anchor line,
-     exact names and values. Put long text in a fenced block inside the step.
-   - `check:` must be a command whose exit code or output proves the item. The executor's own
-     report is never proof.
-   - For work only the user can do, write `tier: user`, `gate: ask`, and
-     `check: manual — <what the user observes>`.
-   - Choose the tier from the work: `light` when the step gives the exact content to write;
-     `standard` for code from a clear spec; `strong` for logic across files, open debugging, or
-     security. Use effort `xhigh` only for irreversible, security, or migration work.
-   - Choose the gate with the Tiered autonomy rule: `auto` for reversible work inside the
-     repository; `notify` when the effect is visible; `ask` for irreversible or external work,
-     credentials, or a material choice.
-   - Do not write a Mermaid diagram or a `Suggested:` line. `after:` is the dependency order;
-     `tier:` is the routing.
+4c. **Ground every reference before writing the plan.** Open each file the plan will edit, copy each anchor from the current file, and verify every path, symbol, command, flag, and test name. Record `git rev-parse --short HEAD` in the section's first paragraph. Cite each external fact per item. If a fact is unverified, write `(unverified — confirm before executing)`; the executor must stop at that item.
+
+5. **Write `GOALS.md` in English as an executor-v1 plan.** Read `~/.config/opencode/base_project/references/ai-writing-standard.md` first. Follow Part A and its glossary. The user does not read this file; `/execgoals` and its executors do. Write for an executor that cannot ask questions or make design choices.
+   - Under each `## GOALS N — <title> (<project> <type>)` heading, write `Format: executor-v1`, then a scope of three sentences or fewer and a `### Decisions` list that settles every choice.
+   - Group items by the selected goal type's areas, in their required order. Start each item with `- [ ] **<ID> <imperative title>**`.
+   - Give every item these required fields: `tier: <light|standard|strong> · <low|medium|high|xhigh>`, `gate: <auto|notify|ask>`, `after: <item IDs, or none>`, `files:`, numbered `do:` steps, and `check:`.
+   - Mark each file in `files:` as `(new)` or `(exists)`. Add the exact `Anchor:`, `Change:`, `Do not touch:`, `Verify:`, and `Source:` details. Copy anchors from current files. Give exact text or a precise specification. Give each check command and its expected result. Cite each external fact with a URL and access date.
+   - Mark owner work as `tier: user`, `gate: ask`, and `check: manual — <what the user observes>`. Use effort `xhigh` only for irreversible, security, or migration work.
+   - Keep each item to three files or fewer and ten steps or fewer. Split any item that exceeds either limit or still contains a choice.
+   - Open each section with a stage map table: `Stage | Items | Depends on | Can run in parallel with`. Put `<!-- item-contract: v1 -->` under the table. Do not include a Mermaid diagram or recommend a model or effort.
+   - Write checklist items in controlled English, modeled on ASD-STE100. Use one instruction per sentence. Keep instructions to 20 words or fewer and descriptive sentences to 25 words or fewer. Use active voice, stable names, articles, and concrete words. Avoid vague terms such as "as needed" and "etc."
 
 6. **Never overwrite silently.** If `GOALS.md` already exists, read the active root file first
    and merge new findings rather than discarding them. If `dev/goals-archive/README.md` exists,
@@ -132,13 +105,8 @@ the research deliverable) is the entire job; running it is exclusively `/execgoa
    tracked in version control like `README.md`, not gitignored: it's project documentation the
    user keeps, not a regenerable artifact.
 
-7. **Report in the user's language, answer first, in five lines or fewer:** the file path
-   (or, for a standalone research deliverable, that file's path); the number of items per tier;
-   the items with `gate: ask` or `tier: user`; and the session model for `/execgoals`. The
-   `/execgoals` session only dispatches, runs checks and escalates, so recommend a
-   mid-tier model at medium effort unless an `ask` item needs more. This is a recommendation
-   only; it switches nothing. Do not describe the items: the user asks for status when they want
-   it. Then ask whether to run `/execgoals` or adjust the plan.
+7. **Report in the user's language, answer first, in five lines or fewer.** State the file path, item count per tier, and every `gate: ask` or `tier: user` item. Include the stage map when this command runs directly. Do not describe the items or recommend a model or effort. Ask whether the user wants to proceed with `/execgoals` or adjust the plan first.
+
 
 8. **Never execute.** This command writes `GOALS.md` (or the standalone research deliverable)
    — full stop. It never edits other files, never runs installs/builds/scaffolding, and never

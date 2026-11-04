@@ -8,7 +8,7 @@ project, one ordered item at a time — with the same before/after verification 
 `/fixproject`, not "apply a patch and assume it worked."
 
  ### Batching and stopping
-- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.
+- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.
 
 
 1. **Require a plan.** If `GOALS.md` doesn't exist at the project root, check first whether
@@ -20,7 +20,7 @@ project, one ordered item at a time — with the same before/after verification 
    building without the research pass defeats the reason `/newgoal` exists.
 
 2. **Read only what the run needs.** Read the `Active plans` list and the `## Owner backlog`
-   section. If `$ARGUMENTS` names a plan (`GOALS 19` or `19`), select it; otherwise select the
+   section. If `$ARGUMENTS` names a plan (`GOALS 21` or `21`), select it; otherwise select the
    first plan in the list with an open item that is not an owner item. Read that plan's section
    and each section its `after:` fields name; do not read other sections. Then present a short summary before touching anything: which
    areas apply (backend/frontend/database/etc. — whichever `/newgoal` actually wrote for this
@@ -31,12 +31,25 @@ project, one ordered item at a time — with the same before/after verification 
    human-in-the-loop. That preserves one coherent safety gate without re-asking for ordinary
    in-scope implementation.
 
+2a. **Preflight the plan before the first edit.** For the items about to run, confirm each
+    `(exists)` path is present and each `Anchor:` still matches verbatim, and run the
+    project's test/lint/typecheck once to record a baseline. If an anchor no longer matches,
+    a `(new)` path already exists, or an item says `(unverified — confirm before executing)`,
+    stop on that item and report it as plan drift: the plan is stale there, and the fix is
+    to update `GOALS.md` (or rerun `/newgoal` for that section), never to improvise a
+    substitute edit. Items before it that passed preflight may still run. A section without
+    the `<!-- item-contract: v1 -->` marker skips the anchor checks but still records the
+    baseline.
+
 3. **Work through unchecked items in the order they're written.** `/newgoal` already orders
    items "what has to exist before what" — don't re-derive an order here. For each item:
    - **Auto-approved**: trivial, routine, reversible work inside the current repository applies
      directly.
-   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item uses the `architect` →
-     `coder` subagent workflow; state the visible effect, then continue and verify it.
+   - **Notify-and-proceed**: a non-trivial but in-scope, reversible item goes to `coder`
+     with the item's own text as the brief; state the visible effect, then continue and
+     verify it. Run `architect` first only when the item's owner is `architect` or its
+     `Change:` is a specification that still leaves a design question — `/newgoal` already
+     did the design, and repeating it costs tokens and invites a second, different answer.
    - **Human-in-the-loop**: an irreversible or hard-to-recover action, a material choice only
      the user can make (which OAuth provider, cloud region, or real credential), data/state
      outside the repository, sensitive data, or external publication stops and asks. Never
@@ -71,6 +84,17 @@ project, one ordered item at a time — with the same before/after verification 
    editing the checkbox because the edit happened. Update `GOALS.md` in place (`[ ]` → `[x]`) as
    you go, so a later re-run of this command sees accurate progress and never redoes finished
    work.
+   When the item has a `Verify:` line, that check is the proof: run it and compare with its
+   expected result; a mismatch keeps the item open.
+
+   **CDP mode.** If the current `/execgoals` invocation arguments contain a standalone,
+   case-insensitive token `cdp`, `/cdp`, `$cdp`, or `--cdp`, inspect only those arguments for a
+   match; never scan `GOALS.md` or project files. Say once that CDP mode is on for this invocation,
+   read `~/.claude/base_project/references/cdp-verification.md` in full before verifying the first
+   item, and apply it to every item with a browser-reachable UI. Check off such an item only with
+   the CDP evidence that reference defines. For an item without a browser-reachable UI, say
+   `cdp: not applicable` and verify it as usual. Without a matching token, never start a browser
+   with a debug port.
 
    After a batch of edits to the same `GOALS.md` within one area, run
    `node ~/.claude/base_project/scripts/validate-goals-structure.js GOALS.md`. If it reports a
@@ -85,6 +109,7 @@ project, one ordered item at a time — with the same before/after verification 
     the root `GOALS.md`. This is auto-approved, repo-local, reversible work; it doesn't need
     separate confirmation beyond the run's own authorization. Re-run
     `validate-goals-structure.js` after the move, same as any other edit batch.
+    If the project's `CLAUDE.md` names a command that writes the archive checksums, run that command instead of computing the checksum by hand, then run its check mode.
 
     An executor-v1 section is also done when every item is `[x]` except `tier: user` items.
     Before you move such a section, copy each open `tier: user` item, unchanged, to the

@@ -4,8 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { buildBaseline } = require("../scripts/usage-baseline.js");
-const { readLedger } = require("../scripts/diary-source.js");
+const { buildBaseline, readLedger } = require("../scripts/usage-baseline.js");
 
 // Above V8's spread-argument limit (~125-130k). /usagebp used to crash with
 // "Maximum call stack size exceeded" here (dev/auditoria-2026-09-24.md, F5).
@@ -57,7 +56,7 @@ test("usage baseline handles a ledger larger than the spread-argument limit", ()
   );
 });
 
-test("the diary reader handles a single ledger file larger than the spread-argument limit", () => {
+test("the usage reader handles a single ledger file larger than the spread-argument limit", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bp-ledger-scale-"));
   try {
     const lines = syntheticEvents().map((event) => JSON.stringify(event));
@@ -65,7 +64,7 @@ test("the diary reader handles a single ledger file larger than the spread-argum
       path.join(dir, "2026-05-01-s1.jsonl"),
       `${lines.join("\n")}\n`,
     );
-    assert.equal(readLedger(dir).length, EVENTS);
+    assert.equal(readLedger(dir).events.length, EVENTS);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -1,5 +1,5 @@
 // base_project:managed
-// Per-project rule overrides (GOALS 20): project key, store, protected-rule gate, render cap and
+// Per-project rule overrides (GOALS 22): project key, store, protected-rule gate, render cap and
 // the SessionStart integration. Everything runs against a throwaway home and throwaway repos.
 const test = require("node:test");
 const assert = require("node:assert/strict");

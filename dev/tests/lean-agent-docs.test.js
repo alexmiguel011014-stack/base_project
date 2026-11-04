@@ -1,5 +1,5 @@
 // base_project:managed
-// Contract for GOALS 19: executor-v1 plans, tiered dispatch, the AI-facing writing standard,
+// Contract for GOALS 21: executor-v1 plans, tiered dispatch, the AI-facing writing standard,
 // and the BLUF output rule — across Claude, opencode dense, opencode lite and Codex.
 const test = require("node:test");
 const assert = require("node:assert/strict");

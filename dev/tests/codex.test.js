@@ -72,7 +72,7 @@ test("Codex skill names have exact parity with all command sets", () => {
     path.join(repoRoot, "source", "opencode", "command-lite"),
     ".md",
   );
-  assert.equal(codex.length, 21);
+  assert.equal(codex.length, 20);
   assert.deepEqual(codex, claude);
   assert.deepEqual(codex, opencode);
   assert.deepEqual(codex, opencodeLite);
@@ -144,15 +144,10 @@ test("Codex menu and high-risk workflow boundaries stay faithful", () => {
   assert.match(readSkill("council"), /Always confirm before running/i);
   assert.match(readSkill("ship"), /Never force-push/i);
   assert.match(readSkill("uninstall"), /confirm each tier separately/i);
-  assert.match(
-    readSkill("diario"),
-    /Never write diary content inside any repository/i,
-  );
-  assert.match(readSkill("diario"), /~\/\.base_project\/diary-root\.txt/);
   assert.match(readSkill("usagebp"), /~\/\.claude\/base_project\/usage\//);
 });
 
-test("newgoal keeps runtime-specific model and final-response contracts", () => {
+test("newgoal stays planning-only, model-neutral, and writes the item contract", () => {
   const read = (relativePath) =>
     fs.readFileSync(path.join(repoRoot, ...relativePath), "utf8");
   const workflows = {
@@ -171,63 +166,56 @@ test("newgoal keeps runtime-specific model and final-response contracts", () => 
     assert.match(content, /GOALS\.md/i, `${runtime} must write the plan`);
   }
 
+  for (const [runtime, content] of Object.entries(workflows)) {
+    assert.doesNotMatch(
+      content,
+      /Suggested:|model \+ effort|\b(?:haiku|opus)\b|gpt-\d/i,
+      `${runtime} must not suggest a model`,
+    );
+    assert.match(content, /item-contract: v1/, runtime);
+    assert.match(content, /Anchor:/, runtime);
+    assert.match(content, /Verify:/, runtime);
+    assert.match(content, /unverified — confirm before executing/, runtime);
+    assert.match(content, /stage map/i, runtime);
+    assert.match(content, /adjust the plan first/i, runtime);
+    assert.match(content, /ASD-STE100/, runtime);
+    assert.match(content, /20 words or fewer/, runtime);
+  }
+
   for (const runtime of ["claude", "opencode", "opencode-lite"]) {
     assert.match(workflows[runtime], /tier: <light\|standard\|strong>/);
     assert.match(workflows[runtime], /tier: user/);
     assert.match(workflows[runtime], /effort `xhigh` only/);
   }
 
-  const codexMappingStart = workflows.codex.indexOf(
-    "### Codex-specific model mapping",
-  );
-  const codexMappingEnd = workflows.codex.indexOf("7. If `GOALS.md` exists");
-  assert.ok(codexMappingStart >= 0);
-  assert.ok(codexMappingEnd > codexMappingStart);
-  const codexMapping = workflows.codex.slice(
-    codexMappingStart,
-    codexMappingEnd,
-  );
-  assert.doesNotMatch(codexMapping, /\b(?:haiku|sonnet|opus)\b/i);
-  for (const pair of [
-    "gpt-5.6-luna · low",
-    "gpt-5.6-terra · medium",
-    "gpt-5.6-sol · high",
-    "gpt-6-astra · xhigh",
-  ]) {
-    assert.match(codexMapping, new RegExp(pair.replace("·", "\\s*·\\s*")));
-  }
-  assert.match(
-    codexMapping,
-    /gpt-6-astra.*gpt-5\.6-sol.*gpt-5\.6-terra.*gpt-5\.6-luna/is,
-  );
-  assert.match(codexMapping, /preserve the requested effort/i);
-  assert.match(
-    codexMapping,
-    /disclose both the fallback and the changed effort/i,
-  );
-
-  const finalContract = workflows.codex.slice(
-    workflows.codex.indexOf("9. Report in the user's language"),
-  );
-  assert.match(finalContract, /exactly one\s+localized final sentence/i);
-  assert.equal(
-    (finalContract.match(/\*\*<Codex model> · <effort>\*\*/g) || []).length,
-    1,
-  );
-  assert.match(finalContract, /concrete reason/i);
-  assert.match(finalContract, /gpt-5\.6-terra · medium/);
-  assert.match(finalContract, /manual-only disclaimer/i);
-  assert.match(
-    finalContract,
-    /does not automatically change the\s+selected model, effort, or Codex configuration/i,
-  );
-  assert.match(finalContract, /\$execgoals.*adjust the plan first/is);
   assert.match(workflows.codex, /Format: executor-v1/);
+});
+
+test("execgoals stops on plan drift and routes specified items to coder", () => {
+  const files = [
+    ["source", "claude", "commands", "execgoals.md"],
+    ["source", "opencode", "command", "execgoals.md"],
+    ["source", "opencode", "command-lite", "execgoals.md"],
+    ["source", "codex", "skills", "execgoals", "SKILL.md"],
+  ];
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(repoRoot, ...file), "utf8");
+    const label = file.join("/");
+    assert.match(content, /plan drift/i, label);
+    assert.match(content, /never to improvise/i, label);
+    assert.match(content, /Verify:/, label);
+    assert.match(
+      content,
+      /names a command that writes the archive checksums/,
+      label,
+    );
+    assert.match(content, /design question/i, label);
+  }
 });
 
 test("Batching and stopping guidance has exact parity across native layers", () => {
   const guidance =
-    "### Batching and stopping\n- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan, safety, or diary boundaries.";
+    "### Batching and stopping\n- Batch independent reads and checks, reuse evidence already gathered, and validate once at each area boundary. Stop after the scoped work is verified complete or a real blocker requires user input; do not speculate, retry blindly, or continue into unrelated work. Never use batching or stopping to bypass plan or safety boundaries.";
   const paths = [
     ["source", "CLAUDE.md"],
     ["source", "opencode-instructions.md"],
@@ -285,7 +273,7 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
     );
     assert.equal(installedUpdates, sourceUpdates);
 
-    assert.equal(names(path.join(roots.agents, "skills"), "", true).length, 21);
+    assert.equal(names(path.join(roots.agents, "skills"), "", true).length, 20);
     assert.deepEqual(names(path.join(roots.codex, "agents"), ".toml"), [
       "architect",
       "coder",
@@ -307,16 +295,14 @@ test("Codex installer synchronizes native layers and is idempotent", () => {
         path.join(roots.codex, "base_project", "references", "command-menu.md"),
       ),
     );
-    assert.ok(
-      fs.existsSync(
-        path.join(
-          roots.codex,
-          "base_project",
-          "references",
-          "ai-writing-standard.md",
+    for (const reference of ["cdp-verification.md", "ai-writing-standard.md"]) {
+      assert.ok(
+        fs.existsSync(
+          path.join(roots.codex, "base_project", "references", reference),
         ),
-      ),
-    );
+        `expected Codex reference ${reference}`,
+      );
+    }
     assert.ok(
       fs.existsSync(path.join(roots.codex, "base_project", "plugins.json")),
     );

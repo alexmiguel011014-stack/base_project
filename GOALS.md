@@ -2,31 +2,30 @@
 This is the active execution context for `/execgoals`. Completed plan bodies live in `dev/goals-archive/` so a planning or execution pass reads current work first, without losing the evidence behind prior decisions.
 
 ## Active plans
-1. [**Per-Project Rule Overrides: /rulesonproject**](#goals-20-per-project-rule-overrides-rulesonproject) — a 22nd command that saves rule overrides for one project outside it and prints them at every session start and after a compaction, vetoing the base_project rule each one replaces; run after GOALS 18.
-1. [**Lean Agent Docs: Executor-Ready Plans & Tiered Execution**](#goals-19-lean-agent-docs-executor-ready-plans-and-tiered-execution) — `/newgoal` plans in an AI-only executor contract with a runnable `check:` per item, `/execgoals` dispatches each item to a cheaper model and escalates on failure, model-executed text follows an STE-derived standard, chat output goes BLUF.
+1. [**Per-Project Rule Overrides: /rulesonproject**](#goals-22-per-project-rule-overrides-rulesonproject) — a 21st command that saves rule overrides for one project outside it and prints them at every session start and after a compaction, vetoing the base_project rule each one replaces; run after GOALS 18.
+1. [**Lean Agent Docs: Executor-Ready Plans & Tiered Execution**](#goals-21-lean-agent-docs-executor-ready-plans-and-tiered-execution) — `/newgoal` plans in an AI-only executor contract with a runnable `check:` per item, `/execgoals` dispatches each item to a cheaper model and escalates on failure, model-executed text follows an STE-derived standard, chat output goes BLUF.
 1. [**CDP Verification Modifier**](#goals-18-cdp-verification-modifier-for-execgoals-and-fixproject) — a `cdp` word added to `/execgoals` or `/fixproject` makes the run prove UI items in an isolated real browser over the Chrome DevTools Protocol; no new command, no always-on debug port.
 2. [**Audit Remediation: CI, Hooks, Installer Safety**](#goals-17-audit-remediation-ci-hooks-installer-safety) — fix the decision-free findings of `dev/auditoria-2026-09-24.md` in severity order; owner decisions stay open as `manual` items.
 3. [**Screen-Control Last Resort & App-Driven UI Verification**](#goals-16-screen-control-last-resort-and-app-driven-ui-verification) — make Claude Code, Codex, and opencode test UIs through DOM-driven app tooling, treat desktop screen control as an approval-gated last resort, and ask the user for screenshots instead of capturing the desktop.
 4. [**Dependency and Tool Update Report Command**](#goals-15-dependency-and-tool-update-report-command) — add a read-only `$updates`/`/updates` workflow for the base_project-managed dependency and CLI surfaces.
-5. [**Codex Model Recommendation Parity**](#goals-14-codex-model-recommendation-parity) — make `$newgoal` show a runtime-correct, manual-only model + effort recommendation.
-6. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
+5. [**Usage Efficiency & Quality Loop**](#goals-12-usage-efficiency--quality-loop-base_project-process) — measure real usage first, then reduce waste without trading away correctness.
 
 ## Completed plans
-The completed bodies for GOALS 1–11 and 13 are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
+The completed bodies for GOALS 1–11, 13, 19 and 20 (and the superseded GOALS 14) are preserved in the [archive index](dev/goals-archive/README.md). Consult an individual archived plan only when its historic scope or evidence is relevant.
 
 `dev/ROADMAP.md` remains the chronological decision log; this file contains only work that `/execgoals` can still execute.
 
 ---
 
-<a id="goals-20-per-project-rule-overrides-rulesonproject"></a>
-## GOALS 20 — Per-Project Rule Overrides: /rulesonproject (base_project feature)
+<a id="goals-22-per-project-rule-overrides-rulesonproject"></a>
+## GOALS 22 — Per-Project Rule Overrides: /rulesonproject (base_project feature)
 Format: executor-v1
 
-Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project outside that project and prints them into the context at every session start and after a compaction, so a project can replace a base_project rule without editing base_project or the project. Run it after GOALS 18, because both plans change the command count; existing plans are not changed. In every block below, remove the 4-space plan indent; all other leading spaces are part of the text.
+Adds `rulesonproject`, the 21st command: it saves rule overrides for one project outside that project and prints them into the context at every session start and after a compaction, so a project can replace a base_project rule without editing base_project or the project. Run it after GOALS 18, because C18.13 verifies the current 20-command baseline before this plan adds one command; existing plans are otherwise unchanged. In every block below, remove the 4-space plan indent; all other leading spaces are part of the text.
 
 ### Decisions
 
-- D1 Add `rulesonproject` as the 22nd command in four variants (Claude, opencode dense, opencode lite, Codex). The first word of the arguments picks `list`, `remove`, `find`, `render`, `adopt` or `key`; any other text is a request to add an override. Why: one entry point that takes plain requests such as "write GOALS.md in Portuguese". Source: the owner's request of 2026-10-21.
+- D1 Add `rulesonproject` as the 21st command in four variants (Claude, opencode dense, opencode lite, Codex). The first word of the arguments picks `list`, `remove`, `find`, `render`, `adopt` or `key`; any other text is a request to add an override. Why: one entry point that takes plain requests such as "write GOALS.md in Portuguese". Source: the owner's request of 2026-10-21.
 - D2 Save overrides in `~/.base_project/project-rules/<key>.json`, outside the project. The key is the folder name plus 8 hex digits of a SHA-256 of the main working tree of the repository, so every git worktree shares one set. Why: the zero-footprint decision forbids writing into the project, and base_project's own rule files must not change. Source: `dev/ROADMAP.md` "Decisões já tomadas".
 - D3 Rejected storage: `CLAUDE.local.md` or `.claude/rules/` inside the project, the auto-memory folder, and editing the managed block in `~/.claude/CLAUDE.md`. Why: the first breaks zero footprint; Claude Code concatenates CLAUDE.md files and "may pick one arbitrarily" between contradicting ones; memory is background context, not instructions; the managed block is shared by every project and rewritten by each install. Source: https://code.claude.com/docs/en/memory.
 - D4 The existing SessionStart hook prints the override block; the three global rule blocks do not change. Why: a project without overrides pays no tokens, and the block names the rule it replaces and says "do B", which is the strongest wording available because Claude Code treats CLAUDE.md as "context, not enforced configuration". Source: https://code.claude.com/docs/en/memory.
@@ -35,15 +34,15 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 - D7 Put the library and CLI in `source/hooks/project-rules.js`, run by the commands as `node ~/.claude/base_project/hooks/project-rules.js`. Why: both installers already copy every `hooks/*.js`, so no installer step is added, and usagebp already uses the Claude-home path for every runtime. Source: `dev/scripts/install.sh` line 442, `dev/scripts/install.ps1` line 534.
 - D8 Cap the printed block at 5000 characters and say how many overrides were cut. Why: Claude Code caps hook output at 10,000 characters and Codex at about 2,500 tokens, and the git summary shares that budget. Source: https://code.claude.com/docs/en/hooks, https://learn.chatgpt.com/docs/hooks.
 - D9 Vetoing a protected rule needs `--allow-protected`, which the command passes only after a second question that shows the exact text. Protected means: the `Security`, `Autonomy & Confirmations` and `UI verification & screen control` sections, the Tiered autonomy item, and the commands `ship`, `pr`, `uninstall`, `undo` and `council`. Why: the owner wants to override "any rule", and safety rules keep a human gate. Source: `source/CLAUDE.md` sections Workflow item 5 and Autonomy & Confirmations.
-- D10 Each override stores an `anchor`, 3 to 8 words from one line of the vetoed text. `list` shows `stale` when an update removed that text, `addition` when there is no anchor, and `protected` when the anchor sits in a protected rule. Why: base_project updates rewrite the installed files, and a silent dead override is worse than a visible one. Source: dev/tests/project-rules.test.js, written in O20.3.
+- D10 Each override stores an `anchor`, 3 to 8 words from one line of the vetoed text. `list` shows `stale` when an update removed that text, `addition` when there is no anchor, and `protected` when the anchor sits in a protected rule. Why: base_project updates rewrite the installed files, and a silent dead override is worse than a visible one. Source: dev/tests/project-rules.test.js, written in O22.3.
 - D11 The stored rule is written in English; the command answers the user in the user's language. Why: the rule is text the model follows. Source: `source/claude/references/ai-writing-standard.md` Part A.
 - D12 opencode gets the command and the store, but no automatic printing: base_project installs no session-start hook there, and the opencode plugin page lists no confirmed system-prompt hook. The opencode variants tell the user to run `/rulesonproject render` at the start of each session. Why: the alternative is an unverified plugin. Source: https://opencode.ai/docs/plugins/, https://opencode.ai/docs/rules/.
 - D13 The overrides are user data: `/uninstall` keeps `~/.base_project/project-rules/` with Tier D and removes the rest of `~/.base_project/` with Tier A. Why: they cannot be restored by reinstalling. Source: `source/claude/commands/uninstall.md` Tier D.
-- D14 Run this plan after GOALS 18, and change no existing plan. Why: GOALS 18 item C18.13 checks that the command count still reads 21, and this plan changes it to 22. Source: GOALS 18 and D10 of GOALS 19.
+- D14 Run this plan after GOALS 18, and change no existing plan. Why: GOALS 18 item C18.13 checks that the command count still reads 20, and this plan changes it to 21. Source: GOALS 18 and D10 of GOALS 21.
 
 ### Implementation
 
-- [x] **O20.1 Write the project-rules library and CLI**
+- [x] **O22.1 Write the project-rules library and CLI**
   - tier: light · low
   - gate: auto
   - after: none
@@ -528,10 +527,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
   - check: `node -e "const m=require('./source/hooks/project-rules.js');process.exit(['runCli','renderForCwd','findInSources','projectInfo'].every((k)=>typeof m[k]==='function')?0:1)" && npx biome check source/hooks/project-rules.js` → exit 0
   - stop-if: Biome reports a finding in the file after it was copied exactly
   - proof: check exit 0; block extracted from this plan is byte-identical to the copy verified in the throwaway tree; Biome clean, 2026-10-21, claude-sonnet-5-5
-- [x] **O20.2 Print the overrides from the SessionStart hook**
+- [x] **O22.2 Print the overrides from the SessionStart hook**
   - tier: light · low
   - gate: auto
-  - after: O20.1
+  - after: O22.1
   - files: `source/hooks/session-start-git-context.js` (edit)
   - do:
     1. Edit `source/hooks/session-start-git-context.js` with the two pairs below.
@@ -586,17 +585,17 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
   - check: `node --test dev/tests/session-start-git-context.test.js && npx biome check source/hooks/session-start-git-context.js && npm run typecheck` → exit 0
   - stop-if: an `old` text occurs zero times or more than once
   - proof: check exit 0; session-start-git-context tests 8/8, Biome and tsc clean; result identical to the verified copy, 2026-10-21, claude-sonnet-5-5
-- [x] **O20.3 Write the tests for the library, the CLI and the hook**
+- [x] **O22.3 Write the tests for the library, the CLI and the hook**
   - tier: light · low
   - gate: auto
-  - after: O20.2
+  - after: O22.2
   - files: `dev/tests/project-rules.test.js` (new)
   - do:
     1. Write `dev/tests/project-rules.test.js` with exactly the content of the block below.
 
     `````javascript
     // base_project:managed
-    // Per-project rule overrides (GOALS 20): project key, store, protected-rule gate, render cap and
+    // Per-project rule overrides (GOALS 22): project key, store, protected-rule gate, render cap and
     // the SessionStart integration. Everything runs against a throwaway home and throwaway repos.
     const test = require("node:test");
     const assert = require("node:assert/strict");
@@ -905,10 +904,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
   - check: `node --test dev/tests/project-rules.test.js && npx biome check dev/tests/project-rules.test.js && npm run typecheck` → exit 0
   - stop-if: a test fails after the block was copied exactly; report it and do not edit the test
   - proof: check exit 0; project-rules.test.js 9/9, Biome and tsc clean; block identical to the verified copy, 2026-10-21, claude-sonnet-5-5
-- [x] **O20.4 Register the compact matcher in the installers and CI**
+- [x] **O22.4 Register the compact matcher in the installers and CI**
   - tier: standard · medium
   - gate: notify
-  - after: O20.2
+  - after: O22.2
   - files: `dev/scripts/install.sh` (edit), `dev/scripts/install.ps1` (edit), `dev/scripts/install-codex.js` (edit), `.github/workflows/ci.yml` (edit)
   - do:
     1. Edit the four files with the pairs below. State in one line that Codex users must trust the changed hook again with `/hooks`.
@@ -1004,10 +1003,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
 ### Command files
 
-- [ ] **O20.5 Write the Claude and opencode dense command files**
+- [ ] **O22.5 Write the Claude and opencode dense command files**
   - tier: light · low
   - gate: auto
-  - after: O20.1, C18.15
+  - after: O22.1, C18.15
   - files: `source/claude/commands/rulesonproject.md` (new), `source/opencode/command/rulesonproject.md` (new)
   - do:
     1. Write `source/claude/commands/rulesonproject.md` with exactly the content of the block below.
@@ -1079,10 +1078,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     `````
   - check: `node -e "const f=require('fs');const {lintText}=require('./dev/scripts/ai-style-lint.js');const c=f.readFileSync('source/claude/commands/rulesonproject.md','utf8');const d=f.readFileSync('source/opencode/command/rulesonproject.md','utf8');const bad=[c,d].flatMap((t)=>lintText(t));process.exit(!bad.length&&c.includes('--allow-protected')&&d.includes('does not print overrides at session start')&&!c.includes('does not print overrides')?0:1)"` → exit 0
   - stop-if: the lint reports a finding after the block was copied exactly
-- [ ] **O20.6 Write the opencode lite and Codex command files**
+- [ ] **O22.6 Write the opencode lite and Codex command files**
   - tier: light · low
   - gate: auto
-  - after: O20.5
+  - after: O22.5
   - files: `source/opencode/command-lite/rulesonproject.md` (new), `source/codex/skills/rulesonproject/SKILL.md` (new)
   - do:
     1. Write `source/opencode/command-lite/rulesonproject.md` with exactly the content of the block below.
@@ -1170,10 +1169,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     `````
   - check: `node -e "const f=require('fs');const {lintText}=require('./dev/scripts/ai-style-lint.js');const files=['source/opencode/command-lite/rulesonproject.md','source/codex/skills/rulesonproject/SKILL.md'];const bad=files.flatMap((k)=>lintText(f.readFileSync(k,'utf8')));process.exit(!bad.length&&files.every((k)=>f.readFileSync(k,'utf8').includes('--allow-protected'))?0:1)"` → exit 0
   - stop-if: the lint reports a finding after the block was copied exactly
-- [ ] **O20.7 Change the command count from 21 to 22 in the tests and CI**
+- [ ] **O22.7 Change the command count from 20 to 21 in the tests and CI**
   - tier: light · low
   - gate: auto
-  - after: O20.6
+  - after: O22.6
   - files: `dev/tests/codex.test.js` (edit), `.github/workflows/ci.yml` (edit)
   - do:
     1. Edit the two files with the pairs below.
@@ -1220,7 +1219,7 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     `````
   - check: `node --test dev/tests/codex.test.js dev/tests/ci-contract.test.js` → exit 0
   - stop-if: an `old` text occurs zero times or more than once
-- [x] **O20.8 Keep the overrides with the user's data in /uninstall**
+- [x] **O22.8 Keep the overrides with the user's data in /uninstall**
   - tier: standard · medium
   - gate: notify
   - after: none
@@ -1340,10 +1339,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
 ### Registration
 
-- [ ] **O20.9 Add the command to the three menus**
+- [ ] **O22.9 Add the command to the three menus**
   - tier: light · low
   - gate: auto
-  - after: O20.6
+  - after: O22.6
   - files: `source/claude/references/command-menu.md` (edit), `source/opencode/references/command-menu.md` (edit), `source/codex/references/command-menu.md` (edit)
   - do:
     1. Edit the three files with the pairs below. The menus are Portuguese; keep the text as written.
@@ -1375,10 +1374,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     `````
   - check: `node -e "const f=require('fs');process.exit([['source/claude/references/command-menu.md','/rulesonproject'],['source/opencode/references/command-menu.md','/rulesonproject'],['source/codex/references/command-menu.md','\$rulesonproject']].every(([k,s])=>f.readFileSync(k,'utf8').includes(s))?0:1)" && node --test dev/tests/menu-rule.test.js dev/tests/codex.test.js` → exit 0
   - stop-if: an `old` text occurs zero times or more than once
-- [ ] **O20.10 Update README, ARCHITECTURE and ROADMAP**
+- [ ] **O22.10 Update README, ARCHITECTURE and ROADMAP**
   - tier: standard · medium
   - gate: auto
-  - after: O20.7, O20.8, O20.9
+  - after: O22.7, O22.8, O22.9
   - files: `README.md` (edit), `ARCHITECTURE.md` (edit), `dev/ROADMAP.md` (edit)
   - do:
     1. Edit the three files with the pairs below. README is English; ARCHITECTURE and ROADMAP are Portuguese.
@@ -1388,38 +1387,38 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
     Pair 1, old:
     `````text
-    All 21 workflows
+    All 20 workflows
     `````
     Pair 1, new:
     `````text
-    All 22 workflows
+    All 21 workflows
     `````
 
     Pair 2, old:
     `````text
-    Same 21 commands, flat
+    Same 20 commands, flat
     `````
     Pair 2, new:
     `````text
-    Same 22 commands, flat
+    Same 21 commands, flat
     `````
 
     Pair 3, old:
     `````text
-    The same 21 workflows as native Codex skills
+    The same 20 workflows as native Codex skills
     `````
     Pair 3, new:
     `````text
-    The same 22 workflows as native Codex skills
+    The same 21 workflows as native Codex skills
     `````
 
     Pair 4, old:
     `````text
-    21 workflows ship in total
+    20 workflows ship in total
     `````
     Pair 4, new:
     `````text
-    22 workflows ship in total
+    21 workflows ship in total
     `````
 
     Pair 5, old:
@@ -1448,90 +1447,90 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     Pair 7, new:
     `````text
     ### Unreleased
-    - New `/rulesonproject` (22nd command): per-project rule overrides saved outside the project and printed by the SessionStart hook, which now also runs after a compaction. Safety rules need a separate confirmation. `/uninstall` keeps the overrides with your other data (Tier D).
+    - New `/rulesonproject` (21st command): per-project rule overrides saved outside the project and printed by the SessionStart hook, which now also runs after a compaction. Safety rules need a separate confirmation. `/uninstall` keeps the overrides with your other data (Tier D).
     `````
 
     File `ARCHITECTURE.md`. Replace each `old` text with its `new` text. Each `old` text occurs exactly once.
 
     Pair 1, old:
     `````text
-    **21 comandos**
+    **20 comandos**
     `````
     Pair 1, new:
     `````text
-    **22 comandos**
+    **21 comandos**
     `````
 
     Pair 2, old:
     `````text
-    (21 comandos — ver README.md
+    (20 comandos — ver README.md
     `````
     Pair 2, new:
     `````text
-    (22 comandos — ver README.md
+    (21 comandos — ver README.md
     `````
 
     Pair 3, old:
     `````text
-    `-OpencodeCommands lite` — mesmos 21
+    `-OpencodeCommands lite` — mesmos 20
     `````
     Pair 3, new:
     `````text
-    `-OpencodeCommands lite` — mesmos 22
+    `-OpencodeCommands lite` — mesmos 21
     `````
 
     Pair 4, old:
     `````text
-    (mesmos 21 workflows; invocação
+    (mesmos 20 workflows; invocação
     `````
     Pair 4, new:
     `````text
-    (mesmos 22 workflows; invocação
+    (mesmos 21 workflows; invocação
     `````
 
     Pair 5, old:
     `````text
-    ## 4. Os 21 comandos
+    ## 4. Os 20 comandos
     `````
     Pair 5, new:
     `````text
-    ## 4. Os 22 comandos
+    ## 4. Os 21 comandos
     `````
 
     Pair 6, old:
     `````text
-    21 nomes, mesma descrição de propósito
+    20 nomes, mesma descrição de propósito
     `````
     Pair 6, new:
     `````text
-    22 nomes, mesma descrição de propósito
+    21 nomes, mesma descrição de propósito
     `````
 
     Pair 7, old:
     `````text
-    os mesmos 21 nomes usam
+    os mesmos 20 nomes usam
     `````
     Pair 7, new:
     `````text
-    os mesmos 22 nomes usam
+    os mesmos 21 nomes usam
     `````
 
     Pair 8, old:
     `````text
-    2. 21 skills em
+    2. 20 skills em
     `````
     Pair 8, new:
     `````text
-    2. 22 skills em
+    2. 21 skills em
     `````
 
     Pair 9, old:
     `````text
-    paridade nominal 21/21
+    paridade nominal 20/20
     `````
     Pair 9, new:
     `````text
-    paridade nominal 22/22
+    paridade nominal 21/21
     `````
 
     Pair 10, old:
@@ -1545,11 +1544,11 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
     Pair 11, old:
     `````text
-    ledger de uso, diários, `~/.agents/` — não voltam reinstalando
+    ledger de uso, `~/.agents/` — não voltam reinstalando, padrão é manter
     `````
     Pair 11, new:
     `````text
-    ledger de uso, diários, overrides do `rulesonproject`, `~/.agents/` — não voltam reinstalando
+    ledger de uso, overrides das regras por projeto em `~/.base_project/project-rules/`, `~/.agents/` — não voltam reinstalando, padrão é manter
     `````
 
     Pair 12, old:
@@ -1582,41 +1581,41 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
     Pair 15, old:
     `````text
-    - `lean-agent-docs.test.js` — contrato do GOALS 19
+    - `lean-agent-docs.test.js` — contrato do GOALS 21
     `````
     Pair 15, new:
     `````text
     - `project-rules.test.js` — chave do projeto (worktrees compartilham), armazenamento, trava de regras protegidas, âncora e `stale`, limite do bloco, `adopt` e o hook `SessionStart` (inclui `compact`)
     - `rulesonproject-command.test.js` — contrato do comando nas 4 variantes, Tier D do `/uninstall` e matcher `compact` nos instaladores
-    - `lean-agent-docs.test.js` — contrato do GOALS 19
+    - `lean-agent-docs.test.js` — contrato do GOALS 21
     `````
 
     File `dev/ROADMAP.md`. Replace each `old` text with its `new` text. Each `old` text occurs exactly once.
 
     Pair 1, old:
     `````text
-    Aberto: piloto L19.15 e decisão L19.16 (dono). Baseline do `report:ai-style` no L19.14.
+    depende da decisão pós-piloto; GOALS 12–18 permanecem no formato atual.
     `````
     Pair 1, new:
     `````text
-    Aberto: piloto L19.15 e decisão L19.16 (dono). Baseline do `report:ai-style` no L19.14.
+    depende da decisão pós-piloto; GOALS 12–18 permanecem no formato atual.
 
-    ## 58. Regras por projeto: `/rulesonproject` (GOALS 20) (2026-10-21)
+    ## 60. Regras por projeto: `/rulesonproject` (GOALS 22) (2026-10-21)
 
     O dono quer reescrever qualquer regra do base_project dentro de um projeto específico, sem modificar o base_project nem o projeto.
 
-    - D1: 22º comando; subcomandos `list`, `remove`, `find`, `render`, `adopt`, `key`; qualquer outro texto é um pedido de override.
+    - D1: 21º comando; subcomandos `list`, `remove`, `find`, `render`, `adopt`, `key`; qualquer outro texto é um pedido de override.
     - D2: guarda em `~/.base_project/project-rules/<chave>.json`, fora do projeto (decisão de zero pegada). A chave vem da raiz do repositório principal, então worktrees compartilham. Rejeitados: `CLAUDE.local.md` ou `.claude/rules` no projeto, memória automática, editar o bloco gerenciado.
     - D3: o hook `SessionStart` imprime o bloco. É instrução, não bloqueio: a documentação do Claude Code trata o CLAUDE.md como contexto, não como configuração imposta. Nenhuma mudança nos três blocos de regras globais.
     - D4: o hook existente ganhou o matcher `compact` (só os overrides são impressos nesse caso). `project-rules.js` é biblioteca + CLI em `source/hooks/`.
     - D5: regras protegidas (Security, autonomia, UI e controle de tela, `ship`, `pr`, `uninstall`, `undo`, `council`) exigem `--allow-protected` depois de confirmação separada.
     - D6: âncora de uma linha; um update que remove o texto vetado marca o override como `stale`.
     - D7: a regra é gravada em inglês; a resposta ao usuário vem no idioma dele.
-    - D8: opencode sem injeção automática (o base_project não instala hook de início de sessão lá). Decisão aberta O20.14.
+    - D8: opencode sem injeção automática (o base_project não instala hook de início de sessão lá). Decisão aberta O22.14.
     - D9: os overrides são dado do usuário: Tier D do `/uninstall`.
-    - D10: executar depois do GOALS 18 (a contagem de comandos passa de 21 para 22).
+    - D10: executar depois do GOALS 18 (a contagem de comandos passa de 20 para 21).
 
-    Aberto: aceitação ao vivo O20.13 e decisão do opencode O20.14.
+    Aberto: aceitação ao vivo O22.13 e decisão do opencode O22.14.
     `````
 
     Pair 2, old:
@@ -1625,18 +1624,27 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     `````
     Pair 2, new:
     `````text
-    - **Regras por projeto ficam fora do projeto (item 58)** — `~/.base_project/project-rules/`, injetadas pelo hook `SessionStart`; nada de `CLAUDE.local.md` nem edição do bloco global.
+    - **Regras por projeto ficam fora do projeto (item 60)** — `~/.base_project/project-rules/`, injetadas pelo hook `SessionStart`; nada de `CLAUDE.local.md` nem edição do bloco global.
     - **Plano executor-v1 + despacho por tier (item 57)**
     `````
-  - check: `node -e "const f=require('fs');const r=f.readFileSync('README.md','utf8');const a=f.readFileSync('ARCHITECTURE.md','utf8');process.exit(['README.md','ARCHITECTURE.md','dev/ROADMAP.md'].every((k)=>f.readFileSync(k,'utf8').includes('rulesonproject'))&&!r.includes('21 workflows')&&!a.includes('21 comandos')&&!a.includes('Os 21 comandos')?0:1)"` → exit 0
+
+    Pair 3, old:
+    `````text
+    nem o 21º comando (a contagem atual continua em 20).
+    `````
+    Pair 3, new:
+    `````text
+    nem o 22º comando (a contagem atual continua em 21).
+    `````
+  - check: `node -e "const f=require('fs');const r=f.readFileSync('README.md','utf8');const a=f.readFileSync('ARCHITECTURE.md','utf8');const d=f.readFileSync('dev/ROADMAP.md','utf8');const h=d.slice(d.indexOf('## 59.'),d.indexOf('## 60.'));process.exit(['README.md','ARCHITECTURE.md','dev/ROADMAP.md'].every((k)=>f.readFileSync(k,'utf8').includes('rulesonproject'))&&!r.includes('20 workflows')&&!a.includes('20 comandos')&&!a.includes('Os 20 comandos')&&d.includes('nem o 22º comando (a contagem atual continua em 21).')&&!d.includes('nem o 21º comando (a contagem atual continua em 20).')&&h.includes('Um comando novo seria o 21º')&&h.includes('A contagem permanece em 20.')?0:1)"` → exit 0
   - stop-if: an `old` text occurs zero times or more than once
 
 ### Tests
 
-- [ ] **O20.11 Enforce the AI-style lint on the command files and add the contract test**
+- [ ] **O22.11 Enforce the AI-style lint on the command files and add the contract test**
   - tier: standard · medium
   - gate: auto
-  - after: O20.3, O20.4, O20.10
+  - after: O22.3, O22.4, O22.10
   - files: `dev/scripts/ai-style-lint.js` (edit), `dev/tests/rulesonproject-command.test.js` (new)
   - do:
     1. Edit `dev/scripts/ai-style-lint.js` with the pair below.
@@ -1662,7 +1670,7 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
     `````javascript
     // base_project:managed
-    // Contract for GOALS 20: the rulesonproject command in four variants, its place in the menus
+    // Contract for GOALS 22: the rulesonproject command in four variants, its place in the menus
     // and docs, the uninstall carve-out for the overrides, and the compact matcher in the installers.
     const test = require("node:test");
     const assert = require("node:assert/strict");
@@ -1787,17 +1795,17 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     3. Run `npx biome check --write dev/scripts/ai-style-lint.js dev/tests/rulesonproject-command.test.js`.
   - check: `node --test dev/tests/rulesonproject-command.test.js dev/tests/lean-agent-docs.test.js dev/tests/project-rules.test.js && npm run lint:ai-style && npm run typecheck` → exit 0
   - stop-if: a test fails after the blocks were copied exactly; report it and do not edit the test
-- [ ] **O20.12 Verify the whole change**
+- [ ] **O22.12 Verify the whole change**
   - tier: standard · medium
   - gate: auto
-  - after: O20.11
+  - after: O22.11
   - files: none
   - do:
     1. Run `npm run verify`, `npm run test:harness`, `node dev/scripts/goals-archive-index.js --check` and `node dev/scripts/validate-goals-structure.js GOALS.md`. In a git worktree under `.claude/worktrees`, `npm run lint` checks no file, so also run `npx biome check source/hooks dev/scripts dev/tests`.
     2. Write the script below to the scratchpad directory as `mutate-goals20.js`.
 
     `````javascript
-    // Mutation check for GOALS 20: every mutation must make the two new test files fail.
+    // Mutation check for GOALS 22: every mutation must make the two new test files fail.
     // Usage: node mutate-goals20.js <repo-root>. Each file is restored after its run.
     const fs = require("node:fs");
     const path = require("node:path");
@@ -1874,10 +1882,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 
 ### Owner acceptance and decisions (manual — stay open until done)
 
-- [ ] **O20.13 Try the command on your machine**
+- [ ] **O22.13 Try the command on your machine**
   - tier: user
   - gate: ask
-  - after: O20.12
+  - after: O22.12
   - files: none
   - do:
     1. Run `dev\scripts\install.ps1` so the installed hook, matcher and command match `source/`. This writes into `~/.claude`.
@@ -1889,10 +1897,10 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
     7. Ask for an override of a Security rule. Expect the second question, with the exact text.
     8. Read the new Tier D paragraph in `/uninstall` without running it.
   - check: manual — the result of each step is written under this item
-- [ ] **O20.14 Decide how opencode gets the overrides**
+- [ ] **O22.14 Decide how opencode gets the overrides**
   - tier: user
   - gate: ask
-  - after: O20.12
+  - after: O22.12
   - files: none
   - do:
     1. Choose (a): keep the `render` workaround that the opencode variants already describe.
@@ -1915,13 +1923,13 @@ Adds `rulesonproject`, the 22nd command: it saves rule overrides for one project
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks): SessionStart with the same `source` values and matchers; hook output about 2,500 tokens; a changed hook must be trusted again; the hook fires after compaction.
 - [Codex AGENTS.md guide](https://developers.openai.com/codex/guides/agents-md): files closer to the working directory come later and so override earlier ones; `AGENTS.override.md` lives inside the project.
 - [opencode rules](https://opencode.ai/docs/rules/) and [opencode plugins](https://opencode.ai/docs/plugins/): no per-project injection without writing into the project, and no confirmed system-prompt plugin hook.
-- This repository: `source/hooks/session-start-git-context.js`, `dev/scripts/install.sh` (hooks copy loop), `dev/scripts/install-codex.js` (`syncHooks`), `source/claude/commands/uninstall.md` (Tier D), `dev/tests/codex.test.js` (count asserts), `GOALS.md` GOALS 18 (C18.13) and GOALS 19.
+- This repository: `source/hooks/session-start-git-context.js`, `dev/scripts/install.sh` (hooks copy loop), `dev/scripts/install-codex.js` (`syncHooks`), `source/claude/commands/uninstall.md` (Tier D), `dev/tests/codex.test.js` (count asserts), `GOALS.md` GOALS 18 (C18.13) and GOALS 21.
 - Local probe, 2026-10-21: `find "in English"` against the real installed rules returned `newgoal.md:87` in the Claude and opencode copies; `key` run from a git worktree returned the key of the main repository; the Security rule was flagged `[protected]`; the whole change was applied to a copy of the tree and passed `npm test` (218 passed, 1 skipped), Biome, `tsc` and the 8 mutations.
 
 ---
 
-<a id="goals-19-lean-agent-docs-executor-ready-plans-and-tiered-execution"></a>
-## GOALS 19 — Lean Agent Docs: Executor-Ready Plans, AI-Facing Style, Tiered Execution (base_project feature)
+<a id="goals-21-lean-agent-docs-executor-ready-plans-and-tiered-execution"></a>
+## GOALS 21 — Lean Agent Docs: Executor-Ready Plans, AI-Facing Style, Tiered Execution (base_project feature)
 
 The owner does not read `GOALS.md`; agents do. The owner wants the expensive model to think once
 and a cheap model to execute. This goal turns `/newgoal` into a planner that writes AI-only items a
@@ -1963,7 +1971,7 @@ Measured on 2026-10-21 in this repository (token figures scale the harness count
   GOALS 14–17 (≈ 27K tokens) stay in the root only because 5 `manual` items are open (M14.8, U15.12,
   S16.15, R17.22b, R17.27). GOALS 12 V.4 measured 52.79 tool calls per execution prompt, so a
   42K-token read is carried on every later turn of the run as cache reads. By owner decision
-  (2026-10-21) these plans stay where they are; the leaner read comes from L19.5 step 1 (read only
+  (2026-10-21) these plans stay where they are; the leaner read comes from L21.5 step 1 (read only
   the selected plan), not from moving old plans.
 - Loaded in every session: `source/CLAUDE.md` ≈ 4.4K; the 21 command descriptions ≈ 1.4K. Per
   invocation: `newgoal.md` ≈ 3.7K, `execgoals.md` ≈ 2.0K. All model-executed command files:
@@ -1980,7 +1988,7 @@ Decisions (each item below copies them; none is reopened during execution):
 - D1 **Executor contract v1.** A plan section starts with `Format: executor-v1`, a scope of three
   sentences or fewer, and `### Decisions` (one line per decision). Each item has the fields `tier`,
   `gate`, `after`, `files`, `do`, `check`, optional `stop-if`; the exact shape is the fenced block in
-  L19.3. Tiers are runtime-neutral (`light`, `standard`, `strong`, or `user`) because one plan can be
+  L21.3. Tiers are runtime-neutral (`light`, `standard`, `strong`, or `user`) because one plan can be
   executed by Claude Code, opencode or Codex, whose model names differ. One item is one executor run:
   5 files or fewer, 10 steps or fewer. No Mermaid and no `Suggested:` line in a v1 section: `after:`
   is the graph and `tier:` is the routing.
@@ -2008,7 +2016,7 @@ Decisions (each item below copies them; none is reopened during execution):
   routing advisory: keep the `tier:` field, run every item at `standard`. Why: GOALS 12 forbids a
   cheaper default without a paired comparison; its V.10 harness (`usage-baseline.js --compare`)
   already exists and still lacks a real sample.
-- D7 **Writing standard.** The reference in L19.1 paraphrases ASD-STE100 (12 writing rules, a
+- D7 **Writing standard.** The reference in L21.1 paraphrases ASD-STE100 (12 writing rules, a
   9-term glossary, 6 output rules). It copies no STE dictionary text. Text agents follow: English,
   Part A + glossary. Text the user reads: the user's language, Part C (BLUF, about 15-word
   sentences, active voice, status words done / blocked / next — AR 25-50 Army writing style).
@@ -2018,13 +2026,13 @@ Decisions (each item below copies them; none is reopened during execution):
   independent tests; LLMLingua's up-to-20× results are on QA and reasoning benchmarks, not
   multi-step instruction following; compressed text cannot be edited by the next planner. The
   savings come from what is loaded and how much is generated, not from the notation.
-- D9 **Not now: rewriting all ≈ 84 model-executed files.** L19.10's lint report gives the baseline
-  count; the pilot decides; L19.16 opens the rollout plan. Human docs (README, ARCHITECTURE,
+- D9 **Not now: rewriting all ≈ 84 model-executed files.** L21.10's lint report gives the baseline
+  count; the pilot decides; L21.16 opens the rollout plan. Human docs (README, ARCHITECTURE,
   CONTRIBUTING, command menus, diaries) stay human — the repository is public and the menus are
   printed verbatim to the user.
 - D10 **Existing plans stay untouched** (owner, 2026-10-21). No item edits, rewrites, format
   conversion or archiving of GOALS 12–18. GOALS 18 keeps its format and runs on the old path (steps
-  3 and 4 of `/execgoals` stay valid for it); L19.6 keeps its `cdp` paragraph if it already landed.
+  3 and 4 of `/execgoals` stay valid for it); L21.6 keeps its `cdp` paragraph if it already landed.
   The pilot uses the next new plan written by the new `/newgoal`. Why: avoid merge and content
   conflicts with plans already in flight.
 
@@ -2032,7 +2040,7 @@ Decisions (each item below copies them; none is reopened during execution):
 
 Suggested: sonnet · high — two port items adapt exact text to three file styles; the rest copy given content.
 
-- [x] **L19.1 Write the AI writing standard reference** (`coder`)
+- [x] **L21.1 Write the AI writing standard reference** (`coder`)
   - tier: light · low
   - gate: auto
   - after: none
@@ -2095,10 +2103,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
     ```
   - check: `node -e "const f=require('fs');const a=f.readFileSync('source/claude/references/ai-writing-standard.md','utf8');const b=f.readFileSync('source/opencode/references/ai-writing-standard.md','utf8');process.exit(a===b&&a.startsWith('# base_project:managed')&&a.includes('## B. Glossary')&&!a.includes('—')?0:1)"` → exit 0
   - proof: check exit 0; both copies byte-identical, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.3 Make `/newgoal` write executor-v1 plans (Claude variant)** (`coder`)
+- [x] **L21.3 Make `/newgoal` write executor-v1 plans (Claude variant)** (`coder`)
   - tier: standard · medium
   - gate: auto
-  - after: L19.1
+  - after: L21.1
   - files: `source/claude/commands/newgoal.md` (edit)
   - do:
     1. Replace step 5 and step 5a (from the line that starts with `5. **Write \`GOALS.md\` in
@@ -2160,14 +2168,14 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
     ````
   - check: `node -e "const t=require('fs').readFileSync('source/claude/commands/newgoal.md','utf8');const s=t.slice(t.indexOf('5. **Write'));process.exit(['Format: executor-v1','ai-writing-standard.md','tier: user','Owner backlog','sonnet · medium','### Decisions\` line'].every(x=>t.includes(x))&&!/Suggested: <|Mermaid \`flowchart\`/.test(s)?0:1)"` → exit 0
   - proof: check exit 0 (the plan's own check was fixed first: the prohibition sentence names `Suggested:`, so the check now forbids `Suggested: <`), 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.4 Port the `/newgoal` change to opencode dense, opencode lite and Codex** (`coder`)
+- [x] **L21.4 Port the `/newgoal` change to opencode dense, opencode lite and Codex** (`coder`)
   - tier: strong · high
   - gate: auto
-  - after: L19.3
+  - after: L21.3
   - files: `source/opencode/command/newgoal.md` (edit), `source/opencode/command-lite/newgoal.md`
     (edit), `source/codex/skills/newgoal/SKILL.md` (edit), `dev/tests/codex.test.js` (edit)
   - do:
-    1. Apply the four edits of L19.3 to each file, in that file's own style. The lite file uses flat
+    1. Apply the four edits of L21.3 to each file, in that file's own style. The lite file uses flat
        `STEP` lines: turn its `STEP 7` and `STEP 7a` into one `STEP 7` that holds the same rules as
        short lines.
     2. Use each runtime's reference path: opencode dense and lite
@@ -2184,15 +2192,15 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
        contains `Format: executor-v1` and `gpt-5.6-terra · medium`.
   - check: `node --test dev/tests/codex.test.js && node -e "const f=require('fs');const p={'source/opencode/command/newgoal.md':'.config/opencode','source/opencode/command-lite/newgoal.md':'.config/opencode','source/codex/skills/newgoal/SKILL.md':'.codex'};process.exit(Object.entries(p).every(([k,v])=>{const t=f.readFileSync(k,'utf8');return t.includes('Format: executor-v1')&&t.includes(v+'/base_project/references/ai-writing-standard.md')&&t.includes('tier: user')&&t.includes('Owner backlog')&&!t.includes('Suggested: <')})?0:1)"` → exit 0
   - proof: check exit 0; `codex.test.js` 6/6 (the lines 174–178 asserts also moved to tier vocabulary), 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.5 Make `/execgoals` dispatch executor-v1 items by tier (Claude variant)** (`coder`)
+- [x] **L21.5 Make `/execgoals` dispatch executor-v1 items by tier (Claude variant)** (`coder`)
   - tier: standard · medium
   - gate: auto
-  - after: L19.1
+  - after: L21.1
   - files: `source/claude/commands/execgoals.md` (edit)
   - do:
     1. In step 2, replace `**Read the whole file first**, then present` with: `**Read only what
        the run needs.** Read the \`Active plans\` list and the \`## Owner backlog\` section. If
-       \`$ARGUMENTS\` names a plan (\`GOALS 19\` or \`19\`), select it; otherwise select the first
+       \`$ARGUMENTS\` names a plan (\`GOALS 21\` or \`19\`), select it; otherwise select the first
        plan in the list with an open item that is not an owner item. Read that plan's section and
        each section its \`after:\` fields name; do not read other sections. Then present`.
     2. Insert the fenced block below, without the fence lines, as a new step directly after
@@ -2230,14 +2238,14 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
     ```
   - check: `node -e "const t=require('fs').readFileSync('source/claude/commands/execgoals.md','utf8');process.exit(['3a. **Executor-v1 plans.**','\`light\` → \`haiku\`','- proof:','BLOCKED: <reason>','## Owner backlog','Read only what the run needs'].every(x=>t.includes(x))&&!t.includes('Read the whole file first')?0:1)"` → exit 0
   - proof: check exit 0, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.6 Port the `/execgoals` change to opencode dense, opencode lite and Codex** (`coder`)
+- [x] **L21.6 Port the `/execgoals` change to opencode dense, opencode lite and Codex** (`coder`)
   - tier: strong · high
   - gate: auto
-  - after: L19.5
+  - after: L21.5
   - files: `source/opencode/command/execgoals.md` (edit), `source/opencode/command-lite/execgoals.md`
     (edit), `source/codex/skills/execgoals/SKILL.md` (edit)
   - do:
-    1. Apply the three edits of L19.5 to each file, in that file's own style; the lite file gets
+    1. Apply the three edits of L21.5 to each file, in that file's own style; the lite file gets
        flat `STEP` lines.
     2. Replace sub-step 3 of the new step with the runtime's own mapping. opencode dense and lite:
        `Run \`light\` and \`standard\` items with \`@coder\` (its configured model). Run \`strong\`
@@ -2247,10 +2255,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
     3. Keep any `cdp` paragraph from GOALS 18 if it is already present; change nothing else.
   - check: `node --test dev/tests/codex.test.js && node -e "const f=require('fs');const fs=['source/opencode/command/execgoals.md','source/opencode/command-lite/execgoals.md','source/codex/skills/execgoals/SKILL.md'];process.exit(fs.every(k=>{const t=f.readFileSync(k,'utf8');return t.includes('Format: executor-v1')&&t.includes('- proof:')&&t.includes('BLOCKED')&&t.includes('Owner backlog')&&t.includes('coder')})?0:1)"` → exit 0
   - proof: check exit 0; `codex.test.js` 6/6, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.7 Add the `check:` line to the goal-type modules (Claude copies)** (`coder`)
+- [x] **L21.7 Add the `check:` line to the goal-type modules (Claude copies)** (`coder`)
   - tier: light · low
   - gate: auto
-  - after: L19.3
+  - after: L21.3
   - files: `source/claude/references/goal-types/build.md`, `.../feature.md`, `.../fix.md`,
     `.../process.md`, `.../research.md` (edit)
   - do:
@@ -2259,10 +2267,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
        code or output proves it, or \`manual — <what the user observes>\` for owner work.`
   - check: `node -e "const f=require('fs');process.exit(['build','feature','fix','process','research'].every(n=>f.readFileSync('source/claude/references/goal-types/'+n+'.md','utf8').includes('In an executor-v1 plan, write this as the item'))?0:1)"` → exit 0
   - proof: check exit 0, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.7b Copy the goal-type modules to the opencode references** (`coder`)
+- [x] **L21.7b Copy the goal-type modules to the opencode references** (`coder`)
   - tier: light · low
   - gate: auto
-  - after: L19.7
+  - after: L21.7
   - files: `source/opencode/references/goal-types/build.md`, `.../feature.md`, `.../fix.md`,
     `.../process.md`, `.../research.md` (edit)
   - do:
@@ -2271,10 +2279,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
        2026-10-21.
   - check: `diff -r source/claude/references/goal-types source/opencode/references/goal-types` → no output, exit 0
   - proof: `diff -r` empty, exit 0, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.8 Add the BLUF bullet to the three global rule blocks** (`coder`)
+- [x] **L21.8 Add the BLUF bullet to the three global rule blocks** (`coder`)
   - tier: light · low
   - gate: auto
-  - after: L19.1
+  - after: L21.1
   - files: `source/CLAUDE.md` (edit), `source/opencode-instructions.md` (edit),
     `source/codex/AGENTS.md` (edit)
   - do:
@@ -2286,10 +2294,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
        `- Be concise by default without weakening exact paths`.
   - check: `node -e "const f=require('fs');const b='- Put the answer, the decision, or the result in the first sentence; give the evidence after it.';process.exit(['source/CLAUDE.md','source/opencode-instructions.md','source/codex/AGENTS.md'].every(k=>f.readFileSync(k,'utf8').split(b).length===2)?0:1)" && node --test dev/tests/usage-envelope.test.js dev/tests/ui-verification-rule.test.js` → exit 0
   - proof: check exit 0; usage-envelope + ui-verification tests 21/21, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.9 Teach the GOALS validator the executor-v1 rules** (`coder`)
+- [x] **L21.9 Teach the GOALS validator the executor-v1 rules** (`coder`)
   - tier: standard · high
   - gate: auto
-  - after: L19.3
+  - after: L21.3
   - files: `dev/scripts/validate-goals-structure.js` (edit)
   - do:
     1. Split the file into sections at lines that start with `## `. A section is v1 when it holds
@@ -2307,10 +2315,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
     6. Keep the export `{ check }` and the CLI output format unchanged.
   - check: `node -e "const {check}=require('./dev/scripts/validate-goals-structure.js');const fs=require('fs'),os=require('os'),p=require('path');const f=p.join(os.tmpdir(),'v1-fixture.md');fs.writeFileSync(f,'## GOALS 1 — T (x feature)\nFormat: executor-v1\n\n- [ ] **T1.1 Do it**\n  - tier: light · low\n');const r=check(f);process.exit(r.findings.some(x=>x.code==='v1_missing_field')?0:1)" && node dev/scripts/validate-goals-structure.js GOALS.md && node --test dev/tests/validate-goals-structure.test.js` → exit 0
   - proof: fixture reports `v1_missing_field`; GOALS.md structure OK; validator tests pass, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.10 Add the AI-style lint** (`coder`)
+- [x] **L21.10 Add the AI-style lint** (`coder`)
   - tier: standard · medium
   - gate: auto
-  - after: L19.1
+  - after: L21.1
   - files: `dev/scripts/ai-style-lint.js` (new), `package.json` (edit)
   - do:
     1. Write `dev/scripts/ai-style-lint.js`: Node built-ins only, `// base_project:managed` on
@@ -2337,10 +2345,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
        in the `validate` job, so `.github/workflows/ci.yml` does not change.
   - check: `npm run lint:ai-style && npm run report:ai-style && npm run lint` → exit 0, and the report's last line starts with `findings:`
   - proof: `lint:ai-style` exit 0; report `findings: 1718 in 91 files`; Biome clean on explicit paths (`biome check .` processes no file inside `.claude/worktrees` because of biome.json's `!!**/.claude/worktrees`), 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.11 Add the contract tests** (`coder`)
+- [x] **L21.11 Add the contract tests** (`coder`)
   - tier: standard · high
   - gate: auto
-  - after: L19.4, L19.6, L19.7b, L19.8, L19.9, L19.10
+  - after: L21.4, L21.6, L21.7b, L21.8, L21.9, L21.10
   - files: `dev/tests/lean-agent-docs.test.js` (new), `dev/tests/validate-goals-structure.test.js`
     (edit), `dev/tests/codex.test.js` (edit)
   - do:
@@ -2369,10 +2377,10 @@ Suggested: sonnet · high — two port items adapt exact text to three file styl
 
 Suggested: haiku · low — text edits with exact wording; the menus are user-facing Portuguese guarded by tests.
 
-- [x] **L19.12 Update the command menus** (`coder`)
+- [x] **L21.12 Update the command menus** (`coder`)
   - tier: light · low
   - gate: auto
-  - after: L19.11
+  - after: L21.11
   - files: `source/claude/references/command-menu.md`, `source/opencode/references/command-menu.md`,
     `source/codex/references/command-menu.md` (edit)
   - do:
@@ -2382,10 +2390,10 @@ Suggested: haiku · low — text edits with exact wording; the menus are user-fa
        ` — cada item vai para um modelo mais barato e só é marcado quando o \`check\` dele passa; se falhar, sobe de modelo ou para e avisa`.
   - check: `node --test dev/tests/menu-rule.test.js dev/tests/codex.test.js && node -e "const f=require('fs');process.exit(['claude','opencode','codex'].every(r=>{const t=f.readFileSync('source/'+r+'/references/command-menu.md','utf8');return t.includes('peça o status quando quiser')&&t.includes('sobe de modelo ou para e avisa')})?0:1)"` → exit 0
   - proof: check exit 0; menu-rule + codex tests 11/11, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.13 Record the change in README, ARCHITECTURE and ROADMAP** (`coder`)
+- [x] **L21.13 Record the change in README, ARCHITECTURE and ROADMAP** (`coder`)
   - tier: standard · medium
   - gate: auto
-  - after: L19.12
+  - after: L21.12
   - files: `README.md`, `ARCHITECTURE.md`, `dev/ROADMAP.md` (edit)
   - do:
     1. README: update the `/newgoal` and `/execgoals` rows to match the menus; add one changelog
@@ -2398,26 +2406,26 @@ Suggested: haiku · low — text edits with exact wording; the menus are user-fa
        notação comprimida`.
   - check: `node -e "const f=require('fs');process.exit(['README.md','ARCHITECTURE.md','dev/ROADMAP.md'].every(k=>f.readFileSync(k,'utf8').includes('executor-v1'))&&f.readFileSync('ARCHITECTURE.md','utf8').includes('ai-writing-standard.md')?0:1)"` → exit 0
   - proof: check exit 0; ROADMAP item 57, 2026-10-21, executed in this session (old-format plan)
-- [x] **L19.14 Verify the whole change** (`reviewer`)
+- [x] **L21.14 Verify the whole change** (`reviewer`)
   - tier: standard · medium
   - gate: auto
-  - after: L19.13
+  - after: L21.13
   - files: none
   - do:
     1. Run `npm run verify`, `npm run test:harness`, `node dev/scripts/goals-archive-index.js --check`
        and `node dev/scripts/validate-goals-structure.js GOALS.md`.
     2. Run `npm run report:ai-style` and copy its last line into this item's proof. It is the
-       baseline for the rollout plan (L19.16).
+       baseline for the rollout plan (L21.16).
     3. When a PR exists, read its CI result on the merge head; do not assume it.
   - check: `npm run verify && npm run test:harness && node dev/scripts/goals-archive-index.js --check` → exit 0
   - proof: typecheck, validate:plugins, check:unused-deps, `npm test` (202/0, 1 skipped), audit:prod (exit 0; one moderate fast-uri advisory, below the high threshold), test:harness, archive index 12 OK, GOALS structure OK; baseline `findings: 1718 in 91 files` (banned-term 117, dash-aside 1090, long-sentence 445, modal 66); no PR yet, so no CI result, 2026-10-21, executed in this session (old-format plan)
 
 ### Owner pilot and decisions (manual — stay open until done)
 
-- [ ] **L19.15 Run the paired pilot on the next new plan** (`manual`)
+- [ ] **L21.15 Run the paired pilot on the next new plan** (`manual`)
   - tier: user
   - gate: ask
-  - after: L19.14
+  - after: L21.14
   - files: none
   - do:
     1. Re-run the installer (`dev\scripts\install.ps1`) so the installed commands match `source/`.
@@ -2434,10 +2442,10 @@ Suggested: haiku · low — text edits with exact wording; the menus are user-fa
        here only; GOALS 12 is not edited (D10).
     7. Apply D6. Keep the winning branch's work; delete the other branch.
   - check: manual — two result rows (A and B) and the D6 outcome are written under this item
-- [ ] **L19.16 Decide routing and the rollout** (`manual`)
+- [ ] **L21.16 Decide routing and the rollout** (`manual`)
   - tier: user
   - gate: ask
-  - after: L19.15
+  - after: L21.15
   - files: none
   - do:
     1. Confirm the D6 outcome: tiered routing kept, or advisory.
@@ -2450,9 +2458,9 @@ Suggested: haiku · low — text edits with exact wording; the menus are user-fa
 
 ### Explicitly out of scope
 
-- Rewriting the ≈ 84 model-executed files to Part A (L19.16 decides the rollout).
+- Rewriting the ≈ 84 model-executed files to Part A (L21.16 decides the rollout).
 - Any compressed or invented notation for plans or commands (D8).
-- Changing human docs (README prose, ARCHITECTURE prose, CONTRIBUTING, menus beyond L19.12,
+- Changing human docs (README prose, ARCHITECTURE prose, CONTRIBUTING, menus beyond L21.12,
   diaries) to the AI style.
 - Rewriting archived GOALS bodies; switching the session model automatically; per-item model
   routing in opencode and Codex beyond D2.
@@ -2501,7 +2509,7 @@ the `/repertoire` style, or a **modifier token** — the word `cdp` written next
 (the two commands whose job is to verify work) in all four variants, keeps the whole procedure in
 one reference file that is read only when the token is present, and adds one guard sentence to the
 always-on rule so a debug-port browser is never started unprompted. No command, skill or menu entry
-is added; the command count stays 21.
+is added; the current command count stays 20.
 
 ```mermaid
 flowchart TD
@@ -2519,11 +2527,7 @@ flowchart TD
     Verify --> Manual[Live acceptance on the owner's PC]
 ```
 
-Suggested: sonnet · high — text-only edits across ten files, but strict cross-runtime parity, a safety contract and a cross-OS browser launch make a careless pass expensive.
-
 ### Design rationale
-
-Suggested: sonnet · high — the surface is small, but the grammar and the safety contract are what every later file, test and doc repeats.
 
 Why a token and not the alternatives (measured on this repository, 2026-09-29):
 
@@ -2535,56 +2539,74 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
   test a UI. What is missing is a way to demand real-browser proof for one run.
 - **Real `/cdp` command:** the repository's only pairing precedent, `/newgoal /repertoire`, works
   because `newgoal.md` step 4b (and step 5 of the Codex skill) looks for the other command in the
-  same message — in this repo a "parasite" is a token the host recognizes. A 22nd command would
-  also touch the four command files, the menu on three platforms, the hard-coded 21 in
+  same message — in this repo a "parasite" is a token the host recognizes. A 21st command would
+  also touch the four command files, the menu on three platforms, the hard-coded 20 in
   `dev/tests/codex.test.js` (2 asserts) and `ci.yml` (bash and PowerShell), and about a dozen lines
   of README and ARCHITECTURE — for something that cannot run alone.
 - **Token (chosen):** one reference file, one paragraph per host, no change to any count, menu
   line, or CI count, and no cost when it is not typed.
 
-- [ ] **C18.1 Fix the token grammar before touching any file** (`architect`) — every later file,
+- [x] **C18.1 Fix the token grammar before touching any file** (`architect`) — every later file,
   test and doc reuses exactly this:
-  - the token is the whole word `cdp`, case-insensitive; `/cdp`, `$cdp` and `--cdp` count, so the
-    owner's natural spelling (`/execgoals /cdp`) works without a real `/cdp` command existing;
-  - it is read from the **invocation arguments only** — never from `GOALS.md`, code or any file
-    content;
-  - hosts: `/execgoals` and `/fixproject` in Claude Code, opencode dense, opencode lite and Codex
-    (`$execgoals`, `$fixproject`); no other command in this goal;
-  - visible effect: the host says once that CDP mode is on, so a false positive (a goal that merely
-    mentions "cdp") only adds verification and is visible;
-  - an item with no browser-reachable UI: `cdp: not applicable` for that item, verified by the
-    normal channels — never a failure;
-  - without the token: the command starts no browser with a debug port.
-  **Done when:** the grammar is written on this item before any file changes and states, for each
-  bullet, what the host does on a match and on no match.
-- [ ] **C18.2 Fix the evidence and safety contract** (`architect`) — the reference must define,
-  and C18.9 must test, these clauses (each backed by the 2026-09-29 probe or the Chrome source):
+  - **Match:** one standalone, case-insensitive invocation token: `cdp`, `/cdp`, `$cdp` or `--cdp`.
+    Read it from the current `/execgoals` or `/fixproject` invocation arguments only; never detect
+    it in `GOALS.md`, code or other file content. Supported hosts are Claude Code, opencode dense,
+    opencode lite and Codex (`$execgoals`, `$fixproject`); no other command in this goal. Say once
+    that CDP mode is on for this invocation. An item with no browser-reachable UI gets
+    `cdp: not applicable` and is verified through normal channels.
+  - **No match:** run the normal command and never start a browser with a debug port.
+  **Done when:** the grammar is recorded here before source edits, and the match/no-match behavior
+  is explicit for every supported host.
+- [x] **C18.2 Fix the evidence and safety contract** (`architect`) — the reference must define,
+  and C18.9 must test, these clauses, with a source recorded for each:
   1. **Scope and authority:** the token is the user's explicit go-ahead for exactly one thing —
      starting an isolated, loopback-only browser and closing it. It authorizes no real profile, no
      tool installation, no screen control and no third-party sites.
-  2. **Driver order:** an already-connected app-driving tool first (Browser pane, Claude in Chrome,
-     Playwright MCP — each drives a real browser through CDP itself; never start a second browser
-     beside one). Otherwise start an own browser and attach with whatever driver is available; if
-     there is none, name what is missing (Playwright MCP through `/plugins`, Claude in Chrome, the
-     Browser pane) and stop for the user's choice — no silent installs.
-  3. **Launch (own browser only):** a fresh temporary `--user-data-dir` (Chrome 136+ ignores the
-     debug switches on the default profile, so this is also the only form that works);
+  2. **Driver order:** an already-connected app-driving tool (Browser pane, Claude in Chrome,
+     Playwright MCP) may be used only in its own isolated, approved test context; never connect to
+     or drive a real Chrome profile or existing user session. If the available connected tool is a
+     real user session, stop and ask the user instead of using it or silently launching a second
+     browser. Otherwise start an own browser and attach with whatever driver is available; if there
+     is none, name what is missing (Playwright MCP through `/plugins`, Claude in Chrome, the Browser
+     pane) and stop for the user's choice — no silent installs.
+  3. **Launch (own browser only):** a fresh temporary `--user-data-dir` (starting with Chrome 136,
+     `--remote-debugging-port` and `--remote-debugging-pipe` are not honored for the default data
+     directory; Chrome for Testing retains its prior behavior);
      `--remote-debugging-port=0` with the chosen port read from `<profile>/DevToolsActivePort`;
      headless unless the user asks to watch; confirm the port listens on loopback only and stop if
      it does not; never `--disable-web-security`; `--no-sandbox` only where the platform forces it
      (for example when running as root, as the probe did), and say so when used.
   4. **Evidence, as text:** accessibility/DOM snapshot before and after the action, console
-     messages, failed requests (status ≥ 400) and page text — written into the item's Proof
-     (`/execgoals`) or the fix's re-verification (`/fixproject`). Page captures only when the check
-     is visual by nature or the user asked (unchanged from the UI-verification rule).
+     messages, failed requests (status ≥ 400) and page text. Before writing this evidence to Proof
+     or re-verification, redact credentials, tokens, cookies, authorization headers, and sensitive
+     request or response data. Keep only sanitized details needed to verify behavior. Write this
+     sanitized evidence into the item's Proof (`/execgoals`) or the fix's re-verification
+     (`/fixproject`). Page captures only when the check is visual by nature or the user asked
+     (unchanged from the UI-verification rule).
   5. **Cleanup on every outcome (`finally`/trap):** close the browser process, remove the temporary
      profile, confirm the port is closed. A failed step must not leave a browser behind — the first
      probe attempt did exactly that.
   6. **Language:** the file is English (model-executed text) and ends with the footer telling the
      model to answer in the user's language, like `project-standards.md`.
-  **Done when:** the clause list is recorded on this item with the source of each clause (probe
-  result or Chrome for Developers page), so C18.4 copies decisions instead of making them.
-- [ ] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
+  **Sources:** Chrome 136 behavior and the Chrome for Testing exception are documented in
+  [Chrome for Developers](https://developer.chrome.com/blog/remote-debugging-port). The
+  `--remote-debugging-port=0` launch is shown in the [Headless debugging guide](https://developer.chrome.com/docs/automation-and-testing/debug-headless).
+  Chromium's [remote debugging server source](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/browser/devtools/remote_debugging_server.cc)
+  documents the loopback listener and `DevToolsActivePort` handling. The 2026-09-29 probe note
+  recorded here says the root-run environment required `--no-sandbox`; its first failed attempt
+  left Chrome running, which motivates cleanup on every outcome.
+  **Source map:** (1) the owner's choice and rationale in this GOALS 18 plan, plus the shared
+  screen-control rule in `source/CLAUDE.md`; (2) the shared UI-verification rule in
+  `source/CLAUDE.md`; (3) Chrome 136/default-directory behavior and the Chrome for Testing
+  exception in the Chrome for Developers post above, port 0 in the Headless debugging guide above,
+  loopback and `DevToolsActivePort` in the Chromium source above, and `--no-sandbox` in the probe
+  note above; (4) evidence/capture policy in the shared UI-verification rule and the Security rule
+  against committing or hardcoding credentials/tokens in `source/CLAUDE.md`; (5) cleanup in the
+  failed-attempt note above; (6) the language footer in
+  `source/claude/references/project-standards.md`.
+  **Done when:** the clause list and per-clause source map are recorded here so C18.4 copies the
+  decisions and sources instead of making them up.
+- [x] **C18.3 Settle where each piece lives** (`architect`) — record before C18.4:
   - reference: `source/claude/references/cdp-verification.md` (installed to
     `~/.claude/base_project/references/`, and to `~/.codex/base_project/references/` by the
     shared-references sync in `install-codex.js`) plus a byte-identical
@@ -2602,20 +2624,18 @@ Why a token and not the alternatives (measured on this repository, 2026-09-29):
     (C18.9) covers both hosts;
   - the smoke is a separate script and CI step (`npm run smoke:cdp`), not part of `npm test` or
     `npm run verify`: a browser launch does not belong in every contributor's unit run.
-  **Done when:** the list is written with exact paths and nothing in it changes the 21-command
+  **Done when:** the list is written with exact paths and nothing in it changes the 20-command
   count.
 
 ### Implementation
 
-Suggested: sonnet · high — eight near-identical host edits must each stay faithful to their variant's style, and the smoke script has OS-specific process and port handling.
-
-- [ ] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
+- [x] **C18.4 Write the reference** (`coder`) — `source/claude/references/cdp-verification.md` and
   the byte-identical `source/opencode/references/cdp-verification.md`, beginning with the
   `# base_project:managed` marker and containing every clause of C18.2 in imperative English.
   **Done when:** both files exist and are identical, the marker is present, and the language-drift
   check (`\b(não|para|você|projeto|arquivo)\b` over `source/**/*.md`) still matches only the
   allowed files.
-- [ ] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
+- [x] **C18.5 Add the CDP-mode paragraph to `/execgoals` in all four variants** (`coder`) —
   `source/claude/commands/execgoals.md`, `source/opencode/command/execgoals.md`,
   `source/opencode/command-lite/execgoals.md` (as a `STEP` line in that file's flat style) and
   `source/codex/skills/execgoals/SKILL.md`, next to the step that checks items off as verified.
@@ -2628,13 +2648,13 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   > the word, never start a browser with a debug port.
   **Done when:** the four files carry the paragraph, each with its own runtime's `<REF>`, and the
   rest of each file is unchanged (the diff shows only the paragraph).
-- [ ] **C18.6 Add the same paragraph to `/fixproject` in all four variants** (`coder`) —
+- [x] **C18.6 Add the same paragraph to `/fixproject` in all four variants** (`coder`) —
   `source/claude/commands/fixproject.md`, `source/opencode/command/fixproject.md`,
   `source/opencode/command-lite/fixproject.md` and `source/codex/skills/fixproject/SKILL.md`,
   next to the before/after re-verification step, with "checked off" replaced by "reported as
   fixed". **Done when:** as C18.5, and `npm run test:harness` still passes (`fixproject` is one
   of its contract commands).
-- [ ] **C18.7 Add the debug-port guard to the shared UI-verification block** (`coder`) — append as
+- [x] **C18.7 Add the debug-port guard to the shared UI-verification block** (`coder`) — append as
   the fourth bullet of the block in `source/CLAUDE.md`, `source/opencode-instructions.md` and
   `source/codex/AGENTS.md` (before the runtime-specific bullet, which stays outside the block), and
   update `SHARED_BLOCK` in `dev/tests/ui-verification-rule.test.js` to match:
@@ -2642,7 +2662,7 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   **Done when:** the block, guard included, occurs exactly once in each of the three files,
   `dev/tests/ui-verification-rule.test.js` passes, and the sentence contains no `/` or `$` command
   spelling (the block must stay byte-identical across runtimes).
-- [ ] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
+- [x] **C18.8 Write the launch-sequence smoke `dev/scripts/cdp-smoke.js`** (`coder`) — zero
   dependencies (Node built-ins), exposed as `npm run smoke:cdp`. It serves a page with a known
   `<title>` from a loopback HTTP server, launches Chrome headless on that URL with a fresh
   temporary `--user-data-dir` and `--remote-debugging-port=0`, reads the port from
@@ -2657,12 +2677,18 @@ Suggested: sonnet · high — eight near-identical host edits must each stay fai
   start otherwise (record that evidence). With no Chrome it prints `skipped: no Chrome found` and
   exits 0 locally, but exits 1 when `CI` is set. **Done when:** it passes locally, and a
   deliberately broken variant that skips the profile removal fails check (4).
+  **Proof:** The first Windows run timed out because `netstat -an` did not expose the listener
+  after the HTTP request closed. Controlled loopback and wildcard listeners showed that Windows
+  reports the loopback `LISTENING` row while a TCP connection remains open; the wildcard control
+  did not report a loopback listener. The smoke now holds a loopback-only probe during the Windows
+  snapshot and destroys it in `finally`. The probe-lifetime test passed. With the user's
+  authorization, `npm run smoke:cdp` passed using
+  `C:\Program Files\Google\Chrome\Application\chrome.exe`. A temporary mutation that omitted
+  profile removal failed the expected cleanup check (4); its profile and script were removed.
 
 ### Tests
 
-Suggested: sonnet · high — mutation checks are what make these tests worth having, and one of them must cover OS-specific listing formats without a browser.
-
-- [ ] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
+- [x] **C18.9 Add `dev/tests/cdp-modifier.test.js`** (`coder`) — `node:test`, no browser:
   (a) each of the eight host files (`execgoals` and `fixproject` × Claude, opencode dense,
   opencode lite, Codex) matches `/\bcdp\b/`, cites exactly its own runtime's reference path from
   C18.3, and carries the three behaviors — reads the reference first, `cdp: not applicable` for
@@ -2671,49 +2697,59 @@ Suggested: sonnet · high — mutation checks are what make these tests worth ha
   (`user-data-dir`, loopback, `DevToolsActivePort`, `finally`/every outcome, `not applicable`,
   no real or default profile, no silent installs, the user's-language footer); (c) the loopback
   classifier exported by `cdp-smoke.js` flags a wildcard listener (`0.0.0.0`, `::`) and accepts
-  `127.0.0.1`/`::1` for the Linux `/proc/net/tcp` format and the `netstat` formats of Windows and
-  macOS, from fixtures; (d) no host file claims a `/cdp` command exists.
+  `127.0.0.1`/`::1` for the Linux `/proc/net/tcp` and `/proc/net/tcp6` formats, plus the Windows and
+  macOS `netstat` formats, from fixtures; (d) no host file claims a `/cdp` command exists.
   **Done when:** the test fails if any host loses the paragraph, if a runtime cites another
   runtime's path, if the reference copies diverge or lose a clause, or if the classifier accepts a
   wildcard listener — checked with mutation copies, as in GOALS 17.
-- [ ] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
+- [x] **C18.10 Prove the reference reaches all three engines** (`coder`) — extend the installer
   test in `dev/tests/codex.test.js` to assert `<codex>/base_project/references/cdp-verification.md`
   exists after `install-codex.js`, and add to both `install-test` assertion blocks of
   `.github/workflows/ci.yml` (bash and PowerShell) that the file exists under the Claude home, the
   opencode home and the Codex root. **Done when:** removing either source copy or the Codex sync
   makes a local test or the CI assertion fail.
-- [ ] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
+- [x] **C18.11 Run the smoke on the 3-OS matrix** (`coder`) — add a step to `install-test` in
   `.github/workflows/ci.yml` (all three OS, after the unit tests) running `npm run smoke:cdp`.
   **Done when:** the step is green on Ubuntu, Windows and macOS in the run of the PR that carries
   this goal's execution (run id recorded as Proof); a red run on one OS is investigated as a real
   Chrome or procedure difference, never skipped.
+  **Proof:** PR CI run `41732174867` on merge head `7d4a95d`: `smoke:cdp` passed on Ubuntu,
+  Windows and macOS. Earlier run `41730557332` exposed an Ubuntu race in `/json/version`; the
+  `waitForVersion` fix passed in the final run.
 
 ### Registration
 
-Suggested: sonnet · medium — mostly mechanical, but the menus are user-language text guarded by parity tests.
-
-- [ ] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
+- [x] **C18.12 Update the command menus** (`coder`) — `source/claude/references/command-menu.md`,
   `source/opencode/references/command-menu.md`, `source/codex/references/command-menu.md`
   (Portuguese — user-facing text): the `/execgoals` and `/fixproject` lines (`$…` in Codex) gain
   one clause saying they accept `cdp` to prove the UI in a real, isolated browser over CDP.
   **Done when:** all three menus say it on both lines, the menu assertions in
   `dev/tests/codex.test.js` and `npm run test:harness` pass, and no new menu line exists.
-- [ ] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
+- [x] **C18.13 Update README and ARCHITECTURE** (`coder`) — README: the `/execgoals` and
   `/fixproject` rows, a short note on modifiers ("a word you add to a command"), a safety-table
   row ("debug ports are opt-in") and a changelog line under the existing `### Unreleased` heading (no version
   bump — that is the owner's release call); ARCHITECTURE: the references list, the scripts map
   (`cdp-smoke.js`), the tests list, the CI description, and one sentence naming the pattern ("a
   modifier is a token the host command recognizes — the mechanism `/newgoal /repertoire` already
   uses"). **Done when:** each of those places mentions it, checked with grep, and the command
-  count still reads 21 everywhere.
-- [ ] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (the next free number — 56 is the menu change) with the three options, the evidence from "Design rationale", the probe result
+  count still reads 20 everywhere.
+- [x] **C18.14 Record the decision in `dev/ROADMAP.md`** (`coder`) — a new numbered item (57 and 58 are already occupied, so use the next free number: 59) with the three options, the evidence from "Design rationale", the probe result
   and the choice, plus a line under "Decisões já tomadas": modifier token — not an always-on debug
-  port and not a 22nd command. **Done when:** the item exists and the test suite still passes.
-- [ ] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
+  port and not a 21st command. **Done when:** the item exists and the test suite still passes.
+  **Numbering note:** ROADMAP items 57 and 58 already existed, so this decision is recorded as
+  item 59 to preserve them. **Proof:** host-approved `npm run verify` exited 0; `npm test` reported
+  173 passed, 0 failed and 1 platform skip. `audit:prod` also exited 0 with one moderate
+  `fast-uri` advisory below `--audit-level=high`.
+- [x] **C18.15 Verify the whole change** (`reviewer`) — `npm run verify`, `npm run test:harness`,
   `node dev/scripts/goals-archive-index.js --check`, a replay of the Linux `install-test` steps
   against a scratch `HOME` (as in GOALS 17), and the CI run of the PR (all jobs green). **Done
   when:** all pass on the final tree and the PR's CI result was read on the merge head, not
   assumed.
+  **Proof:** on the final tree, `npm run verify` exited 0 (`npm test`: 194 passed, 0 failed,
+  1 skipped); `npm run test:harness` passed (12/12 artifacts, 16/16 scenarios); archive index
+  passed with 15 checksums. PR CI run `41732174867` on merge head `7d4a95d` passed `validate` and
+  `install-test` on Ubuntu, Windows and macOS. Ubuntu's `install-test` also replayed `install.sh`
+  against a throwaway `HOME`; it passed.
 
 ### Owner acceptance and decisions (manual — stay open until done)
 
@@ -2730,7 +2766,7 @@ Suggested: sonnet · medium — mostly mechanical, but the menus are user-langua
 
 ### Explicitly out of scope
 
-- A new command, skill or menu entry (the count stays 21); an always-on debug port; any change to
+- A new command, skill or menu entry (the count stays 20); an always-on debug port; any change to
   the default that DOM/accessibility-tree tooling is how a UI is tested.
 - Attaching to the user's real browser profile, screen control and desktop screenshots — the rules
   in `### UI verification & screen control` stand unchanged.
@@ -2788,8 +2824,6 @@ flowchart TD
     Catalog --> Docs
     Docs --> Decisions[Owner decisions - manual]
 ```
-
-Suggested: opus · high — cross-cutting fixes across hooks, both installers, four command projections, and CI, where a wrong edit silently degrades every user's sessions.
 
 ### Unblock CI
 
@@ -3069,8 +3103,6 @@ flowchart TD
     Register --> Sync[Manual installer sync and fresh-session behavior check]
 ```
 
-Suggested: sonnet · high — the edits are text-only, but the block must stay byte-identical across three runtimes, every existing parity test must stay green, and the wording has to be precise enough that a live model actually picks the browser tooling over screen control (Codex equivalent: gpt-5.6-sol · high).
-
 ### Design rationale
 
 - [x] **S16.1 Fix the three-tier vocabulary before touching any file** (`architect`) — every
@@ -3304,11 +3336,7 @@ flowchart TD
     Register --> Manual[Manual live run with before/after mutation checks]
 ```
 
-Suggested: gpt-5.6-sol · high — the command spans four runtime projections, multiple package managers, registry lookups, and a strict no-mutation guarantee.
-
 ### Design rationale
-
-Suggested: gpt-5.6-sol · high — the highest-risk decision is defining truthful status semantics across npm, uv/pipx, OS package managers, floating npx MCPs, and optional catalog entries.
 
 - [x] **U15.1 Settle the command boundary and name** (`architect`) — use `/updates` and
   `$updates`, keeping `/update` and `$update` reserved for pulling the base_project repository
@@ -3372,8 +3400,6 @@ Suggested: gpt-5.6-sol · high — the highest-risk decision is defining truthfu
 
 ### Implementation
 
-Suggested: gpt-5.6-sol · high — the implementation must keep the same safe behavior across Claude, OpenCode dense/lite, and Codex while preserving runtime-specific syntax.
-
 - [x] **U15.6 Add the Claude command** (`coder`) — create
   `source/claude/commands/updates.md` with the settled inventory, manager checks, report
   statuses, public-registry/network error handling, and the no-install/no-pull boundary. The
@@ -3392,8 +3418,6 @@ Suggested: gpt-5.6-sol · high — the implementation must keep the same safe be
   skill and the skill does not use Claude-only command or model vocabulary.
 
 ### Tests
-
-Suggested: gpt-5.6-terra · medium — the main risk is contract drift and unsafe verbs, which can be covered deterministically before one live network check.
 
 - [x] **U15.9 Add focused update-command contract tests** (`coder`) — create
   `dev/tests/updates.test.js` to assert all four source variants contain the complete managed
@@ -3426,8 +3450,6 @@ Suggested: gpt-5.6-terra · medium — the main risk is contract drift and unsaf
   manager missing, or version source unavailable) is recorded instead of claiming full coverage.
 
 ### Registration
-
-Suggested: gpt-5.6-terra · medium — registration is repetitive but must keep four projections, menus, docs, and command-count references synchronized.
 
 - [x] **U15.13 Register the command everywhere users discover workflows** (`coder`) — add the
   entry to `source/claude/references/command-menu.md`,
@@ -3500,150 +3522,6 @@ Suggested: gpt-5.6-terra · medium — registration is repetitive but must keep 
 - [WinGet list documentation](https://learn.microsoft.com/en-us/windows/package-manager/winget/list)
   — `winget list --upgrade-available` without invoking the mutating upgrade command.
 - [Homebrew manpage](https://docs.brew.sh/Manpage) — `brew outdated` and JSON output.
-
----
-
-<a id="goals-14-codex-model-recommendation-parity"></a>
-## GOALS 14 — Codex Model Recommendation Parity for `$newgoal` (base_project feature)
-
-The Claude command already ends a successful `/newgoal` run with a localized, bold model +
-effort recommendation and an explicit manual-only disclaimer. The Codex skill has a related
-instruction, but its model vocabulary is still Claude-specific (`haiku`/`sonnet`/`opus`) and
-does not define the visible response shape strongly enough. This goal makes `$newgoal` behave
-the same way at the interaction level while using Codex's own current model names and effort
-levels.
-
-```mermaid
-flowchart TD
-    Audit[Audit Claude and Codex output contracts] --> Design[Define shared response shape and runtime model map]
-    Design --> Skill[Update Codex newgoal skill]
-    Skill --> Tests[Add source and installer contract tests]
-    Tests --> Docs[Update discoverability docs]
-    Docs --> Live[Fresh-session manual validation]
-```
-
-Suggested: gpt-5.6-sol · high — the change is bounded but spans Codex prompt semantics, cross-runtime contract tests, installed projection, and a live behavior check.
-
-### Design rationale
-
-- [x] **M14.1 Define the parity contract** (`architect`) — use the Claude final-response rule as
-  the semantic reference, not as a claim that OpenCode currently emits the same visible line.
-  After the path and short outline, Codex must emit exactly one localized recommendation sentence
-  with one bold `<Codex model> · <effort>` pair, one reason tied to the plan's highest-complexity/
-  highest-risk module, the manual-only disclaimer, and the question asking whether to continue
-  with `$execgoals` or adjust the plan. **Done when:** the architect confirmed these four
-  invariants and the implementation/test items encode them. Proof: read-only architecture review
-  completed by the `architect` subagent; no files were edited by that review.
-- [x] **M14.2 Define Codex-specific recommendation mapping** (`architect`) — keep Claude and
-  OpenCode's `haiku`/`sonnet`/`opus` vocabulary unchanged, but make Codex recommend the model
-  actually usable in the current Codex session: `gpt-5.6-luna · low` for mechanical routine work,
-  `gpt-5.6-terra · medium` for typical implementation, `gpt-5.6-sol · high` for difficult
-  multi-system work, and `gpt-6-astra · xhigh` for high-cost-of-failure work. Resolve availability
-  against the models visible in the active Codex surface; fall back along Astra → Sol → Terra →
-  Luna, preserve effort when supported, and disclose any fallback. Never print Claude model names
-  as Codex choices. **Done when:** the architect approved this deterministic mapping and the plan
-  metadata uses the selected Codex pair. Proof: current official model roles and the available
-  Codex model surface were reviewed; Sol/Astra ambiguity was removed.
-- [x] **M14.3 Preserve scope boundaries** (`architect`) — do not change the active model,
-  reasoning setting, `fallbackModel`, global Codex configuration, billing behavior, command
-  count, menu entries, or any workflow other than `$newgoal`. The recommendation remains advice
-  applied by hand, never an automatic mid-session switch. **Done when:** the architect confirmed
-  the out-of-scope list and no file outside the approved paths is required. Proof: the read-only
-  architecture review approved this boundary.
-
-### Implementation
-
-- [x] **M14.4 Make the Codex final-response contract explicit** (`coder`) — update
-  `source/codex/skills/newgoal/SKILL.md` so the final response cannot be satisfied by merely
-  mentioning a `Suggested:` line inside `GOALS.md`: require the visible localized sentence,
-  bold model/effort pair, plan-specific reason, manual-only disclaimer, and `$execgoals` versus
-  plan-adjustment question. Keep the planning-only boundary and the Codex-native `$` spelling.
-  Replace the Claude-only model set in the Codex-specific guidance with the approved Codex map;
-  do not copy the full Claude command or add a new skill.
-  **Done when:** the source skill contains one unambiguous final-response contract, uses
-  Codex-compatible model identifiers, and preserves `never execute`. **Proof:**
-  `source/codex/skills/newgoal/SKILL.md` now contains the explicit localized final-response
-  contract and Codex model mapping.
-- [x] **M14.5 Keep source and installed projections aligned** (`coder`) — rely on the existing
-  `dev/scripts/install-codex.js` source-of-truth flow; do not edit `~/.agents/skills/` manually or
-  change the installer for a content-only skill update. Exercise the temporary-root installer
-  path so the installed Codex skill receives the same contract and existing user-owned skill
-  content remains preserved. **Done when:** the temporary installed file is byte-equivalent to
-  the managed source file and the existing idempotency/user-collision tests still pass. **Proof:**
-  the installer test compares the temporary installed skill byte-for-byte with source and passes
-  while preserving a user-owned colliding skill.
-
-### Tests
-
-- [x] **M14.6 Add deterministic cross-runtime contract coverage** (`coder`) — extend
-  `dev/tests/codex.test.js` with a focused assertion over
-  `source/claude/commands/newgoal.md`, `source/opencode/command/newgoal.md`,
-  `source/opencode/command-lite/newgoal.md`, and `source/codex/skills/newgoal/SKILL.md`:
-  Claude/OpenCode retain their existing model-tier contract; Codex has the visible final-output
-  contract, Codex model vocabulary, localized-output instruction, and manual/no-auto-switch
-  disclaimer; none loses the planning-only boundary. Assert the Codex-specific section does not
-  present `haiku`/`sonnet`/`opus` as Codex models.
-  **Done when:** the test fails if the Codex instruction regresses to a GOALS-only suggestion or
-  to Claude model names, and it passes against all four source variants. **Proof:**
-  `node --test dev/tests/codex.test.js` passed 6/6.
-- [x] **M14.7 Verify the complete local quality gate** (`reviewer`) — run the repository's own
-  checks after the source/test edits: `npm test`, `npm run lint`, `npm run typecheck`,
-  `npm run validate:plugins`, `npm run check:unused-deps`, `npm run test:harness`, and
-  `git diff --check` for the owned paths. **Done when:** all checks pass and no unrelated dirty
-  work is staged, reverted, or rewritten. **Proof:** `npm run verify` passed (Biome 56 files,
-  typecheck, plugin validation, unused-dependency check, full test suite 127/127, and audit with
-  0 vulnerabilities); `npm run test:harness` passed 12/12 artifacts and 16/16 scenarios; GOALS
-  structure and `git diff --check` passed.
-- [ ] **M14.8 Confirm real Codex behavior in a fresh session** (`manual`) — after synchronization,
-  invoke `$newgoal` on a disposable harmless project and inspect the actual final response. It
-  must show the localized bold model + effort recommendation, a reason, the manual-only warning,
-  and the execution/adjustment question; it must not change the selected model or effort. Record
-  the exact observed model/effort and the session/date because prompt tests cannot prove a
-  probabilistic model followed its instruction. **Done when:** the live response matches the
-  contract, or a concrete Codex limitation is recorded instead of claiming success. **Proof:**
-  Codex global synchronization completed successfully; the installed skill's SHA-256 matches
-  the source (`D09A8898ECA6D77499C89056188BE1C28C40274E87DD208ACA3F0B7A55B88ADE`). **Current
-  blocker:** opening a fresh Codex session and observing the live `$newgoal` response is still
-  required; installation and structural checks do not prove model obedience.
-
-### Registration
-
-- [x] **M14.9 Document the runtime distinction without creating another command** (`coder`) —
-  update the existing `/newgoal` description in `README.md` and the Codex integration note in
-  `source/codex/README.md` to explain that the recommendation is manual and that each runtime
-  uses its own model vocabulary. Do not add a menu/status entry or change the 20/20 command-skill
-  parity counts. **Done when:** the existing user-facing `/newgoal` entry and Codex README agree
-  with the implemented behavior and the command-count tests remain unchanged. **Proof:**
-  `README.md` and `source/codex/README.md` document the runtime-specific manual mapping; stale
-  21-workflow wording was corrected to 20; no menu or parity-count change was made.
-- [x] **M14.10 Record the decision in the chronological roadmap** (`coder`) — add a concise
-  `dev/ROADMAP.md` entry referencing this goal, the runtime-specific model mapping, the source
-  paths, and the honest limit that structural tests do not prove live model obedience.
-  **Done when:** the roadmap points to the shipped contract and does not imply automatic model
-  routing or live validation unless M14.8 produced that evidence. **Proof:** `dev/ROADMAP.md`
-  item 51 records the mapping, fallback, files, and structural-test/live-obedience limitation.
-
-### Explicitly out of scope
-
-- Automatic model/effort switching, model routing middleware, `fallbackModel`, or changes to
-  Codex/Claude account settings.
-- A new command, a model API, billing/token instrumentation, or recommendations for every
-  workflow beyond `$newgoal`.
-- Replacing the existing Claude/OpenCode vocabulary or pretending that Claude model names are
-  valid Codex model selections.
-- Treating a passing string/structure test as proof that every live model will obey the prompt;
-  M14.8 remains a separate manual check.
-
-### Sources consulted
-
-- [OpenAI Models](https://developers.openai.com/api/docs/models) — current model roles and
-  reasoning-effort ranges used to keep Codex recommendations runtime-aware; availability and
-  account access remain session-dependent.
-- `source/claude/commands/newgoal.md`, `source/opencode/command/newgoal.md`,
-  `source/opencode/command-lite/newgoal.md`, and `source/codex/skills/newgoal/SKILL.md` — current
-  source contracts and the exact parity gap.
-- `dev/tests/codex.test.js` and `dev/scripts/install-codex.js` — existing cross-runtime and
-  source-to-installed verification boundaries.
 
 ---
 
