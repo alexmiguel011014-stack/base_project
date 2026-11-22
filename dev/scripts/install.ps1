@@ -124,8 +124,8 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
 # ---------------------------------------------------------------------
 $claudeAgentsDir      = Join-Path $ClaudeHome "agents"
 $claudeCommandsDir    = Join-Path $ClaudeHome "commands"
-$opencodeAgentDir     = Join-Path $OpencodeHome "agent"
-$opencodeCommandDir   = Join-Path $OpencodeHome "command"
+$opencodeAgentDir     = Join-Path $OpencodeHome "agents"
+$opencodeCommandDir   = Join-Path $OpencodeHome "commands"
 $claudeHooksDir       = Join-Path $ClaudeHome "base_project\hooks"
 $claudeScriptsDir     = Join-Path $ClaudeHome "base_project\scripts"
 $claudeReferencesDir  = Join-Path $ClaudeHome "base_project\references"
@@ -255,6 +255,19 @@ foreach ($staleCmd in @((Join-Path $claudeCommandsDir "dashboard.md"), (Join-Pat
     } else {
         Write-Warn "Kept $staleCmd - not managed by base_project (looks like your own file)"
     }
+}
+# opencode reads agents\ and commands\ (plural); agent\ and command\ are legacy names it still
+# discovers. Remove base_project's own files from the legacy folders so no command loads twice.
+# A file without the managed marker is the user's own and stays where it is.
+foreach ($legacyDir in @((Join-Path $OpencodeHome "agent"), (Join-Path $OpencodeHome "command"))) {
+    if (-not (Test-Path $legacyDir)) { continue }
+    Get-ChildItem $legacyDir -Filter *.md -File | ForEach-Object {
+        if ((Read-Utf8NoBom $_.FullName) -match 'base_project:managed') {
+            Remove-Item $_.FullName -Force
+            Write-Ok "removed legacy opencode file: $($_.FullName)"
+        }
+    }
+    if (-not (Get-ChildItem $legacyDir -Force)) { Remove-Item $legacyDir -Force }
 }
 foreach ($staleDir in @((Join-Path $ClaudeHome "base_project\dashboard"), (Join-Path $OpencodeHome "base_project\dashboard"))) {
     if (Test-Path $staleDir) {

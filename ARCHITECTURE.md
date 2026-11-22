@@ -14,7 +14,7 @@ Um instalador (`dev/scripts/install.ps1` / `install.sh`) que copia arquivos de `
 para `~/.claude/`, `~/.codex/`, `~/.agents/skills/` e `~/.config/opencode/` — nada mais.
 Não é um servidor rodando o tempo todo, não é um pacote npm publicado, não escreve nada
 dentro de projetos que o usam. O "produto" real são os arquivos que acabam instalados:
-regras globais, 3 subagentes, **20 comandos**, um catálogo de plugins opcionais e 5 hooks
+regras globais, 3 subagentes, **21 comandos**, um catálogo de plugins opcionais e 5 hooks
 com comportamento real. (O dashboard web existiu até o ROADMAP item 13 — removido por
 completo, ver histórico lá. O unified config layer do GOALS 6 está estacionado desde a
 v1.2.0 — ver ROADMAP item 55.) Versão rastreada via `package.json`
@@ -31,16 +31,16 @@ base_project/
 │   ├── opencode-instructions.md→ linkado de ~/.config/opencode/opencode.jsonc
 │   ├── claude/
 │   │   ├── agents/*.md         → ~/.claude/agents/       (architect, coder, reviewer)
-│   │   ├── commands/*.md       → ~/.claude/commands/     (20 comandos — ver README.md § Commands pra lista completa)
+│   │   ├── commands/*.md       → ~/.claude/commands/     (21 comandos — ver README.md § Commands pra lista completa)
 │   │   └── references/        → ~/.claude/base_project/references/ (ai-writing-standard.md, project-standards.md,
 │   │                            cdp-verification.md, command-menu.md, goal-types/*.md —
 │   │                            build/fix/feature/process/research, lidos pelos comandos)
 │   ├── opencode/
-│   │   ├── agent/*.md          → ~/.config/opencode/agent/     (mesmo trio, formato opencode)
-│   │   ├── command/*.md        → ~/.config/opencode/command/   (perfil "dense", default — mesmos
+│   │   ├── agent/*.md          → ~/.config/opencode/agents/    (mesmo trio, formato opencode)
+│   │   ├── command/*.md        → ~/.config/opencode/commands/  (perfil "dense", default — mesmos
 │   │   │                        comandos, formato opencode)
-│   │   ├── command-lite/*.md   → ~/.config/opencode/command/   (perfil "lite", opt-in via
-│   │   │                        `--opencode-commands lite` / `-OpencodeCommands lite` — mesmos 20
+│   │   ├── command-lite/*.md   → ~/.config/opencode/commands/  (perfil "lite", opt-in via
+│   │   │                        `--opencode-commands lite` / `-OpencodeCommands lite` — mesmos 21
 │   │   │                        nomes de comando, reescritos como checklist plano sem prosa/
 │   │   │                        justificativa embutida, pra modelos fracos que perdem o fio em
 │   │   │                        instrução condicional densa; nunca os dois instalados juntos)
@@ -52,7 +52,7 @@ base_project/
 │   ├── codex/
 │   │   ├── AGENTS.md            → bloco gerenciado em ~/.codex/AGENTS.md
 │   │   ├── agents/*.toml        → ~/.codex/agents/ (architect, coder, reviewer)
-│   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 20 workflows; invocação `$nome`)
+│   │   ├── skills/*/SKILL.md    → ~/.agents/skills/ (mesmos 21 workflows; invocação `$nome`)
 │   │   └── references/          → ~/.codex/base_project/references/ (menu Codex;
 │   │                              cdp-verification.md e standards/goal-types compartilhados)
 │   ├── plugins.json            → ~/.claude/base_project/plugins.json (+ cópia opencode)
@@ -143,18 +143,18 @@ no ROADMAP: reimplementar como texto, não instalar a skill de terceiro.
 
 ---
 
-## 4. Os 20 comandos
+## 4. Os 21 comandos
 
 Arquivos: `source/claude/commands/*.md` + `source/opencode/command/*.md` +
 `source/codex/skills/*/SKILL.md`. Só o lado
 opencode tem um segundo conjunto espelhado, `source/opencode/command-lite/*.md` (mesmos
-20 nomes, mesma descrição de propósito, reescrito como checklist plano) — opt-in via
+21 nomes, mesma descrição de propósito, reescrito como checklist plano) — opt-in via
 installer, ver § 2 acima. Claude Code não tem "lite" porque o problema que motivou o
 perfil (modelo fraco/gratuito perdendo o fio em instrução condicional densa) é específico
 de quem roda opencode com um backend não-Claude.
 
 No Codex, workflows reutilizáveis são **skills**, não comandos customizados de topo. Portanto
-os mesmos 20 nomes usam `$nome` (`$wpp`, `$scanproject`, `$ship`); eles também aparecem no
+os mesmos 21 nomes usam `$nome` (`$wpp`, `$scanproject`, `$ship`); eles também aparecem no
 seletor de slash commands do Codex. `/prompts:nome` é outra categoria (prompt customizado) e
 não foi usada porque perderia descoberta implícita e o empacotamento progressivo das skills.
 
@@ -181,6 +181,7 @@ Pattern: a modifier is a token the host command recognizes — the mechanism `/n
 | `/usagebp` / `$usagebp` | Lê o ledger de uso local (escrito pelo hook `usage-log`) e reporta o que foi instalado mas nunca usado, o que é usado e onde, o que está falhando, além de uma fila priorizada de diagnóstico. Também compara dois baselines anotados, sem tratar menor consumo de token como sucesso isolado. Cobre Claude Code e Codex quando os hooks estão ativos; atividade do opencode não é rastreada. |
 | `/update` | Confere se há commits novos no repositório do base_project, mostra o que mudou, e — só com confirmação — dá `git pull` e reroda o installer. Nunca mexe se houver mudança local não commitada. |
 | `/updates` | Consulta atualizações disponíveis para dependências, ferramentas, MCPs e componentes opcionais geridos pelo base_project. É somente leitura: nunca instala, atualiza, dá pull ou altera configuração. |
+| `/rulesonproject` / `$rulesonproject` | Define regras só para o projeto atual e veta a regra do base_project que cada uma substitui. Guarda em `~/.base_project/project-rules/<chave>.json`, fora do projeto; a chave vem da raiz do repositório principal, então os worktrees compartilham. O hook `SessionStart` imprime o bloco no início de cada sessão e depois de compactar. É uma instrução (a regra base continua carregada), não um bloqueio. Regra de segurança exige confirmação separada e `--allow-protected`. No opencode não há injeção automática (rodar `render`). |
 | `/uninstall` | Remove tudo que o base_project instalou globalmente, em 3 níveis de confirmação por raio de impacto. Nunca apaga o repositório em si. |
 
 ### 4.1 `/scanproject` / `/cleanproject` → `/fixproject`, e a referência compartilhada
@@ -241,7 +242,7 @@ apontam pra ele em vez de duplicar a lista.
   comportamento de toda sessão futura), Tier C (os MCPs globais: `claude mcp remove
   --scope user`, as entradas do base_project no `mcp` do `opencode.jsonc`, as tabelas no
   `~/.codex/config.toml` — afeta todo projeto da máquina) e **Tier D (dados do usuário:
-  ledger de uso, `~/.agents/` — não voltam reinstalando, padrão é manter)**. Até o
+  ledger de uso, overrides das regras por projeto em `~/.base_project/project-rules/`, `~/.agents/` — não voltam reinstalando, padrão é manter)**. Até o
   GOALS 17 o ledger ficava dentro do namespace que o Tier A chamava de "reversível
   reinstalando", mas é dado do usuário que o `/usagebp` lê. Nunca toca em arquivo sem o marcador
   `base_project:managed`, e **nunca apaga o repositório do base_project em si**, só os
@@ -253,7 +254,7 @@ apontam pra ele em vez de duplicar a lista.
 os installers. Ele preserva conteúdo do usuário e instala seis superfícies coerentes:
 
 1. bloco delimitado de regras em `~/.codex/AGENTS.md`;
-2. 20 skills em `~/.agents/skills/`;
+2. 21 skills em `~/.agents/skills/`;
 3. três subagentes TOML em `~/.codex/agents/`;
 4. referências e catálogo em `~/.codex/base_project/`;
 5. hooks mesclados em `~/.codex/hooks.json`;
@@ -358,7 +359,7 @@ dentro); aqui é só *o que existe*, agrupado por pra que serve.
 | Nome | Tipo | O que faz |
 |---|---|---|
 | **`/bootstrap`** | comando | Sincroniza com o remoto do projeto (pull se estiver atrás), depois mapeia em `graphify-out/` + `repomix-output.xml` — contexto eficiente em token. |
-| **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão — evita "cold start". |
+| **`session-start-git-context`** | hook (`SessionStart`) | Injeta o estado do git (branch, mudanças pendentes, commits recentes) no início da sessão, mais os overrides do `rulesonproject` do projeto — evita "cold start". |
 | **Menu "o que você deseja fazer agora?"** | instrução (`CLAUDE.md`/`opencode-instructions.md`) | Renderiza `references/command-menu.md` no início de sessão e ao fechar tarefa substancial — lista todos os comandos em linguagem simples. |
 | **context7** | MCP (sempre ativo, versão fixada) | Busca documentação atualizada de biblioteca/framework. |
 | **filesystem** | MCP opcional (`/plugins`) | Acesso a arquivo restrito aos diretórios passados. Saiu do conjunto sempre-ativo na v1.2.0 (zero uso medido; os agentes têm ferramentas de arquivo nativas). |
@@ -423,7 +424,7 @@ ao modelo como `additionalContext` no stdout e sai com sucesso: é um poka-yoke 
 um bloqueio que pudesse invalidar uma edição legítima. No Claude Code e no Codex, o registro usa
 matcher estreito só para ferramentas de edição; o filtro interno continua como defesa adicional.
 
-### `source/hooks/session-start-git-context.js` (`SessionStart`, matcher `startup|resume|clear`)
+### `source/hooks/session-start-git-context.js` (`SessionStart`, matcher `startup|resume|clear|compact`)
 Injeta um resumo compacto do estado git (branch, commits à frente/atrás do upstream,
 arquivos com mudança não commitada, `git log -3 --oneline`) direto no contexto da
 sessão — evita "cold start" (ter que redescobrir o que estava em andamento gastando
@@ -433,7 +434,7 @@ implementar, não assumido. **Fica em silêncio (zero stdout) se a árvore estiv
 sincronizada com o upstream** — decisão deliberada de economia de token: a maioria das
 aberturas de sessão não tem nada de novo pra reportar. O `git diff --stat` é limitado a 20
 arquivos + a linha de resumo, para uma árvore com centenas de mudanças não inundar o contexto.
-Deliberadamente não registrado pros matchers `compact`/`fork` (não são cold start de verdade).
+Também imprime o bloco de overrides do projeto (`source/hooks/project-rules.js`, biblioteca + CLI copiada junto; não é um hook registrado). Por isso o matcher inclui `compact`: um override que sai do contexto deixa de valer em silêncio, então depois de uma compactação só os overrides são impressos e o resumo git não se repete. `fork` fica de fora.
 
 ### `source/hooks/usage-log.js` (`PostToolUse` + `UserPromptSubmit`, assíncrono)
 Grava um ledger de fatos crus — um arquivo `.jsonl` por sessão por dia em
@@ -496,8 +497,10 @@ Codex reutilizam esse caminho compartilhado.
   propósito
 - `contrast-check.test.js` — as regras de contraste WCAG e tamanho mínimo de alvo de
   toque usadas por `/designreview`
-- `codex.test.js` — paridade nominal 20/20, frontmatter das skills, instalação
+- `codex.test.js` — paridade nominal 21/21, frontmatter das skills, instalação
   idempotente e preservação de hooks/skills do usuário
+- `project-rules.test.js` — chave do projeto (worktrees compartilham), armazenamento, trava de regras protegidas, âncora e `stale`, limite do bloco, `adopt` e o hook `SessionStart` (inclui `compact`)
+- `rulesonproject-command.test.js` — contrato do comando nas 4 variantes, Tier D do `/uninstall` e matcher `compact` nos instaladores
 - `lean-agent-docs.test.js` — contrato do GOALS 21: referência ai-writing-standard idêntica nas duas cópias, executor-v1 nos quatro `newgoal`/`execgoals`, bullet BLUF uma vez em cada regra global, goal-types com o parágrafo do `check:`, regras do lint.
 - `ui-verification-rule.test.js` — paridade byte a byte da seção `### UI verification &
   screen control` nos três blocos globais, posicionamento correto, vocabulário por runtime,

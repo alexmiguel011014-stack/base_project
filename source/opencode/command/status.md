@@ -12,10 +12,10 @@ names — no descriptions, no explanations of what each thing does.
    the git tag and package.json version match, just show one.
 
 2. **Active agents**: list the `.md` filenames (without extension) present in
-   `~/.config/opencode/agent/` that contain the `base_project:managed` marker.
+   `~/.config/opencode/agents/` that contain the `base_project:managed` marker.
 
 3. **Active commands**: list the `.md` filenames (without extension) present in
-   `~/.config/opencode/command/` that contain the `base_project:managed` marker.
+   `~/.config/opencode/commands/` that contain the `base_project:managed` marker.
 
 4. **Active hooks**: read `~/.claude/settings.json` (base_project's Claude Code hooks —
    opencode itself doesn't have an equivalent hook-registration file for these), walk

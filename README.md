@@ -14,6 +14,16 @@
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **git**, to clone this repository.
+- **Node.js 22 or newer.** The hooks run on Node, and the installer uses it to merge `opencode.jsonc` and to sync the Codex skills. Without Node, the installer skips those steps and warns.
+- **jq** (macOS/Linux only). `install.sh` uses it to merge the hooks into `~/.claude/settings.json`; without it, that step is skipped.
+- **Windows PowerShell 5.1 or PowerShell 7** (Windows only).
+- At least one of **Claude Code**, **Codex**, or **opencode**.
+
+Optional: `npm`, `pipx` (or `pip`), and `gh`. The installer uses them to install `repomix`, `biome`, `tsc`, `graphify`, and `gh` when they are missing; a failure there only prints a warning.
+
 ### Installation
 
 #### Windows
@@ -86,17 +96,17 @@ Anything project‑specific — `graphify-out/`, `repomix-output.xml`, your `.en
 | `source/CLAUDE.md` | `~/.claude/CLAUDE.md` (delimited block) | Global rules for Claude Code |
 | `source/opencode-instructions.md` | Linked from `~/.config/opencode/opencode.jsonc` | Global rules for opencode |
 | `source/claude/agents/*.md` | `~/.claude/agents/` | `architect`, `coder`, `reviewer` subagents |
-| `source/claude/commands/*.md` | `~/.claude/commands/` | All 20 workflows — see the Commands section below |
-| `source/opencode/agent/*.md` | `~/.config/opencode/agent/` | Same trio, opencode format |
-| `source/opencode/command/*.md` | `~/.config/opencode/command/` | Same commands, opencode format (`dense` profile, default) |
-| `source/opencode/command-lite/*.md` | `~/.config/opencode/command/` | Same 20 commands, flat checklist rewrite for weaker/free LLM backends (`lite` profile, opt-in — see below) |
+| `source/claude/commands/*.md` | `~/.claude/commands/` | All 21 workflows — see the Commands section below |
+| `source/opencode/agent/*.md` | `~/.config/opencode/agents/` | Same trio, opencode format |
+| `source/opencode/command/*.md` | `~/.config/opencode/commands/` | Same commands, opencode format (`dense` profile, default) |
+| `source/opencode/command-lite/*.md` | `~/.config/opencode/commands/` | Same 21 commands, flat checklist rewrite for weaker/free LLM backends (`lite` profile, opt-in — see below) |
 | `source/codex/AGENTS.md` | `~/.codex/AGENTS.md` (delimited block) | Codex-native global operating rules |
-| `source/codex/skills/*/SKILL.md` | `~/.agents/skills/` | The same 20 workflows as native Codex skills (`$scanproject`, `$wpp`, etc.) |
+| `source/codex/skills/*/SKILL.md` | `~/.agents/skills/` | The same 21 workflows as native Codex skills (`$scanproject`, `$wpp`, etc.) |
 | `source/codex/agents/*.toml` | `~/.codex/agents/` | The same `architect`, `coder`, `reviewer` roles in Codex's native format |
 | `source/codex/references/` + shared references | `~/.codex/base_project/references/` | Codex menu plus shared standards and goal types |
 | `source/opencode/mcp.json` | Merged into the `mcp` section of `~/.config/opencode/opencode.jsonc`, registered via `claude mcp add --scope user`, and merged into `~/.codex/config.toml` | Context7 only, pinned to an exact version (always on — no credentials needed). Filesystem and git left the always-on set in v1.2.0 (zero measured use, unpinned) and are optional in `/plugins`, like GitHub, which needs a real personal access token. Re-running the installer retires them only where they still have the definition base_project wrote (`source/opencode/mcp-previous.json`). |
 | `source/plugins.json` | Engine `base_project/plugins.json` namespaces | Optional catalog read by `/plugins` or `$plugins` |
-| `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, GOALS structural validation, git-context injection, shared usage ledger (secrets masked before writing) |
+| `source/hooks/*.js` | `~/.claude/base_project/hooks/`, registered by Claude Code and Codex | Loop detection, scoped auto-format, GOALS structural validation, git-context injection, per-project rule overrides (`project-rules.js`), shared usage ledger (secrets masked before writing) |
 | `source/CLAUDE.md` + `source/opencode/mcp.json` | `~/.kimi/AGENTS.md` (delimited block) + `~/.kimi/mcp.json` | Kimi Code CLI, only when `~/.kimi/` already exists; start it with `kimi --mcp-config-file ~/.kimi/mcp.json` |
 
 **opencode command profile.** By default the installer copies the `dense` command set (the same rich, multi-step instructions Claude Code gets). If you're running opencode against a weaker or free LLM backend and it struggles to follow the dense commands, switch to `lite` — flatter, less-branchy versions of the same 20 commands, same names, no functionality removed:
@@ -112,7 +122,7 @@ The choice is remembered (`~/.base_project/opencode-command-profile.txt`) — re
 
 The installer also checks for (and installs if missing) the global CLI tools these rely on: `gh`, `graphify`, `repomix`, `biome`, `tsc`.
 
-20 workflows ship in total — see the Commands section below for the complete, current list.
+21 workflows ship in total — see the Commands section below for the complete, current list.
 
 **Codex invocation:** use `$scanproject`, `$newgoal`, `$ship`, `$wpp`, and so on. Enabled skills also appear in Codex's slash selector, but Codex does not support arbitrary custom top-level names like `/wpp`; custom prompt files would be namespaced under `/prompts:`. This is why the faithful Codex spelling is `$wpp`, not `/wpp`.
 
@@ -166,6 +176,7 @@ The table uses Claude Code/opencode `/name` spelling. In Codex, every row has th
 | `/usagebp` | Reads the local usage ledger and reports what's actually being used: installed-but-never-touched tools, what's used and where, what's failing, what's slow, plus a prioritized diagnostic queue. It can compare two annotated baselines without treating lower token use as success by itself. Covers Claude Code and Codex when their hooks are active; opencode activity isn't tracked. |
 | `/update` | Checks whether base_project itself has a newer version on GitHub and, on confirmation, pulls it and re-runs the installer. Never touches an unrelated project. |
 | `/updates` | Reports available updates for base_project-managed dependencies, tools, MCPs, and detected optional components. Read-only: never installs, upgrades, pulls, or changes configuration. |
+| `/rulesonproject` | Sets rules that apply to this project only and vetoes the base_project rule each one replaces. Saved outside the project (`~/.base_project/project-rules/`), so neither the project nor base_project changes. The SessionStart hook prints the overrides at the start of every session and after a compaction. An override is an instruction, not a deletion; vetoing a safety rule needs a separate confirmation. opencode does not print overrides automatically (run `/rulesonproject render`). Subcommands: `list`, `remove`, `find`, `render`, `adopt`, `key`. |
 | `/uninstall` | Cleanly removes everything base_project installed globally, with tiered confirmation — bigger-blast-radius items (hooks, MCP servers) confirmed separately. Never deletes the base_project repo itself. |
 | `/wpp` | Shows the "what do you want to do now?" menu on demand — the same one shown automatically at session start. It is never shown on its own after a task; this is how to bring it back. |
 
@@ -187,7 +198,7 @@ ai > This looks like a Next.js + Supabase project.
 
 **Currently cataloged:** Playwright MCP, Supabase MCP, GitHub MCP (needs your own token), PostgreSQL and SQLite (Google's MCP Toolbox), Filesystem and Git MCPs (formerly always on), Strix (AI pentest agent), Skill UI bundle (frontend-design + baseline-ui), StyleSeed (design-judgment engine with Stripe/Linear/Vercel/Notion reference skins), UX/UI Agent Skills (138-design-system library + DTCG tokens), Headroom (context compression), Ponytail (anti-overengineering discipline), and more design and orchestration skills — `source/plugins.json` is the full list.
 
-The Postgres and SQLite MCP entries were removed in GOALS 17: the official reference servers they pointed to are archived with unpatched SQL-injection flaws (the Postgres one bypasses its read-only mode), and the SQLite npm package never existed. Choosing a maintained replacement is an open decision, not a silent swap.
+The original Postgres and SQLite MCP entries were removed in GOALS 17: the official reference servers they pointed to are archived with unpatched SQL-injection flaws (the Postgres one bypasses its read-only mode), and the SQLite npm package never existed. Their replacement is Google's MCP Toolbox (`toolbox-postgres` and `toolbox-sqlite` in the catalog), pinned to an exact version, with least-privilege setup guidance.
 
 ### Claude Code vs. Codex vs. opencode
 
@@ -251,7 +262,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 - 🐛 **Report bugs** via [GitHub Issues](https://github.com/alexmiguel011014-stack/base_project/issues)
 - 🔒 **Report a security vulnerability** — see [SECURITY.md](SECURITY.md), please don't file it as a public issue
 - 🛠️ **Contribute** — see [CONTRIBUTING.md](CONTRIBUTING.md)
-- 💡 **Suggest features** or ask questions in Discussions
+- 💡 **Suggest features** with the feature request template in [GitHub Issues](https://github.com/alexmiguel011014-stack/base_project/issues/new/choose)
 - 📚 **Read the documentation** in `source/` and `dev/` for deep dives
 
 ---
@@ -281,9 +292,14 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ## 📬 Changelog
 
 ### Unreleased
+- New `/rulesonproject` (21st command): per-project rule overrides saved outside the project and printed by the SessionStart hook, which now also runs after a compaction. Safety rules need a separate confirmation. `/uninstall` keeps the overrides with your other data (Tier D).
 - `/execgoals` and `/fixproject` accept the opt-in `cdp` modifier for UI verification in a real, isolated browser over CDP
 - Executor-v1 plans (GOALS 21): `/newgoal` writes AI-only items with a tier, a gate and a runnable `check:`; `/execgoals` dispatches each item to a cheaper model, checks it itself and escalates on failure; a new AI-facing writing standard (paraphrased from ASD-STE100) with `npm run lint:ai-style` / `report:ai-style`; replies lead with the answer (BLUF). Existing plans are unchanged.
 - The "what do you want to do now?" menu is no longer printed after a finished task (it cost about a thousand tokens each time and stayed in the context); it still appears at session start, and `/wpp` brings it back on demand
+- `/diario` (contribution diary) was removed; diary files already on disk stay where they are
+- opencode files now install to `~/.config/opencode/agents/` and `commands/`, the plural folders opencode documents; the installer removes base_project's own copies from the legacy `agent/` and `command/` folders and leaves your files there
+- The always-on Context7 MCP is pinned to 4.7.3, and existing installs upgrade on the next installer run; every npm package in the plugin catalog is pinned to an exact version
+- CI tests Node.js 24 and 26 besides the minimum, Node.js 22; it uses a read-only token and pins each action to a commit
 
 ### v1.2.0 (unreleased — tag pending)
 - Audit remediation (GOALS 17, `dev/auditoria-2026-09-24.md`): CI green again and unit tests run on Linux, Windows and macOS
@@ -314,4 +330,3 @@ In Codex, replace `/` with `$` for the workflow rows above.
 
 - **GitHub:** https://github.com/alexmiguel011014-stack/base_project
 - **Issues:** https://github.com/alexmiguel011014-stack/base_project/issues
-- **Discussions:** https://github.com/alexmiguel011014-stack/base_project/discussions

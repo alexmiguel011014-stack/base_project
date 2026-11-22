@@ -2,7 +2,8 @@
   "_comment": "Every MCP server definition an earlier base_project version registered, by name. The installers (through dev/scripts/mcp-servers.js) retire a server that is no longer in mcp.json, and upgrade one whose definition changed, only while the user's entry still matches one of these exactly; anything else is the user's own and is left alone. Append here whenever mcp.json changes a definition or drops a server.",
   "servers": {
     "context7": [
-      { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] }
+      { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] },
+      { "command": "npx", "args": ["-y", "@upstash/context7-mcp@4.1.1"] }
     ],
     "filesystem": [
       {

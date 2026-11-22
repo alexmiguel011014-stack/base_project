@@ -28,8 +28,8 @@
       "summary": "Drives a real browser via natural language, using the accessibility tree (no vision model, no screenshots). Good for validating UI changes end-to-end.",
       "recommend_if": "package.json depends on react/vue/svelte/next/nuxt/angular, or the project has an index.html / vite.config / webpack.config — i.e. it has a frontend to click through.",
       "source": "https://playwright.dev/mcp/introduction",
-      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@playwright/mcp@latest"] },
-      "opencode": { "command": "npx", "args": ["-y", "@playwright/mcp@latest"] }
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@playwright/mcp@0.0.86"] },
+      "opencode": { "command": "npx", "args": ["-y", "@playwright/mcp@0.0.86"] }
     },
     {
       "id": "supabase",
@@ -39,8 +39,8 @@
       "recommend_if": "package.json/requirements has a supabase dependency, or a supabase/ folder with config.toml exists.",
       "source": "https://supabase.com/docs/guides/ai-tools/mcp",
       "requires_input": ["SUPABASE_ACCESS_TOKEN (personal access token, from the Supabase dashboard)", "project-ref (from the project URL)"],
-      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } },
-      "opencode": { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } }
+      "claude": { "scope": "local", "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@0.19.0", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } },
+      "opencode": { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@0.19.0", "--read-only", "--project-ref=<project-ref>"], "env": { "SUPABASE_ACCESS_TOKEN": "<token>" } }
     },
     {
       "id": "toolbox-postgres",
@@ -205,8 +205,8 @@
       "recommend_if": "You regularly parallelize real dev work across many agents (multi-service refactors, large migrations) and want persistent cross-session memory, not just base_project's built-in architect/coder/reviewer trio.",
       "source": "https://github.com/ruvnet/ruflo",
       "requires_input": ["Review resource/cost implications before installing — it registers its own MCP server and maintains its own vector DB."],
-      "claude": { "scope": "user", "instruction": "claude mcp add ruflo -- npx ruflo@latest mcp start" },
-      "opencode": { "instruction": "npx ruflo@latest init wizard", "note": "Ruflo's opencode support is less mature than its Claude Code integration — verify before relying on it." }
+      "claude": { "scope": "user", "instruction": "claude mcp add ruflo -- npx ruflo@3.79.1 mcp start" },
+      "opencode": { "instruction": "npx ruflo@3.79.1 init wizard", "note": "Ruflo's opencode support is less mature than its Claude Code integration — verify before relying on it." }
     },
     {
       "id": "ponytail",

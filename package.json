@@ -3,6 +3,9 @@
 	"version": "1.2.0",
 	"private": true,
 	"license": "MIT",
+	"engines": {
+		"node": ">=22"
+	},
 	"description": "Global config installer for Claude Code, Codex, and opencode — validation/build tooling only, not a published package.",
 	"scripts": {
 		"lint": "biome check .",

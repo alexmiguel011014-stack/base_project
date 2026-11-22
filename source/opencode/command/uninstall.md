@@ -19,8 +19,9 @@ declined; still process the others.
 Build the real list before asking anything — don't guess from memory of what the
 installer usually does, actually check what's present on this machine right now:
 
-- Files under `~/.claude/agents/`, `~/.claude/commands/`, `~/.config/opencode/agent/`,
-  `~/.config/opencode/command/`, `~/.codex/agents/`, and `~/.agents/skills/*/SKILL.md` that
+- Files under `~/.claude/agents/`, `~/.claude/commands/`, `~/.config/opencode/agents/`,
+  `~/.config/opencode/commands/`, `~/.codex/agents/`, `~/.agents/skills/*/SKILL.md`, and the
+  legacy `~/.config/opencode/agent/` and `~/.config/opencode/command/` folders that
   contain the `base_project:managed` marker.
 - base_project's own namespaces: `~/.claude/base_project/` (hooks, scripts, references,
   plugins.json), `~/.config/opencode/base_project/`, and `~/.codex/base_project/` —

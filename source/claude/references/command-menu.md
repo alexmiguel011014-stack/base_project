@@ -19,6 +19,7 @@ O que você deseja fazer agora?
 - `/undo` — reverte o último lote de mudança (não commitada, ou o último commit) em etapas de confirmação separadas por risco. Nunca `reset --hard` nem force-push sem um gate explícito à parte.
 - `/ship` — commita e sobe pro GitHub (ou outro remoto). Confere se está tudo pronto antes; se não estiver, guia passo a passo em vez de só falhar. O contrato de segurança também é coberto por um harness local sem API paga.
 - `/pr` — abre um pull request pra branch atual, com título/corpo rascunhados a partir dos commits reais. Sempre confirma antes de criar.
+- `/rulesonproject` — define regras só para este projeto e veta a regra do base_project que cada uma substitui. Fica salvo fora do projeto, então nem o projeto nem o base_project mudam. Ex.: `/rulesonproject escreva o GOALS.md em português`.
 - `/plugins` — ver e instalar plugins opcionais (banco de dados, design, testes de UI, etc.) para este projeto.
 - `/council` — pressão-testar uma decisão difícil com várias perspectivas antes de decidir.
 - `/designreview` — criticar um design (mockup, screenshot, URL, ou algo que o próprio Claude acabou de gerar) contra uma rubrica com base em pesquisa, com achados acionáveis.
