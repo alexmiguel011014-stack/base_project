@@ -292,6 +292,7 @@ In Codex, replace `/` with `$` for the workflow rows above.
 ## 📬 Changelog
 
 ### Unreleased
+- Fixed: the installer no longer refuses to update `opencode.jsonc` when it retires two or more neighboring MCP entries, such as the old `filesystem` and `git` entries at the end of the list; before, it printed a parse error and left the file untouched
 - New `/rulesonproject` (21st command): per-project rule overrides saved outside the project and printed by the SessionStart hook, which now also runs after a compaction. Safety rules need a separate confirmation. `/uninstall` keeps the overrides with your other data (Tier D).
 - `/execgoals` and `/fixproject` accept the opt-in `cdp` modifier for UI verification in a real, isolated browser over CDP
 - Executor-v1 plans (GOALS 21): `/newgoal` writes AI-only items with a tier, a gate and a runnable `check:`; `/execgoals` dispatches each item to a cheaper model, checks it itself and escalates on failure; a new AI-facing writing standard (paraphrased from ASD-STE100) with `npm run lint:ai-style` / `report:ai-style`; replies lead with the answer (BLUF). Existing plans are unchanged.
