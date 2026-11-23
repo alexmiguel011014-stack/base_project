@@ -229,3 +229,40 @@ test("the CLI merges the real catalog end to end and leaves unparseable files un
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("retiring adjacent MCP entries keeps the config valid", () => {
+  const entry = (name) => [
+    name,
+    { type: "local", command: ["npx", "-y", name] },
+  ];
+  const cases = [
+    { order: ["keep", "a", "b"], retired: ["a", "b"], left: ["keep"] },
+    { order: ["a", "b", "keep"], retired: ["a", "b"], left: ["keep"] },
+    { order: ["a", "keep", "b"], retired: ["a", "b"], left: ["keep"] },
+    {
+      order: ["k1", "a", "b", "k2", "c"],
+      retired: ["a", "b", "c"],
+      left: ["k1", "k2"],
+    },
+    { order: ["a", "b", "c"], retired: ["a", "b", "c"], left: [] },
+  ];
+  for (const { order, retired, left } of cases) {
+    const mcp = Object.fromEntries(order.map(entry));
+    for (const [indent, eol] of [
+      [2, "\n"],
+      [4, "\r\n"],
+    ]) {
+      const original = JSON.stringify({ mcp }, null, indent).replace(
+        /\n/g,
+        eol,
+      );
+      const result = merge(original, retired, {});
+      assert.deepEqual(
+        Object.keys(parseJsonc(result.text).mcp),
+        left,
+        order.join(","),
+      );
+      assert.deepEqual([...result.retired].sort(), [...retired].sort());
+    }
+  }
+});

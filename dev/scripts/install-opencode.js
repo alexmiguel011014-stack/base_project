@@ -208,15 +208,39 @@ function insertMembers(text, object, entries, fallbackIndent) {
   ];
 }
 
-// Edit that deletes one member together with the comma that separates it.
-function removeMember(object, index) {
-  const member = object.members[index];
-  const next = object.members[index + 1];
-  if (next) return { start: member.keyStart, end: next.keyStart, text: "" };
-  const previous = object.members[index - 1];
-  if (previous)
-    return { start: previous.valueEnd, end: member.valueEnd, text: "" };
-  return { start: object.open + 1, end: object.close, text: "" };
+// Edits that delete the members at `indexes` together with the commas that separate them.
+// Consecutive members are removed as one run, so no two edits overlap.
+function removeMembers(object, indexes) {
+  const removed = new Set(indexes);
+  if (object.members.every((_, index) => removed.has(index))) {
+    return [{ start: object.open + 1, end: object.close, text: "" }];
+  }
+  const edits = [];
+  let index = 0;
+  while (index < object.members.length) {
+    if (!removed.has(index)) {
+      index += 1;
+      continue;
+    }
+    let last = index;
+    while (removed.has(last + 1)) last += 1;
+    const next = object.members[last + 1];
+    if (next) {
+      edits.push({
+        start: object.members[index].keyStart,
+        end: next.keyStart,
+        text: "",
+      });
+    } else {
+      edits.push({
+        start: object.members[index - 1].valueEnd,
+        end: object.members[last].valueEnd,
+        text: "",
+      });
+    }
+    index = last + 1;
+  }
+  return edits;
 }
 
 function applyEdits(text, edits) {
@@ -376,10 +400,10 @@ function mergeConfig(originalText, options) {
         toInsert.push([name, desired]);
       }
     }
-    for (const name of retired) {
-      const index = mcpObject.members.findIndex((entry) => entry.key === name);
-      if (index !== -1) edits.push(removeMember(mcpObject, index));
-    }
+    const retiredIndexes = retired
+      .map((name) => mcpObject.members.findIndex((entry) => entry.key === name))
+      .filter((index) => index !== -1);
+    edits.push(...removeMembers(mcpObject, retiredIndexes));
     edits.push(...insertMembers(text, mcpObject, toInsert, memberIndent));
   }
 
