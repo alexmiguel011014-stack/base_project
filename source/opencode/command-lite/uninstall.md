@@ -8,7 +8,7 @@ Remove base_project's installed files and registrations from every engine it was
 Confirmation is tiered by blast radius — ask about each tier separately, only touch a tier the user explicitly confirms, skip a declined tier cleanly and still process the others.
 
 STEP 1 — Inventory, read-only. Check what's actually present, don't guess:
-- Files under `~/.claude/agents/`, `~/.claude/commands/`, `~/.config/opencode/agent/`, `~/.config/opencode/command/`, `~/.codex/agents/`, and `~/.agents/skills/*/SKILL.md` containing the `base_project:managed` marker.
+- Files under `~/.claude/agents/`, `~/.claude/commands/`, `~/.config/opencode/agents/`, `~/.config/opencode/commands/`, the legacy `~/.config/opencode/agent/` and `~/.config/opencode/command/`, `~/.codex/agents/`, and `~/.agents/skills/*/SKILL.md` containing the `base_project:managed` marker.
 - `~/.claude/base_project/`, `~/.config/opencode/base_project/`, `~/.codex/base_project/` — base_project's own namespaces, EXCEPT `~/.claude/base_project/usage/` (the user's usage ledger, Tier D).
 - The delimited block (`<!-- base_project:start -->` … `<!-- base_project:end -->`) in `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.kimi/AGENTS.md`, where present.
 - `~/.base_project/` state (`repo-path.txt`, `opencode-command-profile.txt`, `opencode-managed-mcp.json`, and the legacy `diary-root.txt`).

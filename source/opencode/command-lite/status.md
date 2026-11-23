@@ -7,9 +7,9 @@ Report the base_project version and everything currently active. Names only, no 
 
 STEP 1 — Version. Read `~/.base_project/repo-path.txt` for the repo path. Run `git -C <repo> describe --tags --always` in it. Read `version` from that repo's `package.json`. Show both unless they match — then show one.
 
-STEP 2 — Active agents. List `.md` filenames (no extension) in `~/.config/opencode/agent/` that contain the `base_project:managed` marker.
+STEP 2 — Active agents. List `.md` filenames (no extension) in `~/.config/opencode/agents/` that contain the `base_project:managed` marker.
 
-STEP 3 — Active commands. List `.md` filenames (no extension) in `~/.config/opencode/command/` that contain the `base_project:managed` marker.
+STEP 3 — Active commands. List `.md` filenames (no extension) in `~/.config/opencode/commands/` that contain the `base_project:managed` marker.
 
 STEP 4 — Active hooks. Read `~/.claude/settings.json`. Walk every hook event. List the base filename of each command pointing into `base_project/hooks/`.
 

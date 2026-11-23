@@ -6,14 +6,17 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: "npm"
@@ -27,6 +30,30 @@ jobs:
       - name: Run deterministic contract harness
         run: npm run test:harness
 
+  node-compat:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests on Node ${{ matrix.node }}
+        run: npm test
+
+      - name: Run deterministic contract harness
+        run: npm run test:harness
+
   install-test:
     strategy:
       fail-fast: false
@@ -34,10 +61,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: "npm"
@@ -67,7 +94,15 @@ jobs:
           export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
           export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           mkdir -p "$BASE_PROJECT_CODEX_ROOT"
+          mkdir -p "$OPENCODE_HOME/command" "$OPENCODE_HOME/agent"
+          printf 'base_project:managed\n' > "$OPENCODE_HOME/command/ship.md"
+          printf 'my own command\n' > "$OPENCODE_HOME/command/mine.md"
+          printf 'base_project:managed\n' > "$OPENCODE_HOME/agent/coder.md"
           bash dev/scripts/install.sh
+          test ! -e "$OPENCODE_HOME/command/ship.md"
+          test -f "$OPENCODE_HOME/command/mine.md"
+          test ! -e "$OPENCODE_HOME/agent"
+          test -f "$OPENCODE_HOME/agents/coder.md"
           test -f "$CLAUDE_HOME/CLAUDE.md"
           test -f "$CLAUDE_HOME/settings.json"
           test -f "$CLAUDE_HOME/base_project/plugins.json"
@@ -118,26 +153,26 @@ jobs:
           test -f "$OPENCODE_HOME/base_project/references/goal-types/feature.md"
           test -f "$OPENCODE_HOME/base_project/references/goal-types/process.md"
           test -f "$OPENCODE_HOME/base_project/references/goal-types/research.md"
-          test -f "$OPENCODE_HOME/command/scanproject.md"
-          test -f "$OPENCODE_HOME/command/fixproject.md"
-          test -f "$OPENCODE_HOME/command/cleanproject.md"
-          test -f "$OPENCODE_HOME/command/wpp.md"
-          test -f "$OPENCODE_HOME/command/status.md"
-          test -f "$OPENCODE_HOME/command/update.md"
-          test -f "$OPENCODE_HOME/command/updates.md"
-          test -f "$OPENCODE_HOME/command/uninstall.md"
-          test -f "$OPENCODE_HOME/command/bootstrap.md"
-          test -f "$OPENCODE_HOME/command/audit.md"
-          test -f "$OPENCODE_HOME/command/council.md"
-          test -f "$OPENCODE_HOME/command/plugins.md"
-          test -f "$OPENCODE_HOME/command/ship.md"
-          test -f "$OPENCODE_HOME/command/pr.md"
-          test -f "$OPENCODE_HOME/command/undo.md"
-          test -f "$OPENCODE_HOME/command/newgoal.md"
-          test -f "$OPENCODE_HOME/command/repertoire.md"
-          test -f "$OPENCODE_HOME/command/execgoals.md"
-          test -f "$OPENCODE_HOME/command/designreview.md"
-          test -f "$OPENCODE_HOME/command/usagebp.md"
+          test -f "$OPENCODE_HOME/commands/scanproject.md"
+          test -f "$OPENCODE_HOME/commands/fixproject.md"
+          test -f "$OPENCODE_HOME/commands/cleanproject.md"
+          test -f "$OPENCODE_HOME/commands/wpp.md"
+          test -f "$OPENCODE_HOME/commands/status.md"
+          test -f "$OPENCODE_HOME/commands/update.md"
+          test -f "$OPENCODE_HOME/commands/updates.md"
+          test -f "$OPENCODE_HOME/commands/uninstall.md"
+          test -f "$OPENCODE_HOME/commands/bootstrap.md"
+          test -f "$OPENCODE_HOME/commands/audit.md"
+          test -f "$OPENCODE_HOME/commands/council.md"
+          test -f "$OPENCODE_HOME/commands/plugins.md"
+          test -f "$OPENCODE_HOME/commands/ship.md"
+          test -f "$OPENCODE_HOME/commands/pr.md"
+          test -f "$OPENCODE_HOME/commands/undo.md"
+          test -f "$OPENCODE_HOME/commands/newgoal.md"
+          test -f "$OPENCODE_HOME/commands/repertoire.md"
+          test -f "$OPENCODE_HOME/commands/execgoals.md"
+          test -f "$OPENCODE_HOME/commands/designreview.md"
+          test -f "$OPENCODE_HOME/commands/usagebp.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/AGENTS.md"
           test -f "$BASE_PROJECT_CODEX_ROOT/agents/reviewer.toml"
           test -f "$BASE_PROJECT_CODEX_ROOT/base_project/references/command-menu.md"
@@ -149,7 +184,7 @@ jobs:
           test -f "$BASE_PROJECT_AGENTS_ROOT/skills/updates/SKILL.md"
           test ! -e "$BASE_PROJECT_AGENTS_ROOT/rules"
           test ! -e "$BASE_PROJECT_AGENTS_ROOT/config.json"
-          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "20"
+          test "$(find "$BASE_PROJECT_AGENTS_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "21"
           node -e "const settings = JSON.parse(require('fs').readFileSync(process.env.CLAUDE_HOME + '/settings.json', 'utf8')); for (const hook of ['validate-goals.js', 'post-edit-format.js']) { const groups = settings.hooks.PostToolUse.filter((group) => group.hooks.some((entry) => entry.command.includes('base_project/hooks/' + hook))); if (groups.length !== 1 || groups[0].matcher !== 'Edit|Write|MultiEdit') process.exit(1) }"
           node -e "const hooks = JSON.parse(require('fs').readFileSync(process.env.BASE_PROJECT_CODEX_ROOT + '/hooks.json', 'utf8')); const groups = hooks.hooks.PostToolUse.filter((group) => group.hooks.some((hook) => hook.command.includes('base_project/hooks/validate-goals.js'))); if (groups.length !== 1 || groups[0].matcher !== 'apply_patch|Edit|Write|MultiEdit') process.exit(1)"
           grep -q "### UI verification & screen control" "$CLAUDE_HOME/CLAUDE.md"
@@ -167,7 +202,15 @@ jobs:
           $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
           $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
           New-Item -ItemType Directory -Force -Path $env:BASE_PROJECT_CODEX_ROOT | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $opencodeHome "command"), (Join-Path $opencodeHome "agent") | Out-Null
+          Set-Content -Path (Join-Path $opencodeHome "command\ship.md") -Value "base_project:managed"
+          Set-Content -Path (Join-Path $opencodeHome "command\mine.md") -Value "my own command"
+          Set-Content -Path (Join-Path $opencodeHome "agent\coder.md") -Value "base_project:managed"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
+          if (Test-Path (Join-Path $opencodeHome "command\ship.md")) { throw "Legacy managed opencode command was not removed" }
+          if (-not (Test-Path (Join-Path $opencodeHome "command\mine.md"))) { throw "The user's own legacy opencode command was removed" }
+          if (Test-Path (Join-Path $opencodeHome "agent")) { throw "Empty legacy opencode agent folder was not removed" }
+          if (-not (Test-Path (Join-Path $opencodeHome "agents\coder.md"))) { throw "opencode agents were not installed to agents" }
           $expected = @(
             (Join-Path $claudeHome "CLAUDE.md"),
             (Join-Path $claudeHome "settings.json"),
@@ -218,26 +261,26 @@ jobs:
             (Join-Path $opencodeHome "base_project\references\goal-types\feature.md"),
             (Join-Path $opencodeHome "base_project\references\goal-types\process.md"),
             (Join-Path $opencodeHome "base_project\references\goal-types\research.md"),
-            (Join-Path $opencodeHome "command\scanproject.md"),
-            (Join-Path $opencodeHome "command\fixproject.md"),
-            (Join-Path $opencodeHome "command\cleanproject.md"),
-            (Join-Path $opencodeHome "command\wpp.md"),
-            (Join-Path $opencodeHome "command\status.md"),
-            (Join-Path $opencodeHome "command\update.md"),
-            (Join-Path $opencodeHome "command\updates.md"),
-            (Join-Path $opencodeHome "command\uninstall.md"),
-            (Join-Path $opencodeHome "command\bootstrap.md"),
-            (Join-Path $opencodeHome "command\audit.md"),
-            (Join-Path $opencodeHome "command\council.md"),
-            (Join-Path $opencodeHome "command\plugins.md"),
-            (Join-Path $opencodeHome "command\ship.md"),
-            (Join-Path $opencodeHome "command\pr.md"),
-            (Join-Path $opencodeHome "command\undo.md"),
-            (Join-Path $opencodeHome "command\newgoal.md"),
-            (Join-Path $opencodeHome "command\repertoire.md"),
-            (Join-Path $opencodeHome "command\execgoals.md"),
-            (Join-Path $opencodeHome "command\designreview.md"),
-            (Join-Path $opencodeHome "command\usagebp.md"),
+            (Join-Path $opencodeHome "commands\scanproject.md"),
+            (Join-Path $opencodeHome "commands\fixproject.md"),
+            (Join-Path $opencodeHome "commands\cleanproject.md"),
+            (Join-Path $opencodeHome "commands\wpp.md"),
+            (Join-Path $opencodeHome "commands\status.md"),
+            (Join-Path $opencodeHome "commands\update.md"),
+            (Join-Path $opencodeHome "commands\updates.md"),
+            (Join-Path $opencodeHome "commands\uninstall.md"),
+            (Join-Path $opencodeHome "commands\bootstrap.md"),
+            (Join-Path $opencodeHome "commands\audit.md"),
+            (Join-Path $opencodeHome "commands\council.md"),
+            (Join-Path $opencodeHome "commands\plugins.md"),
+            (Join-Path $opencodeHome "commands\ship.md"),
+            (Join-Path $opencodeHome "commands\pr.md"),
+            (Join-Path $opencodeHome "commands\undo.md"),
+            (Join-Path $opencodeHome "commands\newgoal.md"),
+            (Join-Path $opencodeHome "commands\repertoire.md"),
+            (Join-Path $opencodeHome "commands\execgoals.md"),
+            (Join-Path $opencodeHome "commands\designreview.md"),
+            (Join-Path $opencodeHome "commands\usagebp.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "agents\reviewer.toml"),
             (Join-Path $env:BASE_PROJECT_CODEX_ROOT "base_project\references\command-menu.md"),
@@ -264,7 +307,7 @@ jobs:
           $codexHooks = Get-Content (Join-Path $env:BASE_PROJECT_CODEX_ROOT "hooks.json") -Raw | ConvertFrom-Json
           $codexGoalsGroups = @($codexHooks.hooks.PostToolUse | Where-Object { $_.hooks | Where-Object { $_.command -like "*base_project/hooks/validate-goals.js*" } })
           if ($codexGoalsGroups.Count -ne 1 -or $codexGoalsGroups[0].matcher -ne "apply_patch|Edit|Write|MultiEdit") { throw "Expected exactly one narrow Codex GOALS validation hook" }
-          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 20) { throw "Expected exactly 20 Codex skills" }
+          if ((Get-ChildItem (Join-Path $env:BASE_PROJECT_AGENTS_ROOT "skills") -Directory).Count -ne 21) { throw "Expected exactly 21 Codex skills" }
           if (-not (Select-String -Path (Join-Path $claudeHome "CLAUDE.md") -Pattern "### UI verification & screen control" -SimpleMatch -Quiet)) { throw "Claude CLAUDE.md is missing the UI verification & screen control section" }
           if (-not (Select-String -Path (Join-Path $env:BASE_PROJECT_CODEX_ROOT "AGENTS.md") -Pattern "### UI verification & screen control" -SimpleMatch -Quiet)) { throw "Codex AGENTS.md is missing the UI verification & screen control section" }
           $shippedMcp = (Get-Content "source/opencode/mcp.json" -Raw | ConvertFrom-Json).mcpServers
@@ -307,15 +350,15 @@ jobs:
           export BASE_PROJECT_CODEX_ROOT="$RUNNER_TEMP/codex-home"
           export BASE_PROJECT_AGENTS_ROOT="$RUNNER_TEMP/agents-home"
           bash dev/scripts/install.sh --opencode-commands lite
-          grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
-          test -f "$OPENCODE_HOME/command/updates.md"
+          grep -q "(lite)" "$OPENCODE_HOME/commands/ship.md"
+          test -f "$OPENCODE_HOME/commands/updates.md"
           test "$(cat "$HOME/.base_project/opencode-command-profile.txt")" = "lite"
           # re-running with no flag must keep 'lite' (state-file default), not silently reset to dense
           bash dev/scripts/install.sh
-          grep -q "(lite)" "$OPENCODE_HOME/command/ship.md"
+          grep -q "(lite)" "$OPENCODE_HOME/commands/ship.md"
           # switching back to dense must restore the original command
           bash dev/scripts/install.sh --opencode-commands dense
-          grep -qv "(lite)" "$OPENCODE_HOME/command/ship.md"
+          grep -qv "(lite)" "$OPENCODE_HOME/commands/ship.md"
           echo "opencode lite profile: install, persistence, and switch-back all verified"
 
       - name: Verify opencode -OpencodeCommands lite profile (Windows)
@@ -327,17 +370,17 @@ jobs:
           $env:BASE_PROJECT_CODEX_ROOT = Join-Path $env:RUNNER_TEMP "codex-home"
           $env:BASE_PROJECT_AGENTS_ROOT = Join-Path $env:RUNNER_TEMP "agents-home"
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands lite
-          $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
+          $shipMd = Get-Content (Join-Path $opencodeHome "commands\ship.md") -Raw
           if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite ship.md missing '(lite)' marker" }
-          if (-not (Test-Path (Join-Path $opencodeHome "command\updates.md"))) { throw "lite updates.md missing" }
+          if (-not (Test-Path (Join-Path $opencodeHome "commands\updates.md"))) { throw "lite updates.md missing" }
           $profileFile = Join-Path $HOME ".base_project\opencode-command-profile.txt"
           if ((Get-Content $profileFile -Raw).Trim() -ne "lite") { throw "profile state file did not persist 'lite'" }
           # re-running with no flag must keep 'lite' (state-file default), not silently reset to dense
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome
-          $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
+          $shipMd = Get-Content (Join-Path $opencodeHome "commands\ship.md") -Raw
           if ($shipMd -notmatch [regex]::Escape("(lite)")) { throw "lite profile did not persist across a flag-less re-run" }
           # switching back to dense must restore the original command
           & "dev\scripts\install.ps1" -ClaudeHome $claudeHome -OpencodeHome $opencodeHome -OpencodeCommands dense
-          $shipMd = Get-Content (Join-Path $opencodeHome "command\ship.md") -Raw
+          $shipMd = Get-Content (Join-Path $opencodeHome "commands\ship.md") -Raw
           if ($shipMd -match [regex]::Escape("(lite)")) { throw "dense switch-back did not restore the original command" }
           Write-Output "opencode lite profile: install, persistence, and switch-back all verified"

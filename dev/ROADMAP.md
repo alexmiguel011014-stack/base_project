@@ -2539,6 +2539,40 @@ de que a porta fechou. O resultado e as alternativas estão detalhados em GOALS 
 permanece; não se adota notação comprimida; a reescrita dos ≈84 arquivos executados pelo modelo
 depende da decisão pós-piloto; GOALS 12–18 permanecem no formato atual.
 
+## 60. Regras por projeto: `/rulesonproject` (GOALS 22) (2026-10-21)
+
+O dono quer reescrever qualquer regra do base_project dentro de um projeto específico, sem modificar o base_project nem o projeto.
+
+- D1: 21º comando; subcomandos `list`, `remove`, `find`, `render`, `adopt`, `key`; qualquer outro texto é um pedido de override.
+- D2: guarda em `~/.base_project/project-rules/<chave>.json`, fora do projeto (decisão de zero pegada). A chave vem da raiz do repositório principal, então worktrees compartilham. Rejeitados: `CLAUDE.local.md` ou `.claude/rules` no projeto, memória automática, editar o bloco gerenciado.
+- D3: o hook `SessionStart` imprime o bloco. É instrução, não bloqueio: a documentação do Claude Code trata o CLAUDE.md como contexto, não como configuração imposta. Nenhuma mudança nos três blocos de regras globais.
+- D4: o hook existente ganhou o matcher `compact` (só os overrides são impressos nesse caso). `project-rules.js` é biblioteca + CLI em `source/hooks/`.
+- D5: regras protegidas (Security, autonomia, UI e controle de tela, `ship`, `pr`, `uninstall`, `undo`, `council`) exigem `--allow-protected` depois de confirmação separada.
+- D6: âncora de uma linha; um update que remove o texto vetado marca o override como `stale`.
+- D7: a regra é gravada em inglês; a resposta ao usuário vem no idioma dele.
+- D8: opencode sem injeção automática (o base_project não instala hook de início de sessão lá). Decisão aberta O22.14.
+- D9: os overrides são dado do usuário: Tier D do `/uninstall`.
+- D10: executar depois do GOALS 18 (a contagem de comandos passa de 20 para 21).
+
+Aberto: aceitação ao vivo O22.13 e decisão do opencode O22.14.
+
+## 61. Modernização e prontidão (GOALS 23) (2026-11-20)
+
+**Contexto**: avaliação de 2026-11-20 sobre o que ficou desatualizado. O CI testava só o Node 22
+(manutenção, fim em 2027-04-30), e o Node 26 é LTS ativo desde 2026-10-28. O opencode documenta
+`agents/` e `commands/` no plural, e o instalador escrevia nas pastas legadas `agent/` e
+`command/`. O Context7 estava fixado em 4.1.1 com a 4.7.3 publicada, e três entradas do catálogo
+usavam `@latest`. O README apontava para Discussions desativado e contradizia o catálogo sobre
+Postgres/SQLite. O SECURITY.md manda usar o relato privado de vulnerabilidade, desligado no GitHub
+nessa data.
+
+**Decisões**: Node mínimo 22, com CI também em 24 e 26; token do CI só leitura e actions fixadas
+por SHA; opencode nas pastas no plural, removendo só as cópias gerenciadas das pastas legadas;
+toda versão de pacote npm do catálogo fixada, com teste que rejeita `@latest`; `$schema` do Biome
+apontando para o pacote instalado. Distribuir o base_project como plugin nativo (Claude Code e
+Codex têm marketplaces) ficou para um estudo (`dev/estudo-distribuicao-plugins-2026.md`) e uma
+decisão do dono; este plano não migra nada.
+
 ---
 
 ## Decisões já tomadas (histórico, não reabrir sem motivo novo)
@@ -2548,11 +2582,12 @@ depende da decisão pós-piloto; GOALS 12–18 permanecem no formato atual.
   central à identidade do projeto, não é negociável só porque ECC faz diferente.
 - **Unified layer estacionada (item 55)** — não religar sem demanda real por outro agente e
   sem adoção explícita por projeto; a regra de zero pegada vale para ela também.
+- **Regras por projeto ficam fora do projeto (item 60)** — `~/.base_project/project-rules/`, injetadas pelo hook `SessionStart`; nada de `CLAUDE.local.md` nem edição do bloco global.
 - **Plano executor-v1 + despacho por tier (item 57)** — sem notação comprimida; planos antigos não são convertidos.
 - **Menu só no início de sessão (item 56)** — não voltar com gatilho depois de tarefa sem medir o
   custo em tokens; `/wpp` é o caminho para quem quer vê-lo.
 - **Modifier token (GOALS 18)** — `cdp` só ativa CDP na execução de `/execgoals` ou `/fixproject`;
-  não é uma porta de debug sempre ativa nem o 21º comando (a contagem atual continua em 20).
+  não é uma porta de debug sempre ativa nem o 22º comando (a contagem atual continua em 21).
 - **Dashboard local, sem comunicação entre projetos** — cada instância do dashboard só
   mostra dados do projeto de onde foi aberto, mesmo que o log de uso seja compartilhado
   em disco.

@@ -172,6 +172,19 @@ function check(filePath) {
   let mermaidStart = null;
   let contractActive = false;
   let open = null;
+  // Executor-v1 sections carry their own field rules (checkExecutorV1). The older
+  // Files/Verify contract under the item-contract marker does not apply to them.
+  const v1Lines = new Set();
+  const sectionStarts = [];
+  for (const [index, line] of lines.entries()) {
+    if (SECTION_HEADING.test(line)) sectionStarts.push(index);
+  }
+  for (const [position, start] of sectionStarts.entries()) {
+    const end = sectionStarts[position + 1] ?? lines.length;
+    if (lines.slice(start, end).some((line) => line.trim() === V1_MARKER)) {
+      for (let index = start; index < end; index += 1) v1Lines.add(index);
+    }
+  }
 
   const closeItem = () => {
     if (!open) return;
@@ -204,7 +217,7 @@ function check(filePath) {
     const definition = line.match(ITEM_DEFINITION);
     if (definition) {
       closeItem();
-      if (contractActive && line.includes("[ ]")) {
+      if (contractActive && !v1Lines.has(index) && line.includes("[ ]")) {
         open = {
           id: definition[1],
           line: lineNumber,

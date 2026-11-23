@@ -371,3 +371,23 @@ test("validate-goals-structure leaves old-format sections unchanged", () => {
     [],
   );
 });
+
+test("validate-goals-structure applies only executor-v1 rules under the item-contract marker", () => {
+  assert.deepEqual(
+    codesFor(
+      [
+        "## GOALS 1 — T (x process)",
+        "Format: executor-v1",
+        "",
+        "| Stage | Items | Depends on | Can run in parallel with |",
+        "| --- | --- | --- | --- |",
+        "| 1 | T1.1, T1.2 | none | none |",
+        "<!-- item-contract: v1 -->",
+        "",
+        v1Item("T1.1", {}),
+        v1Item("T1.2", { tier: "user", gate: "ask", after: "T1.1" }),
+      ].join("\n"),
+    ),
+    [],
+  );
+});

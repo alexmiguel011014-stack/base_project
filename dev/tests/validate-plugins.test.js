@@ -81,3 +81,11 @@ test("validate: rejects the wrong _managed_by value", () => {
   const result = validate(file);
   assert.equal(result.valid, false);
 });
+
+test("catalog: no entry installs a floating @latest version", () => {
+  const text = fs.readFileSync(
+    path.join(__dirname, "..", "..", "source", "plugins.json"),
+    "utf8",
+  );
+  assert.doesNotMatch(text, /@latest\b/);
+});

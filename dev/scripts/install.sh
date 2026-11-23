@@ -104,8 +104,8 @@ fi
 # ---------------------------------------------------------------------
 CLAUDE_AGENTS_DIR="$CLAUDE_HOME/agents"
 CLAUDE_COMMANDS_DIR="$CLAUDE_HOME/commands"
-OPENCODE_AGENT_DIR="$OPENCODE_HOME/agent"
-OPENCODE_COMMAND_DIR="$OPENCODE_HOME/command"
+OPENCODE_AGENT_DIR="$OPENCODE_HOME/agents"
+OPENCODE_COMMAND_DIR="$OPENCODE_HOME/commands"
 CLAUDE_HOOKS_DIR="$CLAUDE_HOME/base_project/hooks"
 CLAUDE_SCRIPTS_DIR="$CLAUDE_HOME/base_project/scripts"
 CLAUDE_REFERENCES_DIR="$CLAUDE_HOME/base_project/references"
@@ -279,6 +279,20 @@ for stale_name in dashboard doctor context explain newproject reviewusage diario
         warn "Kept $stale_cmd - not managed by base_project (looks like your own file)"
     fi
   done
+done
+# opencode reads agents/ and commands/ (plural); agent/ and command/ are legacy names it still
+# discovers. Remove base_project's own files from the legacy folders so no command loads twice.
+# A file without the managed marker is the user's own and stays where it is.
+for legacy_dir in "$OPENCODE_HOME/agent" "$OPENCODE_HOME/command"; do
+    [ -d "$legacy_dir" ] || continue
+    for legacy_file in "$legacy_dir"/*.md; do
+        [ -f "$legacy_file" ] || continue
+        if grep -q 'base_project:managed' "$legacy_file"; then
+            rm -f "$legacy_file"
+            ok "removed legacy opencode file: $legacy_file"
+        fi
+    done
+    rmdir "$legacy_dir" 2>/dev/null || true
 done
 for stale_dir in "$CLAUDE_HOME/base_project/dashboard" "$OPENCODE_HOME/base_project/dashboard"; do
     if [ -d "$stale_dir" ]; then

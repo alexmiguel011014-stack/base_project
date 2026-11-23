@@ -15,6 +15,10 @@ const repoRoot = path.resolve(__dirname, "..", "..");
 const ENFORCED = [
   "source/claude/references/ai-writing-standard.md",
   "source/opencode/references/ai-writing-standard.md",
+  "source/claude/commands/rulesonproject.md",
+  "source/opencode/command/rulesonproject.md",
+  "source/opencode/command-lite/rulesonproject.md",
+  "source/codex/skills/rulesonproject/SKILL.md",
 ];
 
 const BANNED =

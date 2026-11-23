@@ -3,20 +3,22 @@
 ## Scope
 
 base_project is an installer: `dev/scripts/install.ps1`/`install.sh` write to your global
-config (`~/.claude/`, `~/.config/opencode/`), register hook scripts that run on every
-`PostToolUse`/`SessionStart` event, and register MCP servers. That write access to your
+config (`~/.claude/`, `~/.codex/`, `~/.agents/skills/`, `~/.config/opencode/`,
+`~/.base_project/`, and `~/.kimi/` when it exists), register hook scripts that run on
+`PostToolUse`, `UserPromptSubmit` and `SessionStart` events, and register MCP servers. That write access to your
 machine's global config is the real attack surface — a vulnerability here isn't "a bug in
 a web app," it's something that could affect every project you open afterward. Report:
 
-- Anything in `dev/scripts/install.ps1`/`install.sh` that could write outside the intended
-  `~/.claude/`/`~/.config/opencode/` directories, or overwrite a file it doesn't own.
+- Anything in `dev/scripts/install.ps1`/`install.sh` that could write outside the
+  directories listed above, or overwrite a file it doesn't own.
 - Anything in `source/hooks/*.js` (`loop-detect.js`, `post-edit-format.js`,
-  `session-start-git-context.js`, `usage-log.js`) that could execute untrusted input, leak
+  `session-start-git-context.js`, `usage-log.js`, `validate-goals.js`, `project-rules.js`)
+  that could execute untrusted input, leak
   data beyond its stated purpose, or run with more effect than documented.
 - Anything in `dev/scripts/scan-skill.js` that could be bypassed by an actually-malicious
   skill it's meant to catch.
 - Supply-chain issues in this repo's own dependencies (`ajv`, `ajv-formats`, `@biomejs/biome`,
-  `typescript`).
+  `typescript`, `@types/node`) and in the pinned always-on MCP server (`@upstash/context7-mcp`).
 
 **Out of scope**: vulnerabilities in third-party tools base_project merely *recommends*
 (entries in `source/plugins.json`) — report those to the tool's own repository instead.

@@ -19,7 +19,7 @@ Check all engines actually present:
 
 Report the inventory and confirm each tier separately:
 
-1. **Tier A — owned files:** managed skills/agents/commands/references/scripts/catalog copies, delimited instruction blocks, and state (including the legacy `diary-root.txt`). Never the usage ledger. Reinstalling restores these.
+1. **Tier A — owned files:** managed skills/agents/commands/references/scripts/catalog copies, delimited instruction blocks, and state (including the legacy `diary-root.txt`) except `project-rules/` (kept with Tier D). Never the usage ledger. Reinstalling restores these.
 2. **Tier B — automatic behavior:** hook registrations and global instruction links. Explain that future sessions lose loop detection, post-edit formatting, GOALS structure validation, Git context, and usage logging as applicable.
 3. **Tier C — MCP registrations:** exact detected global/project servers. Explain scope and impact for every affected engine.
 4. **Tier D — user data (not restorable by reinstalling; default keep):** the usage ledger (the source `$usagebp` reads), project rule overrides, and `~/.agents/` content. Offer it only after Tiers A–C, say plainly it cannot be undone by reinstalling, and keep it unless the user answers an explicit yes.

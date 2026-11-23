@@ -17,6 +17,7 @@ O que você deseja fazer agora?
 - `$undo` — reverte o último lote de mudanças com confirmações separadas por risco.
 - `$ship` — valida, commita e envia as mudanças sem force-push nem resolução automática de conflitos; a segurança é coberta por um harness local sem API paga.
 - `$pr` — prepara e abre um pull request da branch atual, sempre confirmando título e corpo.
+- `$rulesonproject` — define regras só para este projeto e veta a regra do base_project que cada uma substitui; fica salvo fora do projeto, então nem o projeto nem o base_project mudam.
 - `$plugins` — recomenda e instala capacidades opcionais adequadas ao projeto.
 - `$council` — testa uma decisão com cinco perspectivas independentes antes de sintetizar um veredito.
 - `$designreview` — revisa um design, screenshot, URL ou interface produzida contra uma rubrica verificável.
